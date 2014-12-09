@@ -18,6 +18,7 @@
 import os
 
 import mock
+from oslo_policy import policy
 from oslo.config import cfg
 from oslo.config import fixture as config
 from oslo.serialization import jsonutils
@@ -26,13 +27,12 @@ import six
 import six.moves.urllib.parse as urlparse
 import six.moves.urllib.request as urlrequest
 
-from openstack.common import fileutils
-from openstack.common.fixture import lockutils
-from openstack.common import policy
+from oslo_policy.openstack.common import fileutils
+from oslo_policy.openstack.common.fixture import lockutils
 
 
 TEST_VAR_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                            '..', 'var'))
+                                            '..', 'tests/var'))
 
 ENFORCER = policy.Enforcer()
 
