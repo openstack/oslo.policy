@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = policy
+omit = policy/tests/*,policy/openstack/*
+
+[report]
+ignore-errors = True
