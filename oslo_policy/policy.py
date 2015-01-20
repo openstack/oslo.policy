@@ -96,13 +96,12 @@ import re
 
 from oslo.config import cfg
 from oslo.serialization import jsonutils
+from oslo_policy.openstack.common import fileutils
+from oslo_policy.openstack.common._i18n import _, _LE, _LI
+from oslo_policy.openstack.common import log as logging
 import six
 import six.moves.urllib.parse as urlparse
 import six.moves.urllib.request as urlrequest
-
-from openstack.common import fileutils
-from openstack.common._i18n import _, _LE, _LI
-from openstack.common import log as logging
 
 
 policy_opts = [
