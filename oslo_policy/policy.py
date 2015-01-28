@@ -123,8 +123,6 @@ policy_opts = [
                            'be searched.')),
 ]
 
-CONF = cfg.CONF
-CONF.register_opts(policy_opts)
 
 LOG = logging.getLogger(__name__)
 
@@ -202,27 +200,32 @@ class Rules(dict):
 class Enforcer(object):
     """Responsible for loading and enforcing rules.
 
+    :param conf: A configuration object.
     :param policy_file: Custom policy file to use, if none is
-                        specified, `CONF.policy_file` will be
+                        specified, `conf.policy_file` will be
                         used.
     :param rules: Default dictionary / Rules to use. It will be
                   considered just in the first instantiation. If
                   `load_rules(True)`, `clear()` or `set_rules(True)`
                   is called this will be overwritten.
-    :param default_rule: Default rule to use, CONF.default_rule will
+    :param default_rule: Default rule to use, conf.default_rule will
                          be used if none is specified.
     :param use_conf: Whether to load rules from cache or config file.
     :param overwrite: Whether to overwrite existing rules when reload rules
                       from config file.
     """
 
-    def __init__(self, policy_file=None, rules=None,
+    def __init__(self, conf, policy_file=None, rules=None,
                  default_rule=None, use_conf=True, overwrite=True):
-        self.default_rule = default_rule or CONF.policy_default_rule
+        self.conf = conf
+        self.conf.register_opts(policy_opts)
+
+        self.default_rule = default_rule or self.conf.policy_default_rule
         self.rules = Rules(rules, self.default_rule)
 
         self.policy_path = None
-        self.policy_file = policy_file or CONF.policy_file
+
+        self.policy_file = policy_file or self.conf.policy_file
         self.use_conf = use_conf
         self.overwrite = overwrite
 
@@ -268,7 +271,7 @@ class Enforcer(object):
 
             self._load_policy_file(self.policy_path, force_reload,
                                    overwrite=self.overwrite)
-            for path in CONF.policy_dirs:
+            for path in self.conf.policy_dirs:
                 try:
                     path = self._get_policy_path(path)
                 except cfg.ConfigFilesNotFoundError:
@@ -307,7 +310,7 @@ class Enforcer(object):
         :raises: ConfigFilesNotFoundError if the file/path couldn't
                  be located.
         """
-        policy_path = CONF.find_file(path)
+        policy_path = self.conf.find_file(path)
 
         if policy_path:
             return policy_path

@@ -34,7 +34,7 @@ from oslo_policy import policy
 TEST_VAR_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                             '..', 'tests/var'))
 
-ENFORCER = policy.Enforcer()
+ENFORCER = policy.Enforcer(cfg.CONF)
 
 
 class MyException(Exception):
@@ -194,7 +194,7 @@ class EnforcerTest(PolicyBaseTestCase):
                         }"""
         rules = policy.Rules.load_json(rules_json)
         default_rule = policy.TrueCheck()
-        enforcer = policy.Enforcer(default_rule=default_rule)
+        enforcer = policy.Enforcer(cfg.CONF, default_rule=default_rule)
         enforcer.set_rules(rules)
         action = "cloudwatch:PutMetricData"
         creds = {'roles': ''}
@@ -262,7 +262,7 @@ class EnforcerTest(PolicyBaseTestCase):
     def test_enforcer_keep_use_conf_flag_after_reload(self):
         # We initialized enforcer with
         # policy configure files.
-        enforcer = policy.Enforcer()
+        enforcer = policy.Enforcer(cfg.CONF)
         self.assertTrue(enforcer.use_conf)
         self.assertTrue(enforcer.enforce("default", {},
                                          {"roles": ["fakeB"]}))
@@ -313,15 +313,15 @@ class EnforcerTest(PolicyBaseTestCase):
                                                'test1': 'test1'})
 
     def test_enforcer_with_default_policy_file(self):
-        enforcer = policy.Enforcer()
+        enforcer = policy.Enforcer(cfg.CONF)
         self.assertEqual(cfg.CONF.policy_file, enforcer.policy_file)
 
     def test_enforcer_with_policy_file(self):
-        enforcer = policy.Enforcer(policy_file='non-default.json')
+        enforcer = policy.Enforcer(cfg.CONF, policy_file='non-default.json')
         self.assertEqual('non-default.json', enforcer.policy_file)
 
     def test_get_policy_path_raises_exc(self):
-        enforcer = policy.Enforcer(policy_file='raise_error.json')
+        enforcer = policy.Enforcer(cfg.CONF, policy_file='raise_error.json')
         e = self.assertRaises(cfg.ConfigFilesNotFoundError,
                               enforcer._get_policy_path, enforcer.policy_file)
         self.assertEqual(('raise_error.json', ), e.config_files)
@@ -333,12 +333,12 @@ class EnforcerTest(PolicyBaseTestCase):
         self.assertEqual(self.enforcer.rules, {'test': 'test1'})
 
     def test_enforcer_default_rule_name(self):
-        enforcer = policy.Enforcer(default_rule='foo_rule')
+        enforcer = policy.Enforcer(cfg.CONF, default_rule='foo_rule')
         self.assertEqual('foo_rule', enforcer.rules.default_rule)
         self.CONF.set_override('policy_default_rule', 'bar_rule')
-        enforcer = policy.Enforcer(default_rule='foo_rule')
+        enforcer = policy.Enforcer(cfg.CONF, default_rule='foo_rule')
         self.assertEqual('foo_rule', enforcer.rules.default_rule)
-        enforcer = policy.Enforcer()
+        enforcer = policy.Enforcer(cfg.CONF, )
         self.assertEqual('bar_rule', enforcer.rules.default_rule)
 
 
