@@ -30,7 +30,7 @@ allow the action that is being enforced.  A number of different check
 types are supported, which can be divided into generic checks and
 special checks.
 
-A :class:`generic check <openstack.common.policy.GenericCheck>` is used
+A :class:`generic check <oslo_policy.policy.GenericCheck>` is used
 to perform matching against attributes that are sent along with the API
 calls.  These attributes can be used by the policy engine (on the right
 side of the expression), by using the following syntax::
@@ -66,19 +66,19 @@ would be:
 It is also possible to perform checks against other attributes that
 represent the credentials.  This is done by adding additional values to
 the creds dict that is passed to the
-:meth:`~openstack.common.policy.Enforcer.enforce` method.
+:meth:`~oslo_policy.policy.Enforcer.enforce` method.
 
 Special checks allow for more flexibility than is possible using generic
 checks.  The built-in special check types are "role", "rule", and "http"
 checks.
 
-A :class:`role check <openstack.common.policy.RoleCheck>` is used to
+A :class:`role check <oslo_policy.policy.RoleCheck>` is used to
 check if a specific role is present in the supplied credentials.  A role
 check is expressed as::
 
     "role:<role_name>"
 
-A :class:`rule check <openstack.common.policy.RuleCheck>` is used to
+A :class:`rule check <oslo_policy.policy.RuleCheck>` is used to
 reference another defined rule by its name.  This allows for common
 checks to be defined once as a reusable rule, which is then referenced
 within other rules.  It also allows one to define a set of checks as a
@@ -93,7 +93,7 @@ which is then used via a "rule" check::
     "admin_required": "role:admin"
     "<target>": "rule:admin_required"
 
-A :class:`http check <openstack.common.policy.HttpCheck>` is used to
+A :class:`http check <oslo_policy.policy.HttpCheck>` is used to
 make an HTTP request to a remote server to determine the results of the
 check.  The target and credentials are passed to the remote server for
 evaluation.  The action is authorized if the remote server returns a
@@ -109,7 +109,7 @@ URL is would be defined as::
     "http://server.test/%(name)s"
 
 It is also possible for additional special check types to be registered
-using the :func:`~openstack.common.policy.register` function.
+using the :func:`~oslo_policy.policy.register` function.
 
 Policy rules can be expressed in one of two forms: A list of lists, or a
 string written in the new policy language.
