@@ -976,9 +976,9 @@ def register(name, func=None):
 
 @register("rule")
 class RuleCheck(Check):
-    def __call__(self, target, creds, enforcer):
-        """Recursively checks credentials based on the defined rules."""
+    """Recursively checks credentials based on the defined rules."""
 
+    def __call__(self, target, creds, enforcer):
         try:
             return enforcer.rules[self.match](target, creds, enforcer)
         except KeyError:
@@ -988,21 +988,21 @@ class RuleCheck(Check):
 
 @register("role")
 class RoleCheck(Check):
-    def __call__(self, target, creds, enforcer):
-        """Check that there is a matching role in the cred dict."""
+    """Check that there is a matching role in the cred dict."""
 
+    def __call__(self, target, creds, enforcer):
         return self.match.lower() in [x.lower() for x in creds['roles']]
 
 
 @register('http')
 class HttpCheck(Check):
+    """Check http: rules by calling to a remote server.
+
+    This example implementation simply verifies that the response
+    is exactly 'True'.
+    """
+
     def __call__(self, target, creds, enforcer):
-        """Check http: rules by calling to a remote server.
-
-        This example implementation simply verifies that the response
-        is exactly 'True'.
-        """
-
         url = ('http:' + self.match) % target
 
         # Convert instances of object() in target temporarily to
@@ -1023,17 +1023,17 @@ class HttpCheck(Check):
 
 @register(None)
 class GenericCheck(Check):
+    """Check an individual match.
+
+    Matches look like:
+
+        tenant:%(tenant_id)s
+        role:compute:admin
+        True:%(user.enabled)s
+        'Member':%(role.name)s
+    """
+
     def __call__(self, target, creds, enforcer):
-        """Check an individual match.
-
-        Matches look like:
-
-            tenant:%(tenant_id)s
-            role:compute:admin
-            True:%(user.enabled)s
-            'Member':%(role.name)s
-        """
-
         try:
             match = self.match % target
         except KeyError:
