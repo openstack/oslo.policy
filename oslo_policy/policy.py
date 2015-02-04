@@ -215,8 +215,8 @@ import six
 import six.moves.urllib.parse as urlparse
 import six.moves.urllib.request as urlrequest
 
+from oslo_policy._i18n import _, _LE, _LI
 from oslo_policy.openstack.common import fileutils
-from oslo_policy.openstack.common._i18n import _, _LE, _LI
 
 
 policy_opts = [
