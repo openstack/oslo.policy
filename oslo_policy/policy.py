@@ -219,14 +219,16 @@ from oslo_policy._i18n import _, _LE, _LI
 from oslo_policy.openstack.common import fileutils
 
 
-policy_opts = [
+_opts = [
     cfg.StrOpt('policy_file',
                default='policy.json',
-               help=_('The JSON file that defines policies.')),
+               help=_('The JSON file that defines policies.'),
+               deprecated_group='DEFAULT'),
     cfg.StrOpt('policy_default_rule',
                default='default',
                help=_('Default rule. Enforced when a requested rule is not '
-                      'found.')),
+                      'found.'),
+               deprecated_group='DEFAULT'),
     cfg.MultiStrOpt('policy_dirs',
                     default=['policy.d'],
                     help=_('Directories where policy configuration files are '
@@ -234,18 +236,14 @@ policy_opts = [
                            'in the search path defined by the config_dir '
                            'option, or absolute paths. The file defined by '
                            'policy_file must exist for these directories to '
-                           'be searched.')),
+                           'be searched.'),
+                    deprecated_group='DEFAULT'),
 ]
 
 
 LOG = logging.getLogger(__name__)
 
 _checks = {}
-
-
-def list_opts():
-    """Entry point for oslo-config-generator."""
-    return [(None, copy.deepcopy(policy_opts))]
 
 
 class PolicyNotAuthorized(Exception):
@@ -334,14 +332,15 @@ class Enforcer(object):
     def __init__(self, conf, policy_file=None, rules=None,
                  default_rule=None, use_conf=True, overwrite=True):
         self.conf = conf
-        self.conf.register_opts(policy_opts)
+        self.conf.register_opts(_opts, group='oslo_policy')
 
-        self.default_rule = default_rule or self.conf.policy_default_rule
+        self.default_rule = (default_rule or
+                             self.conf.oslo_policy.policy_default_rule)
         self.rules = Rules(rules, self.default_rule)
 
         self.policy_path = None
 
-        self.policy_file = policy_file or self.conf.policy_file
+        self.policy_file = policy_file or self.conf.oslo_policy.policy_file
         self.use_conf = use_conf
         self.overwrite = overwrite
 
@@ -387,7 +386,7 @@ class Enforcer(object):
 
             self._load_policy_file(self.policy_path, force_reload,
                                    overwrite=self.overwrite)
-            for path in self.conf.policy_dirs:
+            for path in self.conf.oslo_policy.policy_dirs:
                 try:
                     path = self._get_policy_path(path)
                 except cfg.ConfigFilesNotFoundError:
