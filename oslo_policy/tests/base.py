@@ -14,7 +14,7 @@
 #    under the License.
 import os.path
 
-from oslo_concurrency.fixture import lockutils
+
 from oslo_config import cfg
 from oslo_config import fixture as config
 from oslotest import base as test_base
@@ -23,19 +23,15 @@ from oslo_policy import policy
 
 TEST_VAR_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                             '..', 'tests/var'))
-ENFORCER = policy.Enforcer(cfg.CONF)
 
 
 class PolicyBaseTestCase(test_base.BaseTestCase):
 
     def setUp(self):
         super(PolicyBaseTestCase, self).setUp()
-        # NOTE(bnemec): Many of these tests use the same ENFORCER object, so
-        # I believe we need to serialize them.
-        self.useFixture(lockutils.LockFixture('policy-lock'))
         self.CONF = self.useFixture(config.Config()).conf
         self.CONF(args=['--config-dir', TEST_VAR_DIR])
-        self.enforcer = ENFORCER
+        self.enforcer = policy.Enforcer(cfg.CONF)
         self.addCleanup(self.enforcer.clear)
 
 

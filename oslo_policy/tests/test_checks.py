@@ -26,9 +26,6 @@ from oslo_policy import policy
 from oslo_policy.tests import base
 
 
-ENFORCER = base.ENFORCER
-
-
 class CheckRegisterTestCase(test_base.BaseTestCase):
     @mock.patch.object(_checks, 'registered_checks', {})
     def test_register_check(self):
@@ -48,33 +45,29 @@ class CheckRegisterTestCase(test_base.BaseTestCase):
         self.assertEqual(_checks.registered_checks, dict(spam=TestCheck))
 
 
-class RuleCheckTestCase(test_base.BaseTestCase):
-    @mock.patch.object(ENFORCER, 'rules', {})
+class RuleCheckTestCase(base.PolicyBaseTestCase):
     def test_rule_missing(self):
+        self.enforcer.rules = {}
         check = _checks.RuleCheck('rule', 'spam')
 
-        self.assertEqual(check('target', 'creds', ENFORCER), False)
+        self.assertEqual(check('target', 'creds', self.enforcer), False)
 
-    @mock.patch.object(ENFORCER, 'rules',
-                       dict(spam=mock.Mock(return_value=False)))
     def test_rule_false(self):
-        enforcer = ENFORCER
+        self.enforcer.rules = dict(spam=mock.Mock(return_value=False))
 
         check = _checks.RuleCheck('rule', 'spam')
 
-        self.assertEqual(check('target', 'creds', enforcer), False)
-        enforcer.rules['spam'].assert_called_once_with('target', 'creds',
-                                                       enforcer)
+        self.assertEqual(check('target', 'creds', self.enforcer), False)
+        self.enforcer.rules['spam'].assert_called_once_with('target', 'creds',
+                                                            self.enforcer)
 
-    @mock.patch.object(ENFORCER, 'rules',
-                       dict(spam=mock.Mock(return_value=True)))
     def test_rule_true(self):
-        enforcer = ENFORCER
+        self.enforcer.rules = dict(spam=mock.Mock(return_value=True))
         check = _checks.RuleCheck('rule', 'spam')
 
-        self.assertEqual(check('target', 'creds', enforcer), True)
-        enforcer.rules['spam'].assert_called_once_with('target', 'creds',
-                                                       enforcer)
+        self.assertEqual(check('target', 'creds', self.enforcer), True)
+        self.enforcer.rules['spam'].assert_called_once_with('target', 'creds',
+                                                            self.enforcer)
 
 
 class RoleCheckTestCase(base.PolicyBaseTestCase):
