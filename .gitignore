@@ -1,50 +1,22 @@
-*.py[cod]
-
-# C extensions
-*.so
-
-# Packages
-*.egg
-*.egg-info
-dist
-build
-eggs
-parts
-bin
-sdist
-develop-eggs
-.installed.cfg
-lib
-lib64
-
-# Installer logs
-pip-log.txt
-
-# Unit test / coverage reports
+*~
+*.swp
+*.pyc
+*.log
 .coverage
+.venv
 .tox
-nosetests.xml
-.testrepository
-
-# Translations
-*.mo
-
-# Mr Developer
-.mr.developer.cfg
+cover/
+oslo.policy.egg-info/
+build/
+dist/
+doc/source/api
+AUTHORS
+.update-venv/
+ChangeLog
+openstack/versioninfo
+*.egg
+.testrepository/
 .project
 .pydevproject
-
-# Complexity
-output/*.html
-output/*/index.html
-
-# Sphinx
+*.mo
 doc/build
-
-# pbr generates these
-AUTHORS
-ChangeLog
-
-# Editors
-*~
-.*.swp
