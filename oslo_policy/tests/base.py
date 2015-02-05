@@ -14,8 +14,6 @@
 #    under the License.
 import os.path
 
-
-from oslo_config import cfg
 from oslo_config import fixture as config
 from oslotest import base as test_base
 
@@ -29,9 +27,9 @@ class PolicyBaseTestCase(test_base.BaseTestCase):
 
     def setUp(self):
         super(PolicyBaseTestCase, self).setUp()
-        self.CONF = self.useFixture(config.Config()).conf
-        self.CONF(args=['--config-dir', TEST_VAR_DIR])
-        self.enforcer = policy.Enforcer(cfg.CONF)
+        self.conf = self.useFixture(config.Config()).conf
+        self.conf(args=['--config-dir', TEST_VAR_DIR])
+        self.enforcer = policy.Enforcer(self.conf)
         self.addCleanup(self.enforcer.clear)
 
 

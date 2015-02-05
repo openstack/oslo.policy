@@ -107,7 +107,7 @@ class RulesTestCase(test_base.BaseTestCase):
 class EnforcerTest(base.PolicyBaseTestCase):
 
     def test_load_file(self):
-        self.CONF.set_override('policy_dirs', [], group='oslo_policy')
+        self.conf.set_override('policy_dirs', [], group='oslo_policy')
         self.enforcer.load_rules(True)
         self.assertIsNotNone(self.enforcer.rules)
         self.assertIn('default', self.enforcer.rules)
@@ -121,7 +121,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual('is_admin:True', loaded_rules['admin'])
 
     def test_load_multiple_directories(self):
-        self.CONF.set_override('policy_dirs',
+        self.conf.set_override('policy_dirs',
                                ['policy.d', 'policy.2.d'],
                                group='oslo_policy')
         self.enforcer.load_rules(True)
@@ -131,7 +131,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual('is_admin:True', loaded_rules['admin'])
 
     def test_load_non_existed_directory(self):
-        self.CONF.set_override('policy_dirs',
+        self.conf.set_override('policy_dirs',
                                ['policy.d', 'policy.x.d'],
                                group='oslo_policy')
         self.enforcer.load_rules(True)
@@ -315,7 +315,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
     def test_enforcer_default_rule_name(self):
         enforcer = policy.Enforcer(cfg.CONF, default_rule='foo_rule')
         self.assertEqual('foo_rule', enforcer.rules.default_rule)
-        self.CONF.set_override('policy_default_rule', 'bar_rule',
+        self.conf.set_override('policy_default_rule', 'bar_rule',
                                group='oslo_policy')
         enforcer = policy.Enforcer(cfg.CONF, default_rule='foo_rule')
         self.assertEqual('foo_rule', enforcer.rules.default_rule)
@@ -331,9 +331,8 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
         self.assertEqual(result, ("target", "creds", self.enforcer))
 
     def test_check_no_rules(self):
-        self.CONF.set_override('policy_file', 'empty.json',
+        self.conf.set_override('policy_file', 'empty.json',
                                group='oslo_policy')
-        self.enforcer.conf = self.CONF
         self.enforcer.default_rule = None
         self.enforcer.load_rules()
         result = self.enforcer.enforce('rule', "target", "creds")
