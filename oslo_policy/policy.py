@@ -262,7 +262,7 @@ class Rules(dict):
         """Allow loading of JSON rule data."""
 
         # Suck in the JSON data and parse the rules
-        rules = dict((k, parse_rule(v)) for k, v in
+        rules = dict((k, _parse_rule(v)) for k, v in
                      jsonutils.loads(data).items())
 
         return cls(rules, default_rule)
@@ -778,7 +778,7 @@ def _parse_tokenize(rule):
             yield ')', ')'
 
 
-class ParseStateMeta(type):
+class _ParseStateMeta(type):
     """Metaclass for the :class:`.ParseState` class.
 
     Facilitates identifying reduction methods.
@@ -801,7 +801,7 @@ class ParseStateMeta(type):
 
         cls_dict['reducers'] = reducers
 
-        return super(ParseStateMeta, mcs).__new__(mcs, name, bases, cls_dict)
+        return super(_ParseStateMeta, mcs).__new__(mcs, name, bases, cls_dict)
 
 
 def reducer(*tokens):
@@ -824,8 +824,8 @@ def reducer(*tokens):
     return decorator
 
 
-@six.add_metaclass(ParseStateMeta)
-class ParseState(object):
+@six.add_metaclass(_ParseStateMeta)
+class _ParseState(object):
     """Implement the core of parsing the policy language.
 
     Uses a greedy reduction algorithm to reduce a sequence of tokens into
@@ -841,7 +841,7 @@ class ParseState(object):
     """
 
     def __init__(self):
-        """Initialize the ParseState."""
+        """Initialize the _ParseState."""
 
         self.tokens = []
         self.values = []
@@ -950,7 +950,7 @@ def _parse_text_rule(rule):
         return TrueCheck()
 
     # Parse the token stream
-    state = ParseState()
+    state = _ParseState()
     for tok, value in _parse_tokenize(rule):
         state.shift(tok, value)
 
@@ -964,7 +964,7 @@ def _parse_text_rule(rule):
         return FalseCheck()
 
 
-def parse_rule(rule):
+def _parse_rule(rule):
     """Parses a policy rule into a tree of :class:`.Check` objects."""
 
     # If the rule is a string, it's in the policy language

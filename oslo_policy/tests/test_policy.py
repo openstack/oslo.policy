@@ -79,7 +79,7 @@ class RulesTestCase(test_base.BaseTestCase):
         self.assertEqual(rules['b'], 2)
         self.assertEqual(rules['c'], 3)
 
-    @mock.patch.object(policy, 'parse_rule', lambda x: x)
+    @mock.patch.object(policy, '_parse_rule', lambda x: x)
     def test_load_json(self):
         exemplar = """{
     "admin_or_owner": [["role:admin"], ["project_id:%(project_id)s"]],
@@ -204,9 +204,9 @@ class EnforcerTest(PolicyBaseTestCase):
 
     def test_enforcer_force_reload_with_overwrite(self):
         # Prepare in memory fake policies.
-        self.enforcer.set_rules({'test': policy.parse_rule('role:test')},
+        self.enforcer.set_rules({'test': policy._parse_rule('role:test')},
                                 use_conf=True)
-        self.enforcer.set_rules({'default': policy.parse_rule('role:fakeZ')},
+        self.enforcer.set_rules({'default': policy._parse_rule('role:fakeZ')},
                                 overwrite=False,  # Keeps 'test' role.
                                 use_conf=True)
 
@@ -232,9 +232,9 @@ class EnforcerTest(PolicyBaseTestCase):
 
     def test_enforcer_force_reload_without_overwrite(self):
         # Prepare in memory fake policies.
-        self.enforcer.set_rules({'test': policy.parse_rule('role:test')},
+        self.enforcer.set_rules({'test': policy._parse_rule('role:test')},
                                 use_conf=True)
-        self.enforcer.set_rules({'default': policy.parse_rule('role:fakeZ')},
+        self.enforcer.set_rules({'default': policy._parse_rule('role:fakeZ')},
                                 overwrite=False,  # Keeps 'test' role.
                                 use_conf=True)
 
@@ -691,7 +691,7 @@ class ParseStateMetaTestCase(test_base.BaseTestCase):
         self.assertEqual(spam.reducers, [['d', 'e', 'f'], ['a', 'b', 'c']])
 
     def test_parse_state_meta(self):
-        @six.add_metaclass(policy.ParseStateMeta)
+        @six.add_metaclass(policy._ParseStateMeta)
         class FakeState(object):
 
             @policy.reducer('a', 'b', 'c')
@@ -716,15 +716,15 @@ class ParseStateMetaTestCase(test_base.BaseTestCase):
 
 class ParseStateTestCase(test_base.BaseTestCase):
     def test_init(self):
-        state = policy.ParseState()
+        state = policy._ParseState()
 
         self.assertEqual(state.tokens, [])
         self.assertEqual(state.values, [])
 
-    @mock.patch.object(policy.ParseState, 'reducers', [(['tok1'], 'meth')])
-    @mock.patch.object(policy.ParseState, 'meth', create=True)
+    @mock.patch.object(policy._ParseState, 'reducers', [(['tok1'], 'meth')])
+    @mock.patch.object(policy._ParseState, 'meth', create=True)
     def test_reduce_none(self, mock_meth):
-        state = policy.ParseState()
+        state = policy._ParseState()
         state.tokens = ['tok2']
         state.values = ['val2']
 
@@ -734,11 +734,11 @@ class ParseStateTestCase(test_base.BaseTestCase):
         self.assertEqual(state.values, ['val2'])
         self.assertFalse(mock_meth.called)
 
-    @mock.patch.object(policy.ParseState, 'reducers',
+    @mock.patch.object(policy._ParseState, 'reducers',
                        [(['tok1', 'tok2'], 'meth')])
-    @mock.patch.object(policy.ParseState, 'meth', create=True)
+    @mock.patch.object(policy._ParseState, 'meth', create=True)
     def test_reduce_short(self, mock_meth):
-        state = policy.ParseState()
+        state = policy._ParseState()
         state.tokens = ['tok1']
         state.values = ['val1']
 
@@ -748,12 +748,12 @@ class ParseStateTestCase(test_base.BaseTestCase):
         self.assertEqual(state.values, ['val1'])
         self.assertFalse(mock_meth.called)
 
-    @mock.patch.object(policy.ParseState, 'reducers',
+    @mock.patch.object(policy._ParseState, 'reducers',
                        [(['tok1', 'tok2'], 'meth')])
-    @mock.patch.object(policy.ParseState, 'meth', create=True,
+    @mock.patch.object(policy._ParseState, 'meth', create=True,
                        return_value=[('tok3', 'val3')])
     def test_reduce_one(self, mock_meth):
-        state = policy.ParseState()
+        state = policy._ParseState()
         state.tokens = ['tok1', 'tok2']
         state.values = ['val1', 'val2']
 
@@ -763,16 +763,16 @@ class ParseStateTestCase(test_base.BaseTestCase):
         self.assertEqual(state.values, ['val3'])
         mock_meth.assert_called_once_with('val1', 'val2')
 
-    @mock.patch.object(policy.ParseState, 'reducers', [
+    @mock.patch.object(policy._ParseState, 'reducers', [
         (['tok1', 'tok4'], 'meth2'),
         (['tok2', 'tok3'], 'meth1'),
     ])
-    @mock.patch.object(policy.ParseState, 'meth1', create=True,
+    @mock.patch.object(policy._ParseState, 'meth1', create=True,
                        return_value=[('tok4', 'val4')])
-    @mock.patch.object(policy.ParseState, 'meth2', create=True,
+    @mock.patch.object(policy._ParseState, 'meth2', create=True,
                        return_value=[('tok5', 'val5')])
     def test_reduce_two(self, mock_meth2, mock_meth1):
-        state = policy.ParseState()
+        state = policy._ParseState()
         state.tokens = ['tok1', 'tok2', 'tok3']
         state.values = ['val1', 'val2', 'val3']
 
@@ -783,12 +783,12 @@ class ParseStateTestCase(test_base.BaseTestCase):
         mock_meth1.assert_called_once_with('val2', 'val3')
         mock_meth2.assert_called_once_with('val1', 'val4')
 
-    @mock.patch.object(policy.ParseState, 'reducers',
+    @mock.patch.object(policy._ParseState, 'reducers',
                        [(['tok1', 'tok2'], 'meth')])
-    @mock.patch.object(policy.ParseState, 'meth', create=True,
+    @mock.patch.object(policy._ParseState, 'meth', create=True,
                        return_value=[('tok3', 'val3'), ('tok4', 'val4')])
     def test_reduce_multi(self, mock_meth):
-        state = policy.ParseState()
+        state = policy._ParseState()
         state.tokens = ['tok1', 'tok2']
         state.values = ['val1', 'val2']
 
@@ -799,9 +799,9 @@ class ParseStateTestCase(test_base.BaseTestCase):
         mock_meth.assert_called_once_with('val1', 'val2')
 
     def test_shift(self):
-        state = policy.ParseState()
+        state = policy._ParseState()
 
-        with mock.patch.object(policy.ParseState, 'reduce') as mock_reduce:
+        with mock.patch.object(policy._ParseState, 'reduce') as mock_reduce:
             state.shift('token', 'value')
 
             self.assertEqual(state.tokens, ['token'])
@@ -809,26 +809,26 @@ class ParseStateTestCase(test_base.BaseTestCase):
             mock_reduce.assert_called_once_with()
 
     def test_result_empty(self):
-        state = policy.ParseState()
+        state = policy._ParseState()
 
         self.assertRaises(ValueError, lambda: state.result)
 
     def test_result_unreduced(self):
-        state = policy.ParseState()
+        state = policy._ParseState()
         state.tokens = ['tok1', 'tok2']
         state.values = ['val1', 'val2']
 
         self.assertRaises(ValueError, lambda: state.result)
 
     def test_result(self):
-        state = policy.ParseState()
+        state = policy._ParseState()
         state.tokens = ['token']
         state.values = ['value']
 
         self.assertEqual(state.result, 'value')
 
     def test_wrap_check(self):
-        state = policy.ParseState()
+        state = policy._ParseState()
 
         result = state._wrap_check('(', 'the_check', ')')
 
@@ -836,14 +836,14 @@ class ParseStateTestCase(test_base.BaseTestCase):
 
     @mock.patch.object(policy, 'AndCheck', lambda x: x)
     def test_make_and_expr(self):
-        state = policy.ParseState()
+        state = policy._ParseState()
 
         result = state._make_and_expr('check1', 'and', 'check2')
 
         self.assertEqual(result, [('and_expr', ['check1', 'check2'])])
 
     def test_extend_and_expr(self):
-        state = policy.ParseState()
+        state = policy._ParseState()
         mock_expr = mock.Mock()
         mock_expr.add_check.return_value = 'newcheck'
 
@@ -854,14 +854,14 @@ class ParseStateTestCase(test_base.BaseTestCase):
 
     @mock.patch.object(policy, 'OrCheck', lambda x: x)
     def test_make_or_expr(self):
-        state = policy.ParseState()
+        state = policy._ParseState()
 
         result = state._make_or_expr('check1', 'or', 'check2')
 
         self.assertEqual(result, [('or_expr', ['check1', 'check2'])])
 
     def test_extend_or_expr(self):
-        state = policy.ParseState()
+        state = policy._ParseState()
         mock_expr = mock.Mock()
         mock_expr.add_check.return_value = 'newcheck'
 
@@ -872,7 +872,7 @@ class ParseStateTestCase(test_base.BaseTestCase):
 
     @mock.patch.object(policy, 'NotCheck', lambda x: 'not %s' % x)
     def test_make_not_expr(self):
-        state = policy.ParseState()
+        state = policy._ParseState()
 
         result = state._make_not_expr('not', 'check')
 
@@ -887,8 +887,8 @@ class ParseTextRuleTestCase(test_base.BaseTestCase):
 
     @mock.patch.object(policy, '_parse_tokenize',
                        return_value=[('tok1', 'val1'), ('tok2', 'val2')])
-    @mock.patch.object(policy.ParseState, 'shift')
-    @mock.patch.object(policy.ParseState, 'result', 'result')
+    @mock.patch.object(policy._ParseState, 'shift')
+    @mock.patch.object(policy._ParseState, 'result', 'result')
     def test_shifts(self, mock_shift, mock_parse_tokenize):
         result = policy._parse_text_rule('test rule')
 
@@ -910,7 +910,7 @@ class ParseRuleTestCase(test_base.BaseTestCase):
     @mock.patch.object(policy, '_parse_list_rule', return_value='list rule')
     def test_parse_rule_string(self, mock_parse_list_rule,
                                mock_parse_text_rule):
-        result = policy.parse_rule("a string")
+        result = policy._parse_rule("a string")
 
         self.assertEqual(result, 'text rule')
         self.assertFalse(mock_parse_list_rule.called)
@@ -919,7 +919,7 @@ class ParseRuleTestCase(test_base.BaseTestCase):
     @mock.patch.object(policy, '_parse_text_rule', return_value='text rule')
     @mock.patch.object(policy, '_parse_list_rule', return_value='list rule')
     def test_parse_rule_list(self, mock_parse_list_rule, mock_parse_text_rule):
-        result = policy.parse_rule([['a'], ['list']])
+        result = policy._parse_rule([['a'], ['list']])
 
         self.assertEqual(result, 'list rule')
         self.assertFalse(mock_parse_text_rule.called)
