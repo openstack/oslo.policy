@@ -30,6 +30,9 @@ allow the action that is being enforced.  A number of different check
 types are supported, which can be divided into generic checks and
 special checks.
 
+Generic Checks
+~~~~~~~~~~~~~~
+
 A :class:`generic check <oslo_policy.policy.GenericCheck>` is used
 to perform matching against attributes that are sent along with the API
 calls.  These attributes can be used by the policy engine (on the right
@@ -38,7 +41,7 @@ side of the expression), by using the following syntax::
     <some_attribute>:%(user.id)s
 
 The value on the right-hand side is either a string or resolves to a
-string using regular python string substitution.  The available attributes
+string using regular Python string substitution.  The available attributes
 and values are dependent on the program that is using the common policy
 engine.
 
@@ -48,35 +51,44 @@ that these attributes are specific to the service that is conducting
 policy enforcement.
 
 Generic checks can be used to perform policy checks on the following user
-attributes obtained through a token::
+attributes obtained through a token:
 
-    user_id
-    domain_id or project_id (depending on the token scope)
-    list of roles held for the given token scope
+    - user_id
+    - domain_id or project_id (depending on the token scope)
+    - list of roles held for the given token scope
 
 For example, a check on the user_id would be defined as::
 
     user_id:<some_value>
 
 Together with the previously shown example, a complete generic check
-would be:
+would be::
 
     user_id:%(user.id)s
 
 It is also possible to perform checks against other attributes that
 represent the credentials.  This is done by adding additional values to
-the creds dict that is passed to the
+the ``creds`` dict that is passed to the
 :meth:`~oslo_policy.policy.Enforcer.enforce` method.
 
+Special Checks
+~~~~~~~~~~~~~~
+
 Special checks allow for more flexibility than is possible using generic
-checks.  The built-in special check types are "role", "rule", and "http"
+checks.  The built-in special check types are ``role``, ``rule``, and ``http``
 checks.
+
+Role Check
+^^^^^^^^^^
 
 A :class:`role check <oslo_policy.policy.RoleCheck>` is used to
 check if a specific role is present in the supplied credentials.  A role
 check is expressed as::
 
     "role:<role_name>"
+
+Rule Check
+^^^^^^^^^^
 
 A :class:`rule check <oslo_policy.policy.RuleCheck>` is used to
 reference another defined rule by its name.  This allows for common
@@ -87,17 +99,20 @@ expressed as::
 
     "rule:<rule_name>"
 
-The following example shows a "role" check that is defined as a rule,
-which is then used via a "rule" check::
+The following example shows a role check that is defined as a rule,
+which is then used via a rule check::
 
     "admin_required": "role:admin"
     "<target>": "rule:admin_required"
 
-A :class:`http check <oslo_policy.policy.HttpCheck>` is used to
+HTTP Check
+^^^^^^^^^^
+
+An :class:`http check <oslo_policy.policy.HttpCheck>` is used to
 make an HTTP request to a remote server to determine the results of the
 check.  The target and credentials are passed to the remote server for
 evaluation.  The action is authorized if the remote server returns a
-response of `True`. A http check is expressed as::
+response of ``True``. An http check is expressed as::
 
     "http:<target URI>"
 
@@ -108,8 +123,14 @@ URL is would be defined as::
 
     "http://server.test/%(name)s"
 
+Registering New Special Checks
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 It is also possible for additional special check types to be registered
 using the :func:`~oslo_policy.policy.register` function.
+
+Policy Rule Expressions
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Policy rules can be expressed in one of two forms: A list of lists, or a
 string written in the new policy language.
@@ -136,19 +157,19 @@ the correct class to perform that check:
  +--------------------------------+------------------------------------------+
  |Rules already defined on policy |          rule:admin_required             |
  +--------------------------------+------------------------------------------+
- |Against URL's¹                  |         http://my-url.org/check          |
+ |Against URLs¹                   |         http://my-url.org/check          |
  +--------------------------------+------------------------------------------+
  |User attributes²                |    project_id:%(target.project.id)s      |
  +--------------------------------+------------------------------------------+
- |Strings                         |        <variable>:'xpto2035abc'          |
- |                                |         'myproject':<variable>           |
+ |Strings                         |        - <variable>:'xpto2035abc'        |
+ |                                |        - 'myproject':<variable>          |
  +--------------------------------+------------------------------------------+
- |                                |         project_id:xpto2035abc           |
- |Literals                        |         domain_id:20                     |
- |                                |         True:%(user.enabled)s            |
+ |                                |         - project_id:xpto2035abc         |
+ |Literals                        |         - domain_id:20                   |
+ |                                |         - True:%(user.enabled)s          |
  +--------------------------------+------------------------------------------+
 
-¹URL checking must return 'True' to be valid
+¹URL checking must return ``True`` to be valid
 
 ²User attributes (obtained through the token): user_id, domain_id or project_id
 
@@ -158,7 +179,7 @@ list-of-lists becomes::
 
     role:admin or (project_id:%(project_id)s and role:projectadmin)
 
-The policy language also has the "not" operator, allowing a richer
+The policy language also has the ``not`` operator, allowing a richer
 policy rule::
 
     project_id:%(project_id)s and not role:dunce
@@ -170,11 +191,14 @@ list ("[]") or the empty string, this is equivalent to the "@" policy
 check.)  Of these, the "!" policy check is probably the most useful,
 as it allows particular rules to be explicitly disabled.
 
+Default Rule
+~~~~~~~~~~~~
+
 A default rule can be defined, which will be enforced when a rule does
 not exist for the target that is being checked.  By default, the rule
-associated with the rule name of "default" will be used as the default
+associated with the rule name of ``default`` will be used as the default
 rule.  It is possible to use a different rule name as the default rule
-by setting the "policy_default_rule" configuration setting to the
+by setting the ``policy_default_rule`` configuration setting to the
 desired rule name.
 """
 
@@ -225,6 +249,7 @@ def list_opts():
 
 
 class PolicyNotAuthorized(Exception):
+    """Default exception raised for policy enforcement failure."""
 
     def __init__(self, rule):
         msg = _("Policy doesn't allow %s to be performed.") % rule
@@ -292,11 +317,12 @@ class Enforcer(object):
 
     :param conf: A configuration object.
     :param policy_file: Custom policy file to use, if none is
-                        specified, `conf.policy_file` will be
+                        specified, ``conf.policy_file`` will be
                         used.
     :param rules: Default dictionary / Rules to use. It will be
                   considered just in the first instantiation. If
-                  `load_rules(True)`, `clear()` or `set_rules(True)`
+                  :meth:`load_rules` with ``force_reload=True``,
+                  :meth:`clear` or :meth:`set_rules` with ``overwrite=True``
                   is called this will be overwritten.
     :param default_rule: Default rule to use, conf.default_rule will
                          be used if none is specified.
@@ -320,9 +346,9 @@ class Enforcer(object):
         self.overwrite = overwrite
 
     def set_rules(self, rules, overwrite=True, use_conf=False):
-        """Create a new Rules object based on the provided dict of rules.
+        """Create a new :class:`Rules` based on the provided dict of rules.
 
-        :param rules: New rules to use. It should be an instance of dict.
+        :param dict rules: New rules to use.
         :param overwrite: Whether to overwrite current rules or update them
                           with the new rules.
         :param use_conf: Whether to reload rules from cache or config file.
@@ -338,7 +364,7 @@ class Enforcer(object):
             self.rules.update(rules)
 
     def clear(self):
-        """Clears Enforcer rules, policy's cache and policy's path."""
+        """Clears :class:`Enforcer` rules, policy's cache and policy's path."""
         self.set_rules({})
         fileutils.delete_cached_file(self.policy_path)
         self.default_rule = None
@@ -411,25 +437,25 @@ class Enforcer(object):
                 exc=None, *args, **kwargs):
         """Checks authorization of a rule against the target and credentials.
 
-        :param rule: A string or BaseCheck instance specifying the rule
-                    to evaluate.
-        :param target: As much information about the object being operated
-                    on as possible, as a dictionary.
-        :param creds: As much information about the user performing the
-                    action as possible, as a dictionary.
+        :param rule: The rule to evaluate.
+        :type rule: string or :class:`BaseCheck`
+        :param dict target: As much information about the object being operated
+                            on as possible.
+        :param dict creds: As much information about the user performing the
+                           action as possible.
         :param do_raise: Whether to raise an exception or not if check
                         fails.
         :param exc: Class of the exception to raise if the check fails.
-                    Any remaining arguments passed to enforce() (both
+                    Any remaining arguments passed to :meth:`enforce` (both
                     positional and keyword arguments) will be passed to
-                    the exception class. If not specified, PolicyNotAuthorized
-                    will be used.
+                    the exception class. If not specified,
+                    :class:`PolicyNotAuthorized` will be used.
 
-        :return: Returns False if the policy does not allow the action and
-                exc is not provided; otherwise, returns a value that
-                evaluates to True.  Note: for rules using the "case"
-                expression, this True value will be the specified string
-                from the expression.
+        :return: ``False`` if the policy does not allow the action and `exc` is
+                 not provided; otherwise, returns a value that evaluates to
+                 ``True``.  Note: for rules using the "case" expression, this
+                 ``True`` value will be the specified string from the
+                 expression.
         """
 
         self.load_rules()
@@ -481,7 +507,7 @@ class BaseCheck(object):
 
 
 class FalseCheck(BaseCheck):
-    """A policy check that always returns False (disallow)."""
+    """A policy check that always returns ``False`` (disallow)."""
 
     def __str__(self):
         """Return a string representation of this check."""
@@ -495,7 +521,7 @@ class FalseCheck(BaseCheck):
 
 
 class TrueCheck(BaseCheck):
-    """A policy check that always returns True (allow)."""
+    """A policy check that always returns ``True`` (allow)."""
 
     def __str__(self):
         """Return a string representation of this check."""
@@ -509,17 +535,14 @@ class TrueCheck(BaseCheck):
 
 
 class Check(BaseCheck):
-    """A base class to allow for user-defined policy checks."""
+    """A base class to allow for user-defined policy checks.
+
+    :param kind: The kind of the check, i.e., the field before the ``:``.
+    :param match: The match of the check, i.e., the field after the ``:``.
+
+    """
 
     def __init__(self, kind, match):
-        """Initiates Check instance.
-
-        :param kind: The kind of the check, i.e., the field before the
-                     ':'.
-        :param match: The match of the check, i.e., the field after
-                      the ':'.
-        """
-
         self.kind = kind
         self.match = match
 
@@ -533,14 +556,12 @@ class NotCheck(BaseCheck):
     """Implements the "not" logical operator.
 
     A policy check that inverts the result of another policy check.
+
+    :param rule: The rule to negate.  Must be a Check.
+
     """
 
     def __init__(self, rule):
-        """Initialize the 'not' check.
-
-        :param rule: The rule to negate.  Must be a Check.
-        """
-
         self.rule = rule
 
     def __str__(self):
@@ -561,14 +582,12 @@ class AndCheck(BaseCheck):
     """Implements the "and" logical operator.
 
     A policy check that requires that a list of other checks all return True.
+
+    :param list rules: rules that will be tested.
+
     """
 
     def __init__(self, rules):
-        """Initialize the 'and' check.
-
-        :param rules: A list of rules that will be tested.
-        """
-
         self.rules = rules
 
     def __str__(self):
@@ -592,7 +611,10 @@ class AndCheck(BaseCheck):
         """Adds rule to be tested.
 
         Allows addition of another rule to the list of rules that will
-        be tested.  Returns the AndCheck object for convenience.
+        be tested.
+
+        :returns: self
+        :rtype: :class:`.AndCheck`
         """
 
         self.rules.append(rule)
@@ -603,15 +625,13 @@ class OrCheck(BaseCheck):
     """Implements the "or" operator.
 
     A policy check that requires that at least one of a list of other
-    checks returns True.
+    checks returns ``True``.
+
+    :param rules: A list of rules that will be tested.
+
     """
 
     def __init__(self, rules):
-        """Initialize the 'or' check.
-
-        :param rules: A list of rules that will be tested.
-        """
-
         self.rules = rules
 
     def __str__(self):
@@ -760,7 +780,7 @@ def _parse_tokenize(rule):
 
 
 class ParseStateMeta(type):
-    """Metaclass for the ParseState class.
+    """Metaclass for the :class:`.ParseState` class.
 
     Facilitates identifying reduction methods.
     """
@@ -810,12 +830,15 @@ class ParseState(object):
     """Implement the core of parsing the policy language.
 
     Uses a greedy reduction algorithm to reduce a sequence of tokens into
-    a single terminal, the value of which will be the root of the Check tree.
+    a single terminal, the value of which will be the root of the
+    :class:`Check` tree.
 
-    Note: error reporting is rather lacking.  The best we can get with
-    this parser formulation is an overall "parse failed" error.
-    Fortunately, the policy language is simple enough that this
-    shouldn't be that big a problem.
+    .. note::
+
+        Error reporting is rather lacking.  The best we can get with this
+        parser formulation is an overall "parse failed" error. Fortunately, the
+        policy language is simple enough that this shouldn't be that big a
+        problem.
     """
 
     def __init__(self):
@@ -828,7 +851,7 @@ class ParseState(object):
         """Perform a greedy reduction of the token stream.
 
         If a reducer method matches, it will be executed, then the
-        reduce() method will be called recursively to search for any more
+        :meth:`reduce` method will be called recursively to search for any more
         possible reductions.
         """
 
@@ -849,7 +872,10 @@ class ParseState(object):
                 return self.reduce()
 
     def shift(self, tok, value):
-        """Adds one more token to the state.  Calls reduce()."""
+        """Adds one more token to the state.
+
+        Calls :meth:`reduce`.
+        """
 
         self.tokens.append(tok)
         self.values.append(value)
@@ -861,7 +887,7 @@ class ParseState(object):
     def result(self):
         """Obtain the final result of the parse.
 
-        Raises ValueError if the parse failed to reduce to a single result.
+        :raises ValueError: If the parse failed to reduce to a single result.
         """
 
         if len(self.values) != 1:
@@ -940,7 +966,7 @@ def _parse_text_rule(rule):
 
 
 def parse_rule(rule):
-    """Parses a policy rule into a tree of Check objects."""
+    """Parses a policy rule into a tree of :class:`.Check` objects."""
 
     # If the rule is a string, it's in the policy language
     if isinstance(rule, six.string_types):
@@ -949,10 +975,10 @@ def parse_rule(rule):
 
 
 def register(name, func=None):
-    """Register a function or Check class as a policy check.
+    """Register a function or :class:`.Check` class as a policy check.
 
-    :param name: Gives the name of the check type, e.g., 'rule',
-                 'role', etc.  If name is None, a default check type
+    :param name: Gives the name of the check type, e.g., "rule",
+                 "role", etc.  If name is ``None``, a default check type
                  will be registered.
     :param func: If given, provides the function or class to register.
                  If not given, returns a function taking one argument
@@ -988,7 +1014,7 @@ class RuleCheck(Check):
 
 @register("role")
 class RoleCheck(Check):
-    """Check that there is a matching role in the cred dict."""
+    """Check that there is a matching role in the ``creds`` dict."""
 
     def __call__(self, target, creds, enforcer):
         return self.match.lower() in [x.lower() for x in creds['roles']]
@@ -996,10 +1022,10 @@ class RoleCheck(Check):
 
 @register('http')
 class HttpCheck(Check):
-    """Check http: rules by calling to a remote server.
+    """Check ``http:`` rules by calling to a remote server.
 
     This example implementation simply verifies that the response
-    is exactly 'True'.
+    is exactly ``True``.
     """
 
     def __call__(self, target, creds, enforcer):
@@ -1027,10 +1053,10 @@ class GenericCheck(Check):
 
     Matches look like:
 
-        tenant:%(tenant_id)s
-        role:compute:admin
-        True:%(user.enabled)s
-        'Member':%(role.name)s
+        - tenant:%(tenant_id)s
+        - role:compute:admin
+        - True:%(user.enabled)s
+        - 'Member':%(role.name)s
     """
 
     def __call__(self, target, creds, enforcer):
