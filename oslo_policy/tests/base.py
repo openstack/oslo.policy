@@ -17,7 +17,9 @@ import os.path
 from oslo_config import fixture as config
 from oslotest import base as test_base
 
+from oslo_policy import _checks
 from oslo_policy import policy
+
 
 TEST_VAR_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                             '..', 'tests/var'))
@@ -33,7 +35,7 @@ class PolicyBaseTestCase(test_base.BaseTestCase):
         self.addCleanup(self.enforcer.clear)
 
 
-class FakeCheck(policy.BaseCheck):
+class FakeCheck(_checks.BaseCheck):
     def __init__(self, result=None):
         self.result = result
 

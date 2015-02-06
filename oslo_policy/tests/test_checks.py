@@ -22,7 +22,6 @@ import six.moves.urllib.parse as urlparse
 import six.moves.urllib.request as urlrequest
 
 from oslo_policy import _checks
-from oslo_policy import policy
 from oslo_policy.tests import base
 
 
@@ -32,13 +31,13 @@ class CheckRegisterTestCase(test_base.BaseTestCase):
         class TestCheck(_checks.Check):
             pass
 
-        policy.register('spam', TestCheck)
+        _checks.register('spam', TestCheck)
 
         self.assertEqual(_checks.registered_checks, dict(spam=TestCheck))
 
     @mock.patch.object(_checks, 'registered_checks', {})
     def test_register_check_decorator(self):
-        @policy.register('spam')
+        @_checks.register('spam')
         class TestCheck(_checks.Check):
             pass
 
