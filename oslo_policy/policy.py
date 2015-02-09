@@ -240,10 +240,6 @@ _opts = [
 
 LOG = logging.getLogger(__name__)
 
-register = _checks.register
-BaseCheck = _checks.BaseCheck
-Check = _checks.Check
-
 
 class PolicyNotAuthorized(Exception):
     """Default exception raised for policy enforcement failure."""
