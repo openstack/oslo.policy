@@ -202,10 +202,10 @@ by setting the ``policy_default_rule`` configuration setting to the
 desired rule name.
 """
 
+import logging
 import os
 
 from oslo_config import cfg
-from oslo_log import log as logging
 from oslo_serialization import jsonutils
 import six
 
