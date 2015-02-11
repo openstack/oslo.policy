@@ -2,8 +2,6 @@
  oslo.policy
 =============
 
-oslo.policy library
-
 Contents
 ========
 
@@ -22,4 +20,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
