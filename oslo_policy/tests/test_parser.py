@@ -45,8 +45,8 @@ class ParseCheckTestCase(test_base.BaseTestCase):
         self.assertTrue(isinstance(result, _checks.FalseCheck))
 
     @mock.patch.object(_checks, 'registered_checks', {
-        'spam': mock.Mock(return_value="spam_check"),
-        None: mock.Mock(return_value="none_check"),
+        'spam': mock.Mock(return_value='spam_check'),
+        None: mock.Mock(return_value='none_check'),
     })
     def test_check(self):
         result = _parser._parse_check('spam:handler')
@@ -57,7 +57,7 @@ class ParseCheckTestCase(test_base.BaseTestCase):
         self.assertFalse(_checks.registered_checks[None].called)
 
     @mock.patch.object(_checks, 'registered_checks', {
-        None: mock.Mock(return_value="none_check"),
+        None: mock.Mock(return_value='none_check'),
     })
     def test_check_default(self):
         result = _parser._parse_check('spam:handler')
@@ -188,7 +188,7 @@ class ParseStateMetaTestCase(test_base.BaseTestCase):
             elif reduction == ['g', 'h', 'i']:
                 self.assertEqual(reducer, 'reduce2')
             else:
-                self.fail("Unrecognized reducer discovered")
+                self.fail('Unrecognized reducer discovered')
 
 
 class ParseStateTestCase(test_base.BaseTestCase):
@@ -387,7 +387,7 @@ class ParseRuleTestCase(test_base.BaseTestCase):
     @mock.patch.object(_parser, '_parse_list_rule', return_value='list rule')
     def test_parse_rule_string(self, mock_parse_list_rule,
                                mock_parse_text_rule):
-        result = _parser.parse_rule("a string")
+        result = _parser.parse_rule('a string')
 
         self.assertEqual(result, 'text rule')
         self.assertFalse(mock_parse_list_rule.called)

@@ -79,7 +79,7 @@ class RulesTestCase(test_base.BaseTestCase):
 
         self.assertEqual(rules.default_rule, 'default')
         self.assertEqual(rules, dict(
-            admin_or_owner=[["role:admin"], ["project_id:%(project_id)s"]],
+            admin_or_owner=[['role:admin'], ['project_id:%(project_id)s']],
             default=[],
         ))
 
@@ -88,7 +88,7 @@ class RulesTestCase(test_base.BaseTestCase):
     "admin_or_owner": "role:admin or project_id:%(project_id)s"
 }"""
         rules = policy.Rules(dict(
-            admin_or_owner="role:admin or project_id:%(project_id)s",
+            admin_or_owner='role:admin or project_id:%(project_id)s',
         ))
 
         self.assertEqual(str(rules), exemplar)
@@ -174,7 +174,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
                         }"""
         rules = policy.Rules.load_json(rules_json)
         self.enforcer.set_rules(rules)
-        action = "cloudwatch:PutMetricData"
+        action = 'cloudwatch:PutMetricData'
         creds = {'roles': ''}
         self.assertEqual(self.enforcer.enforce(action, {}, creds), True)
 
@@ -187,7 +187,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         default_rule = _checks.TrueCheck()
         enforcer = policy.Enforcer(cfg.CONF, default_rule=default_rule)
         enforcer.set_rules(rules)
-        action = "cloudwatch:PutMetricData"
+        action = 'cloudwatch:PutMetricData'
         creds = {'roles': ''}
         self.assertEqual(enforcer.enforce(action, {}, creds), True)
 
@@ -204,10 +204,10 @@ class EnforcerTest(base.PolicyBaseTestCase):
         # Call enforce(), it will load rules from
         # policy configuration files, to overwrite
         # existing fake ones.
-        self.assertFalse(self.enforcer.enforce("test", {},
-                                               {"roles": ["test"]}))
-        self.assertTrue(self.enforcer.enforce("default", {},
-                                              {"roles": ["fakeB"]}))
+        self.assertFalse(self.enforcer.enforce('test', {},
+                                               {'roles': ['test']}))
+        self.assertTrue(self.enforcer.enforce('default', {},
+                                              {'roles': ['fakeB']}))
 
         # Check against rule dict again from
         # enforcer object directly.
@@ -232,12 +232,12 @@ class EnforcerTest(base.PolicyBaseTestCase):
         # Call enforce(), it will load rules from
         # policy configuration files, to merge with
         # existing fake ones.
-        self.assertTrue(self.enforcer.enforce("test", {},
-                                              {"roles": ["test"]}))
+        self.assertTrue(self.enforcer.enforce('test', {},
+                                              {'roles': ['test']}))
         # The existing rules have a same key with
         # new loaded ones will be overwrote.
-        self.assertFalse(self.enforcer.enforce("default", {},
-                                               {"roles": ["fakeZ"]}))
+        self.assertFalse(self.enforcer.enforce('default', {},
+                                               {'roles': ['fakeZ']}))
 
         # Check against rule dict again from
         # enforcer object directly.
@@ -255,15 +255,15 @@ class EnforcerTest(base.PolicyBaseTestCase):
         # policy configure files.
         enforcer = policy.Enforcer(cfg.CONF)
         self.assertTrue(enforcer.use_conf)
-        self.assertTrue(enforcer.enforce("default", {},
-                                         {"roles": ["fakeB"]}))
-        self.assertFalse(enforcer.enforce("test", {},
-                                          {"roles": ["test"]}))
+        self.assertTrue(enforcer.enforce('default', {},
+                                         {'roles': ['fakeB']}))
+        self.assertFalse(enforcer.enforce('test', {},
+                                          {'roles': ['test']}))
         # After enforcement the flag should
         # be remained there.
         self.assertTrue(enforcer.use_conf)
-        self.assertFalse(enforcer.enforce("_dynamic_test_rule", {},
-                                          {"roles": ["test"]}))
+        self.assertFalse(enforcer.enforce('_dynamic_test_rule', {},
+                                          {'roles': ['test']}))
         # Then if configure file got changed,
         # reloading will be triggered when calling
         # enforcer(), this case could happen only
@@ -282,8 +282,8 @@ class EnforcerTest(base.PolicyBaseTestCase):
         with open(enforcer.policy_path, 'w') as f:
             f.write(jsonutils.dumps(rules))
 
-        self.assertTrue(enforcer.enforce("_dynamic_test_rule", {},
-                                         {"roles": ["test"]}))
+        self.assertTrue(enforcer.enforce('_dynamic_test_rule', {},
+                                         {'roles': ['test']}))
 
     def test_enforcer_force_reload_false(self):
         self.enforcer.set_rules({'test': 'test'})
@@ -339,32 +339,32 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
 
     def test_check_explicit(self):
         rule = base.FakeCheck()
-        result = self.enforcer.enforce(rule, "target", "creds")
-        self.assertEqual(result, ("target", "creds", self.enforcer))
+        result = self.enforcer.enforce(rule, 'target', 'creds')
+        self.assertEqual(result, ('target', 'creds', self.enforcer))
 
     def test_check_no_rules(self):
         self.conf.set_override('policy_file', 'empty.json',
                                group='oslo_policy')
         self.enforcer.default_rule = None
         self.enforcer.load_rules()
-        result = self.enforcer.enforce('rule', "target", "creds")
+        result = self.enforcer.enforce('rule', 'target', 'creds')
         self.assertEqual(result, False)
 
     def test_check_with_rule(self):
         self.enforcer.set_rules(dict(default=base.FakeCheck()))
-        result = self.enforcer.enforce("default", "target", "creds")
+        result = self.enforcer.enforce('default', 'target', 'creds')
 
-        self.assertEqual(result, ("target", "creds", self.enforcer))
+        self.assertEqual(result, ('target', 'creds', self.enforcer))
 
     def test_check_raises(self):
         self.enforcer.set_rules(dict(default=_checks.FalseCheck()))
 
         try:
             self.enforcer.enforce('rule', 'target', 'creds',
-                                  True, MyException, "arg1",
-                                  "arg2", kw1="kwarg1", kw2="kwarg2")
+                                  True, MyException, 'arg1',
+                                  'arg2', kw1='kwarg1', kw2='kwarg2')
         except MyException as exc:
-            self.assertEqual(exc.args, ("arg1", "arg2"))
-            self.assertEqual(exc.kwargs, dict(kw1="kwarg1", kw2="kwarg2"))
+            self.assertEqual(exc.args, ('arg1', 'arg2'))
+            self.assertEqual(exc.kwargs, dict(kw1='kwarg1', kw2='kwarg2'))
         else:
-            self.fail("enforcer.enforce() failed to raise requested exception")
+            self.fail('enforcer.enforce() failed to raise requested exception')

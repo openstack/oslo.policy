@@ -196,21 +196,21 @@ class GenericCheckTestCase(base.PolicyBaseTestCase):
                                self.enforcer), True)
 
     def test_constant_literal_mismatch(self):
-        check = _checks.GenericCheck("True", '%(enabled)s')
+        check = _checks.GenericCheck('True', '%(enabled)s')
 
         self.assertEqual(check(dict(enabled=False),
                                {},
                                self.enforcer), False)
 
     def test_constant_literal_accept(self):
-        check = _checks.GenericCheck("True", '%(enabled)s')
+        check = _checks.GenericCheck('True', '%(enabled)s')
 
         self.assertEqual(check(dict(enabled=True),
                                {},
                                self.enforcer), True)
 
     def test_deep_credentials_dictionary_lookup(self):
-        check = _checks.GenericCheck("a.b.c.d", 'APPLES')
+        check = _checks.GenericCheck('a.b.c.d', 'APPLES')
 
         credentials = {'a': {'b': {'c': {'d': 'APPLES'}}}}
 
@@ -224,19 +224,19 @@ class GenericCheckTestCase(base.PolicyBaseTestCase):
         # First a valid check - rest of case is expecting failures
         # Should prove the basic credentials structure before we test
         # for failure cases.
-        check = _checks.GenericCheck("o.t", 'ORANGES')
+        check = _checks.GenericCheck('o.t', 'ORANGES')
         self.assertEqual(check({},
                                credentials,
                                self.enforcer), True)
 
         # Case where final key is missing
-        check = _checks.GenericCheck("o.v", 'ORANGES')
+        check = _checks.GenericCheck('o.v', 'ORANGES')
         self.assertEqual(check({},
                                credentials,
                                self.enforcer), False)
 
         # Attempt to access key under a missing dictionary
-        check = _checks.GenericCheck("q.v", 'APPLES')
+        check = _checks.GenericCheck('q.v', 'APPLES')
         self.assertEqual(check({},
                                credentials,
                                self.enforcer), False)

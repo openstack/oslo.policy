@@ -54,7 +54,7 @@ class FalseCheck(BaseCheck):
     def __str__(self):
         """Return a string representation of this check."""
 
-        return "!"
+        return '!'
 
     def __call__(self, target, cred, enforcer):
         """Check the policy."""
@@ -68,7 +68,7 @@ class TrueCheck(BaseCheck):
     def __str__(self):
         """Return a string representation of this check."""
 
-        return "@"
+        return '@'
 
     def __call__(self, target, cred, enforcer):
         """Check the policy."""
@@ -91,7 +91,7 @@ class Check(BaseCheck):
     def __str__(self):
         """Return a string representation of this check."""
 
-        return "%s:%s" % (self.kind, self.match)
+        return '%s:%s' % (self.kind, self.match)
 
 
 class NotCheck(BaseCheck):
@@ -109,7 +109,7 @@ class NotCheck(BaseCheck):
     def __str__(self):
         """Return a string representation of this check."""
 
-        return "not %s" % self.rule
+        return 'not %s' % self.rule
 
     def __call__(self, target, cred, enforcer):
         """Check the policy.
@@ -135,7 +135,7 @@ class AndCheck(BaseCheck):
     def __str__(self):
         """Return a string representation of this check."""
 
-        return "(%s)" % ' and '.join(str(r) for r in self.rules)
+        return '(%s)' % ' and '.join(str(r) for r in self.rules)
 
     def __call__(self, target, cred, enforcer):
         """Check the policy.
@@ -179,7 +179,7 @@ class OrCheck(BaseCheck):
     def __str__(self):
         """Return a string representation of this check."""
 
-        return "(%s)" % ' or '.join(str(r) for r in self.rules)
+        return '(%s)' % ' or '.join(str(r) for r in self.rules)
 
     def __call__(self, target, cred, enforcer):
         """Check the policy.
@@ -229,7 +229,7 @@ def register(name, func=None):
     return decorator
 
 
-@register("rule")
+@register('rule')
 class RuleCheck(Check):
     """Recursively checks credentials based on the defined rules."""
 
@@ -241,7 +241,7 @@ class RuleCheck(Check):
             return False
 
 
-@register("role")
+@register('role')
 class RoleCheck(Check):
     """Check that there is a matching role in the ``creds`` dict."""
 
@@ -273,7 +273,7 @@ class HttpCheck(Check):
                 'credentials': jsonutils.dumps(creds)}
         post_data = urlparse.urlencode(data)
         f = urlrequest.urlopen(url, post_data)
-        return f.read() == "True"
+        return f.read() == 'True'
 
 
 @register(None)

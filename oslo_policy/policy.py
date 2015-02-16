@@ -246,7 +246,7 @@ class PolicyNotAuthorized(Exception):
     """Default exception raised for policy enforcement failure."""
 
     def __init__(self, rule):
-        msg = _("Policy doesn't allow %s to be performed.") % rule
+        msg = _('Policy does not allow %s to be performed.') % rule
         super(PolicyNotAuthorized, self).__init__(msg)
 
 
@@ -350,8 +350,8 @@ class Enforcer(object):
         """
 
         if not isinstance(rules, dict):
-            raise TypeError(_("Rules must be an instance of dict or Rules, "
-                            "got %s instead") % type(rules))
+            raise TypeError(_('Rules must be an instance of dict or Rules, '
+                            'got %s instead') % type(rules))
         self.use_conf = use_conf
         if overwrite:
             self.rules = Rules(rules, self.default_rule)
@@ -405,7 +405,7 @@ class Enforcer(object):
             if reloaded or not self.rules or not overwrite:
                 rules = Rules.load_json(data, self.default_rule)
                 self.set_rules(rules, overwrite=overwrite, use_conf=True)
-                LOG.debug("Reloaded policy file: %(path)s",
+                LOG.debug('Reloaded policy file: %(path)s',
                           {'path': path})
 
     def _get_policy_path(self, path):
@@ -466,7 +466,7 @@ class Enforcer(object):
                 # Evaluate the rule
                 result = self.rules[rule](target, creds, self)
             except KeyError:
-                LOG.debug("Rule [%s] doesn't exist" % rule)
+                LOG.debug('Rule [%s] does not exist' % rule)
                 # If the rule doesn't exist, fail closed
                 result = False
 

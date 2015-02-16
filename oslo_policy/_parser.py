@@ -141,7 +141,7 @@ class ParseState(object):
         """
 
         if len(self.values) != 1:
-            raise ValueError("Could not parse rule")
+            raise ValueError('Could not parse rule')
         return self.values[0]
 
     @reducer('(', 'check', ')')
@@ -201,7 +201,7 @@ def _parse_check(rule):
     try:
         kind, match = rule.split(':', 1)
     except Exception:
-        LOG.exception(_LE("Failed to understand rule %s") % rule)
+        LOG.exception(_LE('Failed to understand rule %s') % rule)
         # If the rule is invalid, we'll fail closed
         return _checks.FalseCheck()
 
@@ -211,7 +211,7 @@ def _parse_check(rule):
     elif None in _checks.registered_checks:
         return _checks.registered_checks[None](kind, match)
     else:
-        LOG.error(_LE("No handler for matches of kind %s") % kind)
+        LOG.error(_LE('No handler for matches of kind %s') % kind)
         return _checks.FalseCheck()
 
 
@@ -327,7 +327,7 @@ def _parse_text_rule(rule):
         return state.result
     except ValueError:
         # Couldn't parse the rule
-        LOG.exception(_LE("Failed to understand rule %s") % rule)
+        LOG.exception(_LE('Failed to understand rule %s') % rule)
 
         # Fail closed
         return _checks.FalseCheck()
