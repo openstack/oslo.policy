@@ -228,7 +228,7 @@ def _parse_list_rule(rule):
     # Outer list is joined by "or"; inner list by "and"
     or_list = []
     for inner_rule in rule:
-        # Elide empty inner lists
+        # Skip empty inner lists
         if not inner_rule:
             continue
 
