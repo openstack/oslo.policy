@@ -113,14 +113,19 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertIn('default', self.enforcer.rules)
         self.assertIn('admin', self.enforcer.rules)
 
-    def test_load_directory(self):
+    @mock.patch('oslo_policy.policy.LOG')
+    def test_load_directory(self, mock_log):
         self.enforcer.load_rules(True)
         self.assertIsNotNone(self.enforcer.rules)
         loaded_rules = jsonutils.loads(str(self.enforcer.rules))
         self.assertEqual('role:fakeB', loaded_rules['default'])
         self.assertEqual('is_admin:True', loaded_rules['admin'])
+        # 3 debug calls showing loading of policy.json,
+        # policy.d/a.conf, policy.d/b.conf
+        self.assertEqual(mock_log.debug.call_count, 3)
 
-    def test_load_multiple_directories(self):
+    @mock.patch('oslo_policy.policy.LOG')
+    def test_load_multiple_directories(self, mock_log):
         self.conf.set_override('policy_dirs',
                                ['policy.d', 'policy.2.d'],
                                group='oslo_policy')
@@ -129,8 +134,12 @@ class EnforcerTest(base.PolicyBaseTestCase):
         loaded_rules = jsonutils.loads(str(self.enforcer.rules))
         self.assertEqual('role:fakeC', loaded_rules['default'])
         self.assertEqual('is_admin:True', loaded_rules['admin'])
+        # 4 debug calls showing loading of policy.json,
+        # policy.d/a.conf, policy.d/b.conf, policy.2.d/fake.conf
+        self.assertEqual(mock_log.debug.call_count, 4)
 
-    def test_load_non_existed_directory(self):
+    @mock.patch('oslo_policy.policy.LOG')
+    def test_load_non_existed_directory(self, mock_log):
         self.conf.set_override('policy_dirs',
                                ['policy.d', 'policy.x.d'],
                                group='oslo_policy')
@@ -138,6 +147,9 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertIsNotNone(self.enforcer.rules)
         self.assertIn('default', self.enforcer.rules)
         self.assertIn('admin', self.enforcer.rules)
+        # 3 debug calls showing loading of policy.json,
+        # policy.d/a.conf, policy.d/b.conf
+        self.assertEqual(mock_log.debug.call_count, 3)
 
     def test_set_rules_type(self):
         self.assertRaises(TypeError,
