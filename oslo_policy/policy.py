@@ -233,7 +233,8 @@ _opts = [
                            'in the search path defined by the config_dir '
                            'option, or absolute paths. The file defined by '
                            'policy_file must exist for these directories to '
-                           'be searched.'),
+                           'be searched.  Missing or empty directories are'
+                           'ignored.'),
                     deprecated_group='DEFAULT'),
 ]
 
@@ -385,7 +386,6 @@ class Enforcer(object):
                 try:
                     path = self._get_policy_path(path)
                 except cfg.ConfigFilesNotFoundError:
-                    LOG.info(_LI("Can not find policy directory: %s"), path)
                     continue
                 self._walk_through_policy_directory(path,
                                                     self._load_policy_file,
@@ -405,7 +405,8 @@ class Enforcer(object):
             if reloaded or not self.rules or not overwrite:
                 rules = Rules.load_json(data, self.default_rule)
                 self.set_rules(rules, overwrite=overwrite, use_conf=True)
-                LOG.debug("Rules successfully reloaded")
+                LOG.debug("Reloaded policy file: %(path)s",
+                          {'path': path})
 
     def _get_policy_path(self, path):
         """Locate the policy json data file/path.
