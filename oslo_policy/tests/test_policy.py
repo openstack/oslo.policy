@@ -27,6 +27,32 @@ from oslo_policy import policy
 from oslo_policy.tests import base
 
 
+POLICY_A_CONTENTS = """
+{
+    "default": "role:fakeA"
+}
+"""
+
+POLICY_B_CONTENTS = """
+{
+  "default": "role:fakeB"
+}
+"""
+
+POLICY_FAKE_CONTENTS = """
+{
+    "default": "role:fakeC"
+}
+"""
+
+POLICY_JSON_CONTENTS = """
+{
+    "default": "rule:admin",
+    "admin": "is_admin:True"
+}
+"""
+
+
 class MyException(Exception):
     def __init__(self, *args, **kwargs):
         self.args = args
@@ -106,6 +132,17 @@ class RulesTestCase(test_base.BaseTestCase):
 
 class EnforcerTest(base.PolicyBaseTestCase):
 
+    def setUp(self):
+        super(EnforcerTest, self).setUp()
+        self.create_config_file('policy.json', POLICY_JSON_CONTENTS)
+
+    def check_loaded_files(self, filenames):
+        self.assertEqual(
+            self.enforcer._loaded_files,
+            [self.get_config_file_fullname(n)
+             for n in filenames]
+        )
+
     def test_load_file(self):
         self.conf.set_override('policy_dirs', [], group='oslo_policy')
         self.enforcer.load_rules(True)
@@ -113,19 +150,24 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertIn('default', self.enforcer.rules)
         self.assertIn('admin', self.enforcer.rules)
 
-    @mock.patch('oslo_policy.policy.LOG')
-    def test_load_directory(self, mock_log):
+    def test_load_directory(self):
+        self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
+        self.create_config_file('policy.d/b.conf', POLICY_B_CONTENTS)
         self.enforcer.load_rules(True)
         self.assertIsNotNone(self.enforcer.rules)
         loaded_rules = jsonutils.loads(str(self.enforcer.rules))
         self.assertEqual('role:fakeB', loaded_rules['default'])
         self.assertEqual('is_admin:True', loaded_rules['admin'])
-        # 3 debug calls showing loading of policy.json,
-        # policy.d/a.conf, policy.d/b.conf
-        self.assertEqual(mock_log.debug.call_count, 3)
+        self.check_loaded_files([
+            'policy.json',
+            'policy.d/a.conf',
+            'policy.d/b.conf',
+        ])
 
-    @mock.patch('oslo_policy.policy.LOG')
-    def test_load_multiple_directories(self, mock_log):
+    def test_load_multiple_directories(self):
+        self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
+        self.create_config_file('policy.d/b.conf', POLICY_B_CONTENTS)
+        self.create_config_file('policy.2.d/fake.conf', POLICY_FAKE_CONTENTS)
         self.conf.set_override('policy_dirs',
                                ['policy.d', 'policy.2.d'],
                                group='oslo_policy')
@@ -134,12 +176,15 @@ class EnforcerTest(base.PolicyBaseTestCase):
         loaded_rules = jsonutils.loads(str(self.enforcer.rules))
         self.assertEqual('role:fakeC', loaded_rules['default'])
         self.assertEqual('is_admin:True', loaded_rules['admin'])
-        # 4 debug calls showing loading of policy.json,
-        # policy.d/a.conf, policy.d/b.conf, policy.2.d/fake.conf
-        self.assertEqual(mock_log.debug.call_count, 4)
+        self.check_loaded_files([
+            'policy.json',
+            'policy.d/a.conf',
+            'policy.d/b.conf',
+            'policy.2.d/fake.conf',
+        ])
 
-    @mock.patch('oslo_policy.policy.LOG')
-    def test_load_non_existed_directory(self, mock_log):
+    def test_load_non_existed_directory(self):
+        self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
         self.conf.set_override('policy_dirs',
                                ['policy.d', 'policy.x.d'],
                                group='oslo_policy')
@@ -147,9 +192,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertIsNotNone(self.enforcer.rules)
         self.assertIn('default', self.enforcer.rules)
         self.assertIn('admin', self.enforcer.rules)
-        # 3 debug calls showing loading of policy.json,
-        # policy.d/a.conf, policy.d/b.conf
-        self.assertEqual(mock_log.debug.call_count, 3)
+        self.check_loaded_files(['policy.json', 'policy.d/a.conf'])
 
     def test_set_rules_type(self):
         self.assertRaises(TypeError,
@@ -185,13 +228,16 @@ class EnforcerTest(base.PolicyBaseTestCase):
                         }"""
         rules = policy.Rules.load_json(rules_json)
         default_rule = _checks.TrueCheck()
-        enforcer = policy.Enforcer(cfg.CONF, default_rule=default_rule)
+        enforcer = policy.Enforcer(self.conf, default_rule=default_rule)
         enforcer.set_rules(rules)
         action = 'cloudwatch:PutMetricData'
         creds = {'roles': ''}
         self.assertEqual(enforcer.enforce(action, {}, creds), True)
 
     def test_enforcer_force_reload_with_overwrite(self):
+        self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
+        self.create_config_file('policy.d/b.conf', POLICY_B_CONTENTS)
+
         # Prepare in memory fake policies.
         self.enforcer.set_rules({'test': _parser.parse_rule('role:test')},
                                 use_conf=True)
@@ -220,6 +266,9 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertIn('is_admin:True', loaded_rules['admin'])
 
     def test_enforcer_force_reload_without_overwrite(self):
+        self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
+        self.create_config_file('policy.d/b.conf', POLICY_B_CONTENTS)
+
         # Prepare in memory fake policies.
         self.enforcer.set_rules({'test': _parser.parse_rule('role:test')},
                                 use_conf=True)
@@ -251,9 +300,12 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertIn('is_admin:True', loaded_rules['admin'])
 
     def test_enforcer_keep_use_conf_flag_after_reload(self):
+        self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
+        self.create_config_file('policy.d/b.conf', POLICY_B_CONTENTS)
+
         # We initialized enforcer with
         # policy configure files.
-        enforcer = policy.Enforcer(cfg.CONF)
+        enforcer = policy.Enforcer(self.conf)
         self.assertTrue(enforcer.use_conf)
         self.assertTrue(enforcer.enforce('default', {},
                                          {'roles': ['fakeB']}))
@@ -269,19 +321,12 @@ class EnforcerTest(base.PolicyBaseTestCase):
         # enforcer(), this case could happen only
         # when use_conf flag equals True.
         rules = jsonutils.loads(str(enforcer.rules))
-        with open(enforcer.policy_path, 'r') as f:
-            ori_rules = f.read()
-
-        def _remove_dynamic_test_rule():
-            with open(enforcer.policy_path, 'w') as f:
-                f.write(ori_rules)
-        self.addCleanup(_remove_dynamic_test_rule)
-
         rules['_dynamic_test_rule'] = 'role:test'
 
         with open(enforcer.policy_path, 'w') as f:
             f.write(jsonutils.dumps(rules))
 
+        enforcer.load_rules(force_reload=True)
         self.assertTrue(enforcer.enforce('_dynamic_test_rule', {},
                                          {'roles': ['test']}))
 
@@ -304,16 +349,16 @@ class EnforcerTest(base.PolicyBaseTestCase):
                                                'test1': 'test1'})
 
     def test_enforcer_with_default_policy_file(self):
-        enforcer = policy.Enforcer(cfg.CONF)
-        self.assertEqual(cfg.CONF.oslo_policy.policy_file,
+        enforcer = policy.Enforcer(self.conf)
+        self.assertEqual(self.conf.oslo_policy.policy_file,
                          enforcer.policy_file)
 
     def test_enforcer_with_policy_file(self):
-        enforcer = policy.Enforcer(cfg.CONF, policy_file='non-default.json')
+        enforcer = policy.Enforcer(self.conf, policy_file='non-default.json')
         self.assertEqual('non-default.json', enforcer.policy_file)
 
     def test_get_policy_path_raises_exc(self):
-        enforcer = policy.Enforcer(cfg.CONF, policy_file='raise_error.json')
+        enforcer = policy.Enforcer(self.conf, policy_file='raise_error.json')
         e = self.assertRaises(cfg.ConfigFilesNotFoundError,
                               enforcer._get_policy_path, enforcer.policy_file)
         self.assertEqual(('raise_error.json', ), e.config_files)
@@ -325,17 +370,21 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual(self.enforcer.rules, {'test': 'test1'})
 
     def test_enforcer_default_rule_name(self):
-        enforcer = policy.Enforcer(cfg.CONF, default_rule='foo_rule')
+        enforcer = policy.Enforcer(self.conf, default_rule='foo_rule')
         self.assertEqual('foo_rule', enforcer.rules.default_rule)
         self.conf.set_override('policy_default_rule', 'bar_rule',
                                group='oslo_policy')
-        enforcer = policy.Enforcer(cfg.CONF, default_rule='foo_rule')
+        enforcer = policy.Enforcer(self.conf, default_rule='foo_rule')
         self.assertEqual('foo_rule', enforcer.rules.default_rule)
-        enforcer = policy.Enforcer(cfg.CONF, )
+        enforcer = policy.Enforcer(self.conf, )
         self.assertEqual('bar_rule', enforcer.rules.default_rule)
 
 
 class CheckFunctionTestCase(base.PolicyBaseTestCase):
+
+    def setUp(self):
+        super(CheckFunctionTestCase, self).setUp()
+        self.create_config_file('policy.json', POLICY_JSON_CONTENTS)
 
     def test_check_explicit(self):
         rule = base.FakeCheck()
@@ -343,8 +392,8 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
         self.assertEqual(result, ('target', 'creds', self.enforcer))
 
     def test_check_no_rules(self):
-        self.conf.set_override('policy_file', 'empty.json',
-                               group='oslo_policy')
+        # Clear the policy.json file created in setUp()
+        self.create_config_file('policy.json', "{}")
         self.enforcer.default_rule = None
         self.enforcer.load_rules()
         result = self.enforcer.enforce('rule', 'target', 'creds')

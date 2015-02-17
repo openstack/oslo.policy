@@ -339,6 +339,7 @@ class Enforcer(object):
         self.policy_file = policy_file or self.conf.oslo_policy.policy_file
         self.use_conf = use_conf
         self.overwrite = overwrite
+        self._loaded_files = []
 
     def set_rules(self, rules, overwrite=True, use_conf=False):
         """Create a new :class:`Rules` based on the provided dict of rules.
@@ -364,6 +365,7 @@ class Enforcer(object):
         fileutils.delete_cached_file(self.policy_path)
         self.default_rule = None
         self.policy_path = None
+        self._loaded_files = []
 
     def load_rules(self, force_reload=False):
         """Loads policy_path's rules.
@@ -405,6 +407,7 @@ class Enforcer(object):
             if reloaded or not self.rules or not overwrite:
                 rules = Rules.load_json(data, self.default_rule)
                 self.set_rules(rules, overwrite=overwrite, use_conf=True)
+                self._loaded_files.append(path)
                 LOG.debug('Reloaded policy file: %(path)s',
                           {'path': path})
 
