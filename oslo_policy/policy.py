@@ -210,11 +210,10 @@ from oslo_serialization import jsonutils
 import six
 
 from oslo_policy import _checks
-from oslo_policy import _i18n
+from oslo_policy._i18n import _
 from oslo_policy import _parser
 from oslo_policy.openstack.common import fileutils
 
-_, _LI = _i18n._, _i18n._LI
 
 _opts = [
     cfg.StrOpt('policy_file',

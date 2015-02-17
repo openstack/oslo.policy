@@ -21,12 +21,10 @@ import re
 import six
 
 from oslo_policy import _checks
-from oslo_policy import _i18n
+from oslo_policy._i18n import _LE
 
 
 LOG = logging.getLogger(__name__)
-
-_, _LE, _LI = _i18n._, _i18n._LE, _i18n._LI
 
 
 def reducer(*tokens):
