@@ -213,29 +213,7 @@ from oslo_policy import _checks
 from oslo_policy._i18n import _
 from oslo_policy import _parser
 from oslo_policy.openstack.common import fileutils
-
-
-_opts = [
-    cfg.StrOpt('policy_file',
-               default='policy.json',
-               help=_('The JSON file that defines policies.'),
-               deprecated_group='DEFAULT'),
-    cfg.StrOpt('policy_default_rule',
-               default='default',
-               help=_('Default rule. Enforced when a requested rule is not '
-                      'found.'),
-               deprecated_group='DEFAULT'),
-    cfg.MultiStrOpt('policy_dirs',
-                    default=['policy.d'],
-                    help=_('Directories where policy configuration files are '
-                           'stored. They can be relative to any directory '
-                           'in the search path defined by the config_dir '
-                           'option, or absolute paths. The file defined by '
-                           'policy_file must exist for these directories to '
-                           'be searched.  Missing or empty directories are'
-                           'ignored.'),
-                    deprecated_group='DEFAULT'),
-]
+from oslo_policy import opts
 
 
 LOG = logging.getLogger(__name__)
@@ -327,7 +305,7 @@ class Enforcer(object):
     def __init__(self, conf, policy_file=None, rules=None,
                  default_rule=None, use_conf=True, overwrite=True):
         self.conf = conf
-        self.conf.register_opts(_opts, group='oslo_policy')
+        opts._register(conf)
 
         self.default_rule = (default_rule or
                              self.conf.oslo_policy.policy_default_rule)
