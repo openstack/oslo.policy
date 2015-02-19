@@ -240,6 +240,15 @@ class Rules(dict):
 
         return cls(rules, default_rule)
 
+    @classmethod
+    def from_dict(cls, rules_dict, default_rule=None):
+        """Allow loading of rule data from a dictionary."""
+
+        # Parse the rules stored in the dictionary
+        rules = dict((k, _parser.parse_rule(v)) for k, v in rules_dict.items())
+
+        return cls(rules, default_rule)
+
     def __init__(self, rules=None, default_rule=None):
         """Initialize the Rules store."""
 

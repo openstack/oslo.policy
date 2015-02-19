@@ -109,6 +109,14 @@ class RulesTestCase(test_base.BaseTestCase):
             default=[],
         ))
 
+    @mock.patch.object(_parser, 'parse_rule', lambda x: x)
+    def test_from_dict(self):
+        expected = {'admin_or_owner': 'role:admin', 'default': '@'}
+        rules = policy.Rules.from_dict(expected, 'default')
+
+        self.assertEqual('default', rules.default_rule)
+        self.assertEqual(expected, rules)
+
     def test_str(self):
         exemplar = """{
     "admin_or_owner": "role:admin or project_id:%(project_id)s"
