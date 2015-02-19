@@ -219,7 +219,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.set_rules(rules)
         action = 'cloudwatch:PutMetricData'
         creds = {'roles': ''}
-        self.assertEqual(True, self.enforcer.enforce(action, {}, creds))
+        self.assertTrue(self.enforcer.enforce(action, {}, creds))
 
     def test_enforcer_with_default_rule(self):
         rules_json = """{
@@ -232,7 +232,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         enforcer.set_rules(rules)
         action = 'cloudwatch:PutMetricData'
         creds = {'roles': ''}
-        self.assertEqual(True, enforcer.enforce(action, {}, creds))
+        self.assertTrue(enforcer.enforce(action, {}, creds))
 
     def test_enforcer_force_reload_with_overwrite(self):
         self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
@@ -397,7 +397,7 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
         self.enforcer.default_rule = None
         self.enforcer.load_rules()
         result = self.enforcer.enforce('rule', 'target', 'creds')
-        self.assertEqual(False, result)
+        self.assertFalse(result)
 
     def test_check_with_rule(self):
         self.enforcer.set_rules(dict(default=base.FakeCheck()))

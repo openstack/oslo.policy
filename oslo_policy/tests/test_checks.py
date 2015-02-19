@@ -49,14 +49,14 @@ class RuleCheckTestCase(base.PolicyBaseTestCase):
         self.enforcer.rules = {}
         check = _checks.RuleCheck('rule', 'spam')
 
-        self.assertEqual(False, check('target', 'creds', self.enforcer))
+        self.assertFalse(check('target', 'creds', self.enforcer))
 
     def test_rule_false(self):
         self.enforcer.rules = dict(spam=mock.Mock(return_value=False))
 
         check = _checks.RuleCheck('rule', 'spam')
 
-        self.assertEqual(False, check('target', 'creds', self.enforcer))
+        self.assertFalse(check('target', 'creds', self.enforcer))
         self.enforcer.rules['spam'].assert_called_once_with('target', 'creds',
                                                             self.enforcer)
 
@@ -64,7 +64,7 @@ class RuleCheckTestCase(base.PolicyBaseTestCase):
         self.enforcer.rules = dict(spam=mock.Mock(return_value=True))
         check = _checks.RuleCheck('rule', 'spam')
 
-        self.assertEqual(True, check('target', 'creds', self.enforcer))
+        self.assertTrue(check('target', 'creds', self.enforcer))
         self.enforcer.rules['spam'].assert_called_once_with('target', 'creds',
                                                             self.enforcer)
 
@@ -73,13 +73,12 @@ class RoleCheckTestCase(base.PolicyBaseTestCase):
     def test_accept(self):
         check = _checks.RoleCheck('role', 'sPaM')
 
-        self.assertEqual(True,
-                         check('target', dict(roles=['SpAm']), self.enforcer))
+        self.assertTrue(check('target', dict(roles=['SpAm']), self.enforcer))
 
     def test_reject(self):
         check = _checks.RoleCheck('role', 'spam')
 
-        self.assertEqual(False, check('target', dict(roles=[]), self.enforcer))
+        self.assertFalse(check('target', dict(roles=[]), self.enforcer))
 
 
 class HttpCheckTestCase(base.PolicyBaseTestCase):
@@ -95,10 +94,9 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
                        return_value=six.StringIO('True'))
     def test_accept(self, mock_urlopen):
         check = _checks.HttpCheck('http', '//example.com/%(name)s')
-        self.assertEqual(True,
-                         check(dict(name='target', spam='spammer'),
-                               dict(user='user', roles=['a', 'b', 'c']),
-                               self.enforcer))
+        self.assertTrue(check(dict(name='target', spam='spammer'),
+                              dict(user='user', roles=['a', 'b', 'c']),
+                              self.enforcer))
         self.assertEqual(1, mock_urlopen.call_count)
 
         args = mock_urlopen.call_args[0]
@@ -114,8 +112,7 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
     def test_reject(self, mock_urlopen):
         check = _checks.HttpCheck('http', '//example.com/%(name)s')
 
-        self.assertEqual(False,
-                         check(dict(name='target', spam='spammer'),
+        self.assertFalse(check(dict(name='target', spam='spammer'),
                                dict(user='user', roles=['a', 'b', 'c']),
                                self.enforcer))
         self.assertEqual(1, mock_urlopen.call_count)
@@ -136,10 +133,9 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
         target = {'a': object(),
                   'name': 'target',
                   'b': 'test data'}
-        self.assertEqual(True,
-                         check(target,
-                               dict(user='user', roles=['a', 'b', 'c']),
-                               self.enforcer))
+        self.assertTrue(check(target,
+                              dict(user='user', roles=['a', 'b', 'c']),
+                              self.enforcer))
 
     @mock.patch.object(urlrequest, 'urlopen',
                        return_value=six.StringIO('True'))
@@ -148,83 +144,64 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
         target = {'a': 'some_string',
                   'name': 'target',
                   'b': 'test data'}
-        self.assertEqual(True,
-                         check(target,
-                               dict(user='user', roles=['a', 'b', 'c']),
-                               self.enforcer))
+        self.assertTrue(check(target,
+                              dict(user='user', roles=['a', 'b', 'c']),
+                              self.enforcer))
 
 
 class GenericCheckTestCase(base.PolicyBaseTestCase):
     def test_no_cred(self):
         check = _checks.GenericCheck('name', '%(name)s')
 
-        self.assertEqual(False, check(dict(name='spam'), {}, self.enforcer))
+        self.assertFalse(check(dict(name='spam'), {}, self.enforcer))
 
     def test_cred_mismatch(self):
         check = _checks.GenericCheck('name', '%(name)s')
 
-        self.assertEqual(False,
-                         check(dict(name='spam'),
+        self.assertFalse(check(dict(name='spam'),
                                dict(name='ham'),
                                self.enforcer))
 
     def test_accept(self):
         check = _checks.GenericCheck('name', '%(name)s')
 
-        self.assertEqual(True,
-                         check(dict(name='spam'),
-                               dict(name='spam'),
-                               self.enforcer))
+        self.assertTrue(check(dict(name='spam'),
+                              dict(name='spam'),
+                              self.enforcer))
 
     def test_no_key_match_in_target(self):
         check = _checks.GenericCheck('name', '%(name)s')
 
-        self.assertEqual(False,
-                         check(dict(name1='spam'),
+        self.assertFalse(check(dict(name1='spam'),
                                dict(name='spam'),
                                self.enforcer))
 
     def test_constant_string_mismatch(self):
         check = _checks.GenericCheck("'spam'", '%(name)s')
 
-        self.assertEqual(False,
-                         check(dict(name='ham'),
-                               {},
-                               self.enforcer))
+        self.assertFalse(check(dict(name='ham'), {}, self.enforcer))
 
     def test_constant_string_accept(self):
         check = _checks.GenericCheck("'spam'", '%(name)s')
 
-        self.assertEqual(True,
-                         check(dict(name='spam'),
-                               {},
-                               self.enforcer))
+        self.assertTrue(check(dict(name='spam'), {}, self.enforcer))
 
     def test_constant_literal_mismatch(self):
         check = _checks.GenericCheck('True', '%(enabled)s')
 
-        self.assertEqual(False,
-                         check(dict(enabled=False),
-                               {},
-                               self.enforcer))
+        self.assertFalse(check(dict(enabled=False), {}, self.enforcer))
 
     def test_constant_literal_accept(self):
         check = _checks.GenericCheck('True', '%(enabled)s')
 
-        self.assertEqual(True,
-                         check(dict(enabled=True),
-                               {},
-                               self.enforcer))
+        self.assertTrue(check(dict(enabled=True), {}, self.enforcer))
 
     def test_deep_credentials_dictionary_lookup(self):
         check = _checks.GenericCheck('a.b.c.d', 'APPLES')
 
         credentials = {'a': {'b': {'c': {'d': 'APPLES'}}}}
 
-        self.assertEqual(True,
-                         check({},
-                               credentials,
-                               self.enforcer))
+        self.assertTrue(check({}, credentials, self.enforcer))
 
     def test_missing_credentials_dictionary_lookup(self):
         credentials = {'a': 'APPLES', 'o': {'t': 'ORANGES'}}
@@ -233,24 +210,15 @@ class GenericCheckTestCase(base.PolicyBaseTestCase):
         # Should prove the basic credentials structure before we test
         # for failure cases.
         check = _checks.GenericCheck('o.t', 'ORANGES')
-        self.assertEqual(True,
-                         check({},
-                               credentials,
-                               self.enforcer))
+        self.assertTrue(check({}, credentials, self.enforcer))
 
         # Case where final key is missing
         check = _checks.GenericCheck('o.v', 'ORANGES')
-        self.assertEqual(False,
-                         check({},
-                               credentials,
-                               self.enforcer))
+        self.assertFalse(check({}, credentials, self.enforcer))
 
         # Attempt to access key under a missing dictionary
         check = _checks.GenericCheck('q.v', 'APPLES')
-        self.assertEqual(False,
-                         check({},
-                               credentials,
-                               self.enforcer))
+        self.assertFalse(check({}, credentials, self.enforcer))
 
 
 class FalseCheckTestCase(test_base.BaseTestCase):
@@ -262,7 +230,7 @@ class FalseCheckTestCase(test_base.BaseTestCase):
     def test_call(self):
         check = _checks.FalseCheck()
 
-        self.assertEqual(False, check('target', 'creds', None))
+        self.assertFalse(check('target', 'creds', None))
 
 
 class TrueCheckTestCase(test_base.BaseTestCase):
@@ -274,7 +242,7 @@ class TrueCheckTestCase(test_base.BaseTestCase):
     def test_call(self):
         check = _checks.TrueCheck()
 
-        self.assertEqual(True, check('target', 'creds', None))
+        self.assertTrue(check('target', 'creds', None))
 
 
 class CheckForTest(_checks.Check):
@@ -310,14 +278,14 @@ class NotCheckTestCase(test_base.BaseTestCase):
         rule = mock.Mock(return_value=True)
         check = _checks.NotCheck(rule)
 
-        self.assertEqual(False, check('target', 'cred', None))
+        self.assertFalse(check('target', 'cred', None))
         rule.assert_called_once_with('target', 'cred', None)
 
     def test_call_false(self):
         rule = mock.Mock(return_value=False)
         check = _checks.NotCheck(rule)
 
-        self.assertEqual(True, check('target', 'cred', None))
+        self.assertTrue(check('target', 'cred', None))
         rule.assert_called_once_with('target', 'cred', None)
 
 
@@ -342,7 +310,7 @@ class AndCheckTestCase(test_base.BaseTestCase):
         rules = [mock.Mock(return_value=False), mock.Mock(return_value=False)]
         check = _checks.AndCheck(rules)
 
-        self.assertEqual(False, check('target', 'cred', None))
+        self.assertFalse(check('target', 'cred', None))
         rules[0].assert_called_once_with('target', 'cred', None)
         self.assertFalse(rules[1].called)
 
@@ -384,7 +352,7 @@ class OrCheckTestCase(test_base.BaseTestCase):
         rules = [mock.Mock(return_value=False), mock.Mock(return_value=False)]
         check = _checks.OrCheck(rules)
 
-        self.assertEqual(False, check('target', 'cred', None))
+        self.assertFalse(check('target', 'cred', None))
         rules[0].assert_called_once_with('target', 'cred', None)
         rules[1].assert_called_once_with('target', 'cred', None)
 
@@ -392,7 +360,7 @@ class OrCheckTestCase(test_base.BaseTestCase):
         rules = [mock.Mock(return_value=True), mock.Mock(return_value=False)]
         check = _checks.OrCheck(rules)
 
-        self.assertEqual(True, check('target', 'cred', None))
+        self.assertTrue(check('target', 'cred', None))
         rules[0].assert_called_once_with('target', 'cred', None)
         self.assertFalse(rules[1].called)
 
@@ -400,6 +368,6 @@ class OrCheckTestCase(test_base.BaseTestCase):
         rules = [mock.Mock(return_value=False), mock.Mock(return_value=True)]
         check = _checks.OrCheck(rules)
 
-        self.assertEqual(True, check('target', 'cred', None))
+        self.assertTrue(check('target', 'cred', None))
         rules[0].assert_called_once_with('target', 'cred', None)
         rules[1].assert_called_once_with('target', 'cred', None)
