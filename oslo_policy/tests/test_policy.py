@@ -64,14 +64,14 @@ class RulesTestCase(test_base.BaseTestCase):
     def test_init_basic(self):
         rules = policy.Rules()
 
-        self.assertEqual(rules, {})
+        self.assertEqual({}, rules)
         self.assertIsNone(rules.default_rule)
 
     def test_init(self):
         rules = policy.Rules(dict(a=1, b=2, c=3), 'a')
 
-        self.assertEqual(rules, dict(a=1, b=2, c=3))
-        self.assertEqual(rules.default_rule, 'a')
+        self.assertEqual(dict(a=1, b=2, c=3), rules)
+        self.assertEqual('a', rules.default_rule)
 
     def test_no_default(self):
         rules = policy.Rules(dict(a=1, b=2, c=3))
@@ -86,14 +86,14 @@ class RulesTestCase(test_base.BaseTestCase):
     def test_with_default(self):
         rules = policy.Rules(dict(a=1, b=2, c=3), 'b')
 
-        self.assertEqual(rules['d'], 2)
+        self.assertEqual(2, rules['d'])
 
     def test_retrieval(self):
         rules = policy.Rules(dict(a=1, b=2, c=3), 'b')
 
-        self.assertEqual(rules['a'], 1)
-        self.assertEqual(rules['b'], 2)
-        self.assertEqual(rules['c'], 3)
+        self.assertEqual(1, rules['a'])
+        self.assertEqual(2, rules['b'])
+        self.assertEqual(3, rules['c'])
 
     @mock.patch.object(_parser, 'parse_rule', lambda x: x)
     def test_load_json(self):
@@ -103,11 +103,11 @@ class RulesTestCase(test_base.BaseTestCase):
 }"""
         rules = policy.Rules.load_json(exemplar, 'default')
 
-        self.assertEqual(rules.default_rule, 'default')
-        self.assertEqual(rules, dict(
+        self.assertEqual('default', rules.default_rule)
+        self.assertEqual(dict(
             admin_or_owner=[['role:admin'], ['project_id:%(project_id)s']],
             default=[],
-        ))
+        ), rules)
 
     def test_str(self):
         exemplar = """{
@@ -117,7 +117,7 @@ class RulesTestCase(test_base.BaseTestCase):
             admin_or_owner='role:admin or project_id:%(project_id)s',
         ))
 
-        self.assertEqual(str(rules), exemplar)
+        self.assertEqual(exemplar, str(rules))
 
     def test_str_true(self):
         exemplar = """{
@@ -127,7 +127,7 @@ class RulesTestCase(test_base.BaseTestCase):
             admin_or_owner=_checks.TrueCheck(),
         ))
 
-        self.assertEqual(str(rules), exemplar)
+        self.assertEqual(exemplar, str(rules))
 
 
 class EnforcerTest(base.PolicyBaseTestCase):
@@ -205,9 +205,9 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.rules = 'spam'
         filename = self.enforcer.policy_path
         self.enforcer.clear()
-        self.assertEqual(self.enforcer.rules, {})
-        self.assertEqual(self.enforcer.default_rule, None)
-        self.assertEqual(self.enforcer.policy_path, None)
+        self.assertEqual({}, self.enforcer.rules)
+        self.assertEqual(None, self.enforcer.default_rule)
+        self.assertEqual(None, self.enforcer.policy_path)
         fileutils.delete_cached_file.assert_called_once_with(filename)
 
     def test_rule_with_check(self):
@@ -219,7 +219,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.set_rules(rules)
         action = 'cloudwatch:PutMetricData'
         creds = {'roles': ''}
-        self.assertEqual(self.enforcer.enforce(action, {}, creds), True)
+        self.assertEqual(True, self.enforcer.enforce(action, {}, creds))
 
     def test_enforcer_with_default_rule(self):
         rules_json = """{
@@ -232,7 +232,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         enforcer.set_rules(rules)
         action = 'cloudwatch:PutMetricData'
         creds = {'roles': ''}
-        self.assertEqual(enforcer.enforce(action, {}, creds), True)
+        self.assertEqual(True, enforcer.enforce(action, {}, creds))
 
     def test_enforcer_force_reload_with_overwrite(self):
         self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
@@ -261,7 +261,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertIn('default', self.enforcer.rules)
         self.assertIn('admin', self.enforcer.rules)
         loaded_rules = jsonutils.loads(str(self.enforcer.rules))
-        self.assertEqual(len(loaded_rules), 2)
+        self.assertEqual(2, len(loaded_rules))
         self.assertIn('role:fakeB', loaded_rules['default'])
         self.assertIn('is_admin:True', loaded_rules['admin'])
 
@@ -294,7 +294,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertIn('default', self.enforcer.rules)
         self.assertIn('admin', self.enforcer.rules)
         loaded_rules = jsonutils.loads(str(self.enforcer.rules))
-        self.assertEqual(len(loaded_rules), 3)
+        self.assertEqual(3, len(loaded_rules))
         self.assertIn('role:test', loaded_rules['test'])
         self.assertIn('role:fakeB', loaded_rules['default'])
         self.assertIn('is_admin:True', loaded_rules['admin'])
@@ -340,13 +340,13 @@ class EnforcerTest(base.PolicyBaseTestCase):
     def test_enforcer_overwrite_rules(self):
         self.enforcer.set_rules({'test': 'test'})
         self.enforcer.set_rules({'test': 'test1'}, overwrite=True)
-        self.assertEqual(self.enforcer.rules, {'test': 'test1'})
+        self.assertEqual({'test': 'test1'}, self.enforcer.rules)
 
     def test_enforcer_update_rules(self):
         self.enforcer.set_rules({'test': 'test'})
         self.enforcer.set_rules({'test1': 'test1'}, overwrite=False)
-        self.assertEqual(self.enforcer.rules, {'test': 'test',
-                                               'test1': 'test1'})
+        self.assertEqual({'test': 'test', 'test1': 'test1'},
+                         self.enforcer.rules)
 
     def test_enforcer_with_default_policy_file(self):
         enforcer = policy.Enforcer(self.conf)
@@ -367,7 +367,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.load_rules()
         self.enforcer.set_rules({'test': 'test1'})
         self.enforcer.load_rules()
-        self.assertEqual(self.enforcer.rules, {'test': 'test1'})
+        self.assertEqual({'test': 'test1'}, self.enforcer.rules)
 
     def test_enforcer_default_rule_name(self):
         enforcer = policy.Enforcer(self.conf, default_rule='foo_rule')
@@ -389,7 +389,7 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
     def test_check_explicit(self):
         rule = base.FakeCheck()
         result = self.enforcer.enforce(rule, 'target', 'creds')
-        self.assertEqual(result, ('target', 'creds', self.enforcer))
+        self.assertEqual(('target', 'creds', self.enforcer), result)
 
     def test_check_no_rules(self):
         # Clear the policy.json file created in setUp()
@@ -397,13 +397,13 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
         self.enforcer.default_rule = None
         self.enforcer.load_rules()
         result = self.enforcer.enforce('rule', 'target', 'creds')
-        self.assertEqual(result, False)
+        self.assertEqual(False, result)
 
     def test_check_with_rule(self):
         self.enforcer.set_rules(dict(default=base.FakeCheck()))
         result = self.enforcer.enforce('default', 'target', 'creds')
 
-        self.assertEqual(result, ('target', 'creds', self.enforcer))
+        self.assertEqual(('target', 'creds', self.enforcer), result)
 
     def test_check_raises(self):
         self.enforcer.set_rules(dict(default=_checks.FalseCheck()))
@@ -413,7 +413,7 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
                                   True, MyException, 'arg1',
                                   'arg2', kw1='kwarg1', kw2='kwarg2')
         except MyException as exc:
-            self.assertEqual(exc.args, ('arg1', 'arg2'))
-            self.assertEqual(exc.kwargs, dict(kw1='kwarg1', kw2='kwarg2'))
+            self.assertEqual(('arg1', 'arg2'), exc.args)
+            self.assertEqual(dict(kw1='kwarg1', kw2='kwarg2'), exc.kwargs)
         else:
             self.fail('enforcer.enforce() failed to raise requested exception')
