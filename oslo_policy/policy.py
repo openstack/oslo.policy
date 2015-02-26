@@ -219,6 +219,10 @@ from oslo_policy import opts
 LOG = logging.getLogger(__name__)
 
 
+register = _checks.register
+Check = _checks.Check
+
+
 class PolicyNotAuthorized(Exception):
     """Default exception raised for policy enforcement failure."""
 

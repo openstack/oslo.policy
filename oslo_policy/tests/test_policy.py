@@ -425,3 +425,15 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
             self.assertEqual(dict(kw1='kwarg1', kw2='kwarg2'), exc.kwargs)
         else:
             self.fail('enforcer.enforce() failed to raise requested exception')
+
+
+class RegisterCheckTestCase(base.PolicyBaseTestCase):
+
+    @mock.patch.object(_checks, 'registered_checks', {})
+    def test_register_check(self):
+        class TestCheck(policy.Check):
+            pass
+
+        policy.register('spam', TestCheck)
+
+        self.assertEqual(dict(spam=TestCheck), _checks.registered_checks)
