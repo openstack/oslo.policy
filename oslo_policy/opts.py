@@ -41,7 +41,7 @@ _options = [
                            'in the search path defined by the config_dir '
                            'option, or absolute paths. The file defined by '
                            'policy_file must exist for these directories to '
-                           'be searched.  Missing or empty directories are'
+                           'be searched.  Missing or empty directories are '
                            'ignored.'),
                     deprecated_group='DEFAULT'),
 ]
