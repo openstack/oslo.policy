@@ -222,8 +222,9 @@ LOG = logging.getLogger(__name__)
 class PolicyNotAuthorized(Exception):
     """Default exception raised for policy enforcement failure."""
 
-    def __init__(self, rule):
-        msg = _('Policy does not allow %s to be performed.') % rule
+    def __init__(self, rule, target, creds):
+        msg = (_('%(rule)s on %(target)s by %(creds)s disallowed by policy') %
+               {'rule': rule, 'target': target, 'creds': creds})
         super(PolicyNotAuthorized, self).__init__(msg)
 
 
@@ -464,6 +465,6 @@ class Enforcer(object):
             if exc:
                 raise exc(*args, **kwargs)
 
-            raise PolicyNotAuthorized(rule)
+            raise PolicyNotAuthorized(rule, target, creds)
 
         return result
