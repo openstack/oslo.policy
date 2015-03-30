@@ -23,6 +23,7 @@ import six.moves.urllib.request as urlrequest
 
 from oslo_policy import _checks
 from oslo_policy.tests import base
+from oslo_policy.tests import token_fixture
 
 
 class CheckRegisterTestCase(test_base.BaseTestCase):
@@ -218,6 +219,57 @@ class GenericCheckTestCase(base.PolicyBaseTestCase):
 
         # Attempt to access key under a missing dictionary
         check = _checks.GenericCheck('q.v', 'APPLES')
+        self.assertFalse(check({}, credentials, self.enforcer))
+
+    def test_single_entry_in_list_accepted(self):
+        check = _checks.GenericCheck('a.b.c.d', 'APPLES')
+        credentials = {'a': {'b': {'c': {'d': ['APPLES']}}}}
+        self.assertTrue(check({}, credentials, self.enforcer))
+
+    def test_multiple_entry_in_list_accepted(self):
+        check = _checks.GenericCheck('a.b.c.d', 'APPLES')
+        credentials = {'a': {'b': {'c': {'d': ['Bananas',
+                                               'APPLES',
+                                               'Grapes']}}}}
+        self.assertTrue(check({}, credentials, self.enforcer))
+
+    def test_multiple_entry_in_nested_list_accepted(self):
+        check = _checks.GenericCheck('a.b.c.d', 'APPLES')
+        credentials = {'a': {'b': [{'c':
+                                    {'d': ['BANANAS', 'APPLES', 'GRAPES']}},
+                                   {}]}}
+        self.assertTrue(check({}, credentials, self.enforcer))
+
+    def test_multiple_entries_one_matches(self):
+        check = _checks.GenericCheck(
+            'token.catalog.endpoints.id',
+            token_fixture.REGION_ONE_PUBLIC_KEYSTONE_ENDPOINT_ID)
+        credentials = token_fixture.SCOPED_TOKEN_FIXTURE
+        self.assertTrue(check({}, credentials, self.enforcer))
+
+    def test_generic_role_check_matches(self):
+        check = _checks.GenericCheck(
+            'token.roles.name', 'role1')
+        credentials = token_fixture.SCOPED_TOKEN_FIXTURE
+        self.assertTrue(check({}, credentials, self.enforcer))
+
+    def test_generic_missing_role_does_not_matches(self):
+        check = _checks.GenericCheck(
+            'token.roles.name', 'missing')
+        credentials = token_fixture.SCOPED_TOKEN_FIXTURE
+        self.assertFalse(check({}, credentials, self.enforcer))
+
+    def test_multiple_nested_lists_accepted(self):
+        check = _checks.GenericCheck('a.b.c.d', 'APPLES')
+        credentials = {'a': {'b': [{'a': ''},
+                                   {'c':
+                                    {'d': ['BANANAS', 'APPLES', 'GRAPES']}},
+                                   {}]}}
+        self.assertTrue(check({}, credentials, self.enforcer))
+
+    def test_entry_not_in_list_rejected(self):
+        check = _checks.GenericCheck('a.b.c.d', 'APPLES')
+        credentials = {'a': {'b': {'c': {'d': ['PEACHES', 'PEARS']}}}}
         self.assertFalse(check({}, credentials, self.enforcer))
 
 
