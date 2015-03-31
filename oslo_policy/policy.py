@@ -331,6 +331,7 @@ class Enforcer(object):
         self.use_conf = use_conf
         self.overwrite = overwrite
         self._loaded_files = []
+        self._policy_dir_mtimes = {}
 
     def set_rules(self, rules, overwrite=True, use_conf=False):
         """Create a new :class:`Rules` based on the provided dict of rules.
@@ -357,6 +358,7 @@ class Enforcer(object):
         self.default_rule = None
         self.policy_path = None
         self._loaded_files = []
+        self._policy_dir_mtimes = {}
 
     def load_rules(self, force_reload=False):
         """Loads policy_path's rules.
@@ -380,9 +382,29 @@ class Enforcer(object):
                     path = self._get_policy_path(path)
                 except cfg.ConfigFilesNotFoundError:
                     continue
-                self._walk_through_policy_directory(path,
-                                                    self._load_policy_file,
-                                                    force_reload, False)
+                if (force_reload or self._is_directory_updated(
+                        self._policy_dir_mtimes, path)):
+                    self._walk_through_policy_directory(path,
+                                                        self._load_policy_file,
+                                                        force_reload, False)
+
+    @staticmethod
+    def _is_directory_updated(cache, path):
+        # Get the current modified time and compare it to what is in
+        # the cache and check if the new mtime is greater than what
+        # is in the cache
+        mtime = 0
+        if os.path.exists(path):
+            # Make a list of all the files
+            files = [path] + [os.path.join(path, file) for file in
+                              os.listdir(path)]
+            # Pick the newest one, let's use its time.
+            mtime = os.path.getmtime(max(files, key=os.path.getmtime))
+        cache_info = cache.setdefault(path, {})
+        if mtime > cache_info.get('mtime', 0):
+            cache_info['mtime'] = mtime
+            return True
+        return False
 
     @staticmethod
     def _walk_through_policy_directory(path, func, *args):
