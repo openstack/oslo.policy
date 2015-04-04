@@ -2,7 +2,8 @@
  oslo.policy
 =============
 
-RBAC policy enforcement library for OpenStack
+The Oslo Policy library provides support for RBAC policy enforcement across
+all OpenStack services.
 
 * Free software: Apache license
 * Documentation: http://docs.openstack.org/developer/oslo.policy
