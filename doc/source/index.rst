@@ -12,6 +12,7 @@ Contents
    api/modules
    usage
    opts
+   cli
    contributing
    history
 
