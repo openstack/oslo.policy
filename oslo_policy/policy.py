@@ -415,14 +415,13 @@ class Enforcer(object):
             func(os.path.join(path, policy_file), *args)
 
     def _load_policy_file(self, path, force_reload, overwrite=True):
-            reloaded, data = fileutils.read_cached_file(
-                path, force_reload=force_reload)
-            if reloaded or not self.rules or not overwrite:
-                rules = Rules.load_json(data, self.default_rule)
-                self.set_rules(rules, overwrite=overwrite, use_conf=True)
-                self._loaded_files.append(path)
-                LOG.debug('Reloaded policy file: %(path)s',
-                          {'path': path})
+        reloaded, data = fileutils.read_cached_file(
+            path, force_reload=force_reload)
+        if reloaded or not self.rules or not overwrite:
+            rules = Rules.load_json(data, self.default_rule)
+            self.set_rules(rules, overwrite=overwrite, use_conf=True)
+            self._loaded_files.append(path)
+            LOG.debug('Reloaded policy file: %(path)s', {'path': path})
 
     def _get_policy_path(self, path):
         """Locate the policy JSON data file/path.
