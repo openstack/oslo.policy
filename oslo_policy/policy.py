@@ -129,6 +129,13 @@ Registering New Special Checks
 It is also possible for additional special check types to be registered
 using the :func:`~oslo_policy.policy.register` function.
 
+The following classes can be used as parents for custom special check types:
+
+    * :class:`~oslo_policy.policy.AndCheck`
+    * :class:`~oslo_policy.policy.NotCheck`
+    * :class:`~oslo_policy.policy.OrCheck`
+    * :class:`~oslo_policy.policy.RuleCheck`
+
 Policy Rule Expressions
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -221,6 +228,11 @@ LOG = logging.getLogger(__name__)
 
 register = _checks.register
 Check = _checks.Check
+
+AndCheck = _checks.AndCheck
+NotCheck = _checks.NotCheck
+OrCheck = _checks.OrCheck
+RuleCheck = _checks.RuleCheck
 
 
 class PolicyNotAuthorized(Exception):
