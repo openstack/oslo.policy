@@ -481,7 +481,7 @@ class Enforcer(object):
                 # Evaluate the rule
                 result = self.rules[rule](target, creds, self)
             except KeyError:
-                LOG.debug('Rule [%s] does not exist' % rule)
+                LOG.debug('Rule [%s] does not exist', rule)
                 # If the rule doesn't exist, fail closed
                 result = False
 
