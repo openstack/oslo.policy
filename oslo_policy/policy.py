@@ -314,7 +314,7 @@ class Enforcer(object):
 
     :param conf: A configuration object.
     :param policy_file: Custom policy file to use, if none is
-                        specified, ``conf.policy_file`` will be
+                        specified, ``conf.oslo_policy.policy_file`` will be
                         used.
     :param rules: Default dictionary / Rules to use. It will be
                   considered just in the first instantiation. If
