@@ -23,9 +23,9 @@ from oslo_serialization import jsonutils
 from oslotest import base as test_base
 import six
 
+from oslo_policy import _cache_handler
 from oslo_policy import _checks
 from oslo_policy import _parser
-from oslo_policy.openstack.common import fileutils
 from oslo_policy import policy
 from oslo_policy.tests import base
 
@@ -260,7 +260,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
                           self.enforcer.set_rules,
                           'dummy')
 
-    @mock.patch.object(fileutils, 'delete_cached_file', mock.Mock())
+    @mock.patch.object(_cache_handler, 'delete_cached_file', mock.Mock())
     def test_clear(self):
         # Make sure the rules are reset
         self.enforcer.rules = 'spam'
@@ -269,7 +269,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual({}, self.enforcer.rules)
         self.assertEqual(None, self.enforcer.default_rule)
         self.assertEqual(None, self.enforcer.policy_path)
-        fileutils.delete_cached_file.assert_called_once_with(filename)
+        _cache_handler.delete_cached_file.assert_called_once_with(filename)
 
     def test_rule_with_check(self):
         rules_json = """{

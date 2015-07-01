@@ -216,10 +216,10 @@ from oslo_config import cfg
 from oslo_serialization import jsonutils
 import six
 
+from oslo_policy import _cache_handler
 from oslo_policy import _checks
 from oslo_policy._i18n import _
 from oslo_policy import _parser
-from oslo_policy.openstack.common import fileutils
 from oslo_policy import opts
 
 
@@ -366,7 +366,7 @@ class Enforcer(object):
     def clear(self):
         """Clears :class:`Enforcer` rules, policy's cache and policy's path."""
         self.set_rules({})
-        fileutils.delete_cached_file(self.policy_path)
+        _cache_handler.delete_cached_file(self.policy_path)
         self.default_rule = None
         self.policy_path = None
         self._loaded_files = []
@@ -427,7 +427,7 @@ class Enforcer(object):
             func(os.path.join(path, policy_file), *args)
 
     def _load_policy_file(self, path, force_reload, overwrite=True):
-        reloaded, data = fileutils.read_cached_file(
+        reloaded, data = _cache_handler.read_cached_file(
             path, force_reload=force_reload)
         if reloaded or not self.rules or not overwrite:
             rules = Rules.load_json(data, self.default_rule)
