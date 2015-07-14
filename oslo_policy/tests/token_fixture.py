@@ -40,7 +40,7 @@ SCOPED_TOKEN_FIXTURE = {
                 "name": "domain_name1"
             },
             "enabled": True,
-            "description": "no description avialable",
+            "description": "no description available",
             "name": "tenant_name1"
         },
         "catalog": [
