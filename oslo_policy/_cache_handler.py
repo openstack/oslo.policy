@@ -17,24 +17,22 @@ import logging
 import os
 
 LOG = logging.getLogger(__name__)
-_FILE_CACHE = {}
 
 
-def read_cached_file(filename, force_reload=False):
+def read_cached_file(cache, filename, force_reload=False):
     """Read from a file if it has been modified.
 
     :param force_reload: Whether to reload the file.
     :returns: A tuple with a boolean specifying if the data is fresh
               or not.
     """
-    global _FILE_CACHE
 
     if force_reload:
-        delete_cached_file(filename)
+        delete_cached_file(cache, filename)
 
     reloaded = False
     mtime = os.path.getmtime(filename)
-    cache_info = _FILE_CACHE.setdefault(filename, {})
+    cache_info = cache.setdefault(filename, {})
 
     if not cache_info or mtime > cache_info.get('mtime', 0):
         LOG.debug("Reloading cached file %s", filename)
@@ -45,12 +43,13 @@ def read_cached_file(filename, force_reload=False):
     return (reloaded, cache_info['data'])
 
 
-def delete_cached_file(filename):
+def delete_cached_file(cache, filename):
     """Delete cached file if present.
 
     :param filename: filename to delete
     """
-    global _FILE_CACHE
 
-    if filename in _FILE_CACHE:
-        del _FILE_CACHE[filename]
+    try:
+        del cache[filename]
+    except KeyError:
+        pass

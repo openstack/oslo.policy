@@ -344,6 +344,7 @@ class Enforcer(object):
         self.overwrite = overwrite
         self._loaded_files = []
         self._policy_dir_mtimes = {}
+        self._file_cache = {}
 
     def set_rules(self, rules, overwrite=True, use_conf=False):
         """Create a new :class:`Rules` based on the provided dict of rules.
@@ -364,13 +365,17 @@ class Enforcer(object):
             self.rules.update(rules)
 
     def clear(self):
-        """Clears :class:`Enforcer` rules, policy's cache and policy's path."""
+        """Clears :class:`Enforcer` contents.
+
+        This will clear this instances rules, policy's cache, file cache
+        and policy's path.
+        """
         self.set_rules({})
-        _cache_handler.delete_cached_file(self.policy_path)
         self.default_rule = None
         self.policy_path = None
         self._loaded_files = []
         self._policy_dir_mtimes = {}
+        self._file_cache.clear()
 
     def load_rules(self, force_reload=False):
         """Loads policy_path's rules.
@@ -428,7 +433,7 @@ class Enforcer(object):
 
     def _load_policy_file(self, path, force_reload, overwrite=True):
         reloaded, data = _cache_handler.read_cached_file(
-            path, force_reload=force_reload)
+            self._file_cache, path, force_reload=force_reload)
         if reloaded or not self.rules or not overwrite:
             rules = Rules.load_json(data, self.default_rule)
             self.set_rules(rules, overwrite=overwrite, use_conf=True)
