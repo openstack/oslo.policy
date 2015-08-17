@@ -264,12 +264,10 @@ class EnforcerTest(base.PolicyBaseTestCase):
     def test_clear(self):
         # Make sure the rules are reset
         self.enforcer.rules = 'spam'
-        filename = self.enforcer.policy_path
         self.enforcer.clear()
         self.assertEqual({}, self.enforcer.rules)
         self.assertEqual(None, self.enforcer.default_rule)
         self.assertEqual(None, self.enforcer.policy_path)
-        _cache_handler.delete_cached_file.assert_called_once_with(filename)
 
     def test_rule_with_check(self):
         rules_json = """{
