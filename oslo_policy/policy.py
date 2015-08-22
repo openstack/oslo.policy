@@ -434,7 +434,7 @@ class Enforcer(object):
     def _load_policy_file(self, path, force_reload, overwrite=True):
         reloaded, data = _cache_handler.read_cached_file(
             self._file_cache, path, force_reload=force_reload)
-        if reloaded or not self.rules or not overwrite:
+        if reloaded or not self.rules:
             rules = Rules.load_json(data, self.default_rule)
             self.set_rules(rules, overwrite=overwrite, use_conf=True)
             self._loaded_files.append(path)
