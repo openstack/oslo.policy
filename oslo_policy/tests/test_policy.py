@@ -149,9 +149,9 @@ class EnforcerTest(base.PolicyBaseTestCase):
 
     def check_loaded_files(self, filenames):
         self.assertEqual(
-            self.enforcer._loaded_files,
             [self.get_config_file_fullname(n)
-             for n in filenames]
+             for n in filenames],
+            self.enforcer._loaded_files
         )
 
     def test_load_file(self):
