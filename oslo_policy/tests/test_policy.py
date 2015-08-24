@@ -203,7 +203,9 @@ class EnforcerTest(base.PolicyBaseTestCase):
             'policy.d/a.conf',
         ])
 
-    def test_load_directory_caching_with_files_same(self):
+    def test_load_directory_caching_with_files_same(self, overwrite=True):
+        self.enforcer = policy.Enforcer(self.conf, overwrite=overwrite)
+
         self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
 
         self.enforcer.load_rules(False)
@@ -224,6 +226,9 @@ class EnforcerTest(base.PolicyBaseTestCase):
             'policy.json',
             'policy.d/a.conf',
         ])
+
+    def test_load_directory_caching_with_files_same_but_overwrite_false(self):
+        self.test_load_directory_caching_with_files_same(overwrite=False)
 
     def test_load_multiple_directories(self):
         self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
