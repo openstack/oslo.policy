@@ -34,7 +34,6 @@ _options = [
                help=_('Default rule. Enforced when a requested rule is not '
                       'found.'),
                deprecated_group='DEFAULT'),
-    # NOTE(stevemar): Remove this option in the M cycle, refer to bug 1428332
     cfg.MultiStrOpt('policy_dirs',
                     default=['policy.d'],
                     help=_('Directories where policy configuration files are '
@@ -44,8 +43,7 @@ _options = [
                            'policy_file must exist for these directories to '
                            'be searched.  Missing or empty directories are '
                            'ignored.'),
-                    deprecated_group='DEFAULT',
-                    deprecated_for_removal=True),
+                    deprecated_group='DEFAULT'),
 ]
 
 
