@@ -4,4 +4,4 @@ source = policy
 omit = policy/tests/*,policy/openstack/*
 
 [report]
-ignore-errors = True
+ignore_errors = True
