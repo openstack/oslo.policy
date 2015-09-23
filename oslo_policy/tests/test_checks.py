@@ -13,13 +13,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
+import httpretty
 import mock
 from oslo_serialization import jsonutils
 from oslotest import base as test_base
-import six
 import six.moves.urllib.parse as urlparse
-import six.moves.urllib.request as urlrequest
 
 from oslo_policy import _checks
 from oslo_policy.tests import base
@@ -88,47 +86,52 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
         for item in post_data.split('&'):
             key, _sep, value = item.partition('=')
             result[key] = jsonutils.loads(urlparse.unquote_plus(value))
-
         return result
 
-    @mock.patch.object(urlrequest, 'urlopen',
-                       return_value=six.StringIO('True'))
-    def test_accept(self, mock_urlopen):
+    @httpretty.activate
+    def test_accept(self):
+        httpretty.register_uri(httpretty.POST,
+                               "http://example.com/target",
+                               body='True')
+        httpretty.HTTPretty.allow_net_connect = False
+
         check = _checks.HttpCheck('http', '//example.com/%(name)s')
         self.assertTrue(check(dict(name='target', spam='spammer'),
                               dict(user='user', roles=['a', 'b', 'c']),
                               self.enforcer))
-        self.assertEqual(1, mock_urlopen.call_count)
 
-        args = mock_urlopen.call_args[0]
-
-        self.assertEqual('http://example.com/target', args[0])
+        last_request = httpretty.last_request()
+        self.assertEqual('POST', last_request.method)
         self.assertEqual(dict(
             target=dict(name='target', spam='spammer'),
             credentials=dict(user='user', roles=['a', 'b', 'c']),
-        ), self.decode_post_data(args[1]))
+        ), self.decode_post_data(last_request.body.decode("utf8")))
 
-    @mock.patch.object(urlrequest, 'urlopen',
-                       return_value=six.StringIO('other'))
-    def test_reject(self, mock_urlopen):
+    @httpretty.activate
+    def test_reject(self):
+        httpretty.register_uri(httpretty.POST,
+                               "http://example.com/target",
+                               body='other')
+        httpretty.HTTPretty.allow_net_connect = False
+
         check = _checks.HttpCheck('http', '//example.com/%(name)s')
-
         self.assertFalse(check(dict(name='target', spam='spammer'),
                                dict(user='user', roles=['a', 'b', 'c']),
                                self.enforcer))
-        self.assertEqual(1, mock_urlopen.call_count)
 
-        args = mock_urlopen.call_args[0]
-
-        self.assertEqual('http://example.com/target', args[0])
+        last_request = httpretty.last_request()
+        self.assertEqual('POST', last_request.method)
         self.assertEqual(dict(
             target=dict(name='target', spam='spammer'),
             credentials=dict(user='user', roles=['a', 'b', 'c']),
-        ), self.decode_post_data(args[1]))
+        ), self.decode_post_data(last_request.body.decode("utf8")))
 
-    @mock.patch.object(urlrequest, 'urlopen',
-                       return_value=six.StringIO('True'))
-    def test_http_with_objects_in_target(self, mock_urlopen):
+    @httpretty.activate
+    def test_http_with_objects_in_target(self):
+        httpretty.register_uri(httpretty.POST,
+                               "http://example.com/target",
+                               body='True')
+        httpretty.HTTPretty.allow_net_connect = False
 
         check = _checks.HttpCheck('http', '//example.com/%(name)s')
         target = {'a': object(),
@@ -138,9 +141,13 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
                               dict(user='user', roles=['a', 'b', 'c']),
                               self.enforcer))
 
-    @mock.patch.object(urlrequest, 'urlopen',
-                       return_value=six.StringIO('True'))
-    def test_http_with_strings_in_target(self, mock_urlopen):
+    @httpretty.activate
+    def test_http_with_strings_in_target(self):
+        httpretty.register_uri(httpretty.POST,
+                               "http://example.com/target",
+                               body='True')
+        httpretty.HTTPretty.allow_net_connect = False
+
         check = _checks.HttpCheck('http', '//example.com/%(name)s')
         target = {'a': 'some_string',
                   'name': 'target',

@@ -14,14 +14,15 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
 import abc
 import ast
+import contextlib
 import copy
 
 from oslo_serialization import jsonutils
+import requests
 import six
-import six.moves.urllib.parse as urlparse
-import six.moves.urllib.request as urlrequest
 
 
 registered_checks = {}
@@ -268,12 +269,10 @@ class HttpCheck(Check):
             element = target.get(key)
             if type(element) is object:
                 temp_target[key] = {}
-
         data = {'target': jsonutils.dumps(temp_target),
                 'credentials': jsonutils.dumps(creds)}
-        post_data = urlparse.urlencode(data)
-        f = urlrequest.urlopen(url, post_data)
-        return f.read() == 'True'
+        with contextlib.closing(requests.post(url, data=data)) as r:
+            return r.text == 'True'
 
 
 @register(None)
