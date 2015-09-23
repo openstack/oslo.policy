@@ -4,7 +4,7 @@
 
 hacking<0.11,>=0.10.0
 oslotest>=1.10.0 # Apache-2.0
-httpretty>=0.8.4,<0.8.7
+httpretty<0.8.7,>=0.8.4
 
 # These are needed for docs generation
 oslosphinx>=2.5.0 # Apache-2.0
