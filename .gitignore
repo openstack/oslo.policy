@@ -14,7 +14,7 @@ AUTHORS
 .update-venv/
 ChangeLog
 openstack/versioninfo
-*.egg
+*.egg*
 .testrepository/
 .project
 .pydevproject
