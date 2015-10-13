@@ -113,6 +113,17 @@ class RulesTestCase(test_base.BaseTestCase):
         ), rules)
 
     @mock.patch.object(_parser, 'parse_rule', lambda x: x)
+    def test_load_json_invalid_exc(self):
+        # When the JSON isn't valid, ValueError is raised on load_json.
+        # Note the trailing , in the exemplar is invalid JSON.
+        exemplar = """{
+    "admin_or_owner": [["role:admin"], ["project_id:%(project_id)s"]],
+    "default": [],
+}"""
+        self.assertRaises(ValueError, policy.Rules.load_json, exemplar,
+                          'default')
+
+    @mock.patch.object(_parser, 'parse_rule', lambda x: x)
     def test_from_dict(self):
         expected = {'admin_or_owner': 'role:admin', 'default': '@'}
         rules = policy.Rules.from_dict(expected, 'default')
