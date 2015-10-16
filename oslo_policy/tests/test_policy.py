@@ -30,30 +30,13 @@ from oslo_policy import policy
 from oslo_policy.tests import base
 
 
-POLICY_A_CONTENTS = """
-{
-    "default": "role:fakeA"
-}
-"""
-
-POLICY_B_CONTENTS = """
-{
-  "default": "role:fakeB"
-}
-"""
-
-POLICY_FAKE_CONTENTS = """
-{
-    "default": "role:fakeC"
-}
-"""
-
-POLICY_JSON_CONTENTS = """
-{
+POLICY_A_CONTENTS = jsonutils.dumps({"default": "role:fakeA"})
+POLICY_B_CONTENTS = jsonutils.dumps({"default": "role:fakeB"})
+POLICY_FAKE_CONTENTS = jsonutils.dumps({"default": "role:fakeC"})
+POLICY_JSON_CONTENTS = jsonutils.dumps({
     "default": "rule:admin",
     "admin": "is_admin:True"
-}
-"""
+})
 
 
 class MyException(Exception):
@@ -100,10 +83,10 @@ class RulesTestCase(test_base.BaseTestCase):
 
     @mock.patch.object(_parser, 'parse_rule', lambda x: x)
     def test_load_json(self):
-        exemplar = """{
-    "admin_or_owner": [["role:admin"], ["project_id:%(project_id)s"]],
-    "default": []
-}"""
+        exemplar = jsonutils.dumps({
+            "admin_or_owner": [["role:admin"], ["project_id:%(project_id)s"]],
+            "default": []
+        })
         rules = policy.Rules.load_json(exemplar, 'default')
 
         self.assertEqual('default', rules.default_rule)
@@ -132,9 +115,9 @@ class RulesTestCase(test_base.BaseTestCase):
         self.assertEqual(expected, rules)
 
     def test_str(self):
-        exemplar = """{
-    "admin_or_owner": "role:admin or project_id:%(project_id)s"
-}"""
+        exemplar = jsonutils.dumps({
+            "admin_or_owner": "role:admin or project_id:%(project_id)s"
+        }, indent=4)
         rules = policy.Rules(dict(
             admin_or_owner='role:admin or project_id:%(project_id)s',
         ))
@@ -142,9 +125,9 @@ class RulesTestCase(test_base.BaseTestCase):
         self.assertEqual(exemplar, str(rules))
 
     def test_str_true(self):
-        exemplar = """{
-    "admin_or_owner": ""
-}"""
+        exemplar = jsonutils.dumps({
+            "admin_or_owner": ""
+        }, indent=4)
         rules = policy.Rules(dict(
             admin_or_owner=_checks.TrueCheck(),
         ))
@@ -286,10 +269,10 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual(None, self.enforcer.policy_path)
 
     def test_rule_with_check(self):
-        rules_json = """{
-                        "deny_stack_user": "not role:stack_user",
-                        "cloudwatch:PutMetricData": ""
-                        }"""
+        rules_json = jsonutils.dumps({
+            "deny_stack_user": "not role:stack_user",
+            "cloudwatch:PutMetricData": ""
+        })
         rules = policy.Rules.load_json(rules_json)
         self.enforcer.set_rules(rules)
         action = 'cloudwatch:PutMetricData'
@@ -297,10 +280,10 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertTrue(self.enforcer.enforce(action, {}, creds))
 
     def test_enforcer_with_default_rule(self):
-        rules_json = """{
-                        "deny_stack_user": "not role:stack_user",
-                        "cloudwatch:PutMetricData": ""
-                        }"""
+        rules_json = jsonutils.dumps({
+            "deny_stack_user": "not role:stack_user",
+            "cloudwatch:PutMetricData": ""
+        })
         rules = policy.Rules.load_json(rules_json)
         default_rule = _checks.TrueCheck()
         enforcer = policy.Enforcer(self.conf, default_rule=default_rule)
