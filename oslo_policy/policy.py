@@ -94,7 +94,7 @@ A :class:`rule check <oslo_policy.policy.RuleCheck>` is used to
 reference another defined rule by its name.  This allows for common
 checks to be defined once as a reusable rule, which is then referenced
 within other rules.  It also allows one to define a set of checks as a
-more descriptive name to aid in readabilty of policy.  A rule check is
+more descriptive name to aid in readability of policy.  A rule check is
 expressed as::
 
     "rule:<rule_name>"
