@@ -481,18 +481,22 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
 
         self.assertEqual(('target', 'creds', self.enforcer), result)
 
-    def test_check_raises(self):
+    def test_check_raise_default(self):
+        # When do_raise=True and exc is not used then PolicyNotAuthorized is
+        # raised.
         self.enforcer.set_rules(dict(default=_checks.FalseCheck()))
 
-        try:
-            self.enforcer.enforce('rule', 'target', 'creds',
-                                  True, MyException, 'arg1',
-                                  'arg2', kw1='kwarg1', kw2='kwarg2')
-        except MyException as exc:
-            self.assertEqual(('arg1', 'arg2'), exc.args)
-            self.assertEqual(dict(kw1='kwarg1', kw2='kwarg2'), exc.kwargs)
-        else:
-            self.fail('enforcer.enforce() failed to raise requested exception')
+        self.assertRaises(policy.PolicyNotAuthorized, self.enforcer.enforce,
+                          'rule', 'target', 'creds', True)
+
+    def test_check_raise_custom_exception(self):
+        self.enforcer.set_rules(dict(default=_checks.FalseCheck()))
+
+        exc = self.assertRaises(
+            MyException, self.enforcer.enforce, 'rule', 'target', 'creds',
+            True, MyException, 'arg1', 'arg2', kw1='kwarg1', kw2='kwarg2')
+        self.assertEqual(('arg1', 'arg2'), exc.args)
+        self.assertEqual(dict(kw1='kwarg1', kw2='kwarg2'), exc.kwargs)
 
 
 class RegisterCheckTestCase(base.PolicyBaseTestCase):
