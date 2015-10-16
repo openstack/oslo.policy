@@ -481,6 +481,16 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
 
         self.assertEqual(('target', 'creds', self.enforcer), result)
 
+    def test_check_rule_not_exist_not_empty_policy_file(self):
+        # If the rule doesn't exist, then enforce() fails rather than KeyError.
+
+        # This test needs a non-empty file otherwise the code short-circuits.
+        self.create_config_file('policy.json', jsonutils.dumps({"a_rule": []}))
+        self.enforcer.default_rule = None
+        self.enforcer.load_rules()
+        result = self.enforcer.enforce('rule', 'target', 'creds')
+        self.assertFalse(result)
+
     def test_check_raise_default(self):
         # When do_raise=True and exc is not used then PolicyNotAuthorized is
         # raised.
