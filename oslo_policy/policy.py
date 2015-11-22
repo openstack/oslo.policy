@@ -33,10 +33,9 @@ special checks.
 Generic Checks
 ~~~~~~~~~~~~~~
 
-A :class:`generic check <oslo_policy.policy.GenericCheck>` is used
-to perform matching against attributes that are sent along with the API
-calls.  These attributes can be used by the policy engine (on the right
-side of the expression), by using the following syntax::
+A `generic` check is used to perform matching against attributes that are sent
+along with the API calls.  These attributes can be used by the policy engine
+(on the right side of the expression), by using the following syntax::
 
     <some_attribute>:%(user.id)s
 
@@ -81,9 +80,8 @@ checks.
 Role Check
 ^^^^^^^^^^
 
-A :class:`role check <oslo_policy.policy.RoleCheck>` is used to
-check if a specific role is present in the supplied credentials.  A role
-check is expressed as::
+A ``role`` check is used to check if a specific role is present in the supplied
+credentials.  A role check is expressed as::
 
     "role:<role_name>"
 
@@ -108,11 +106,10 @@ which is then used via a rule check::
 HTTP Check
 ^^^^^^^^^^
 
-An :class:`http check <oslo_policy.policy.HttpCheck>` is used to
-make an HTTP request to a remote server to determine the results of the
-check.  The target and credentials are passed to the remote server for
-evaluation.  The action is authorized if the remote server returns a
-response of ``True``. An http check is expressed as::
+An ``http`` check is used to make an HTTP request to a remote server to
+determine the results of the check.  The target and credentials are passed to
+the remote server for evaluation.  The action is authorized if the remote
+server returns a response of ``True``. An http check is expressed as::
 
     "http:<target URI>"
 
@@ -227,12 +224,56 @@ LOG = logging.getLogger(__name__)
 
 
 register = _checks.register
+"""Register a function or :class:`.Check` class as a policy check.
+
+:param name: Gives the name of the check type, e.g., "rule",
+             "role", etc.  If name is ``None``, a default check type
+             will be registered.
+:param func: If given, provides the function or class to register.
+             If not given, returns a function taking one argument
+             to specify the function or class to register,
+             allowing use as a decorator.
+"""
+
 Check = _checks.Check
+"""A base class to allow for user-defined policy checks.
+
+:param kind: The kind of the check, i.e., the field before the ``:``.
+:param match: The match of the check, i.e., the field after the ``:``.
+
+"""
 
 AndCheck = _checks.AndCheck
+"""Implements the "and" logical operator.
+
+A policy check that requires that a list of other checks all return True.
+
+:param list rules: rules that will be tested.
+
+"""
+
 NotCheck = _checks.NotCheck
+"""Implements the "not" logical operator.
+
+A policy check that inverts the result of another policy check.
+
+:param rule: The rule to negate.
+:type rule: oslo_policy.policy.Check
+
+"""
+
 OrCheck = _checks.OrCheck
+"""Implements the "or" operator.
+
+A policy check that requires that at least one of a list of other
+checks returns ``True``.
+
+:param rules: A list of rules that will be tested.
+
+"""
+
 RuleCheck = _checks.RuleCheck
+"""Recursively checks credentials based on the defined rules."""
 
 
 class PolicyNotAuthorized(Exception):
