@@ -20,15 +20,70 @@ Common Policy Engine Implementation
 
 Policies are expressed as a target and an associated rule::
 
-    "<target>": "<rule>"
+    "<target>": <rule>
 
 The `target` is specific to the service that is conducting policy
 enforcement.  Typically, the target refers to an API call.
 
-A rule is made up of zero or more checks, where zero checks will always
-allow the action that is being enforced.  A number of different check
-types are supported, which can be divided into generic checks and
-special checks.
+For the `<rule>` part, see `Policy Rule Expressions`.
+
+Policy Rule Expressions
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Policy rules can be expressed in one of two forms: a string written in the new
+policy language or a list of lists. The string format is preferred since it's
+easier for most people to understand.
+
+In the policy language, each check is specified as a simple "a:b" pair that is
+matched to the correct class to perform that check:
+
+ +--------------------------------+------------------------------------------+
+ |            TYPE                |                SYNTAX                    |
+ +================================+==========================================+
+ |User's Role                     |              role:admin                  |
+ +--------------------------------+------------------------------------------+
+ |Rules already defined on policy |          rule:admin_required             |
+ +--------------------------------+------------------------------------------+
+ |Against URLs¹                   |         http://my-url.org/check          |
+ +--------------------------------+------------------------------------------+
+ |User attributes²                |    project_id:%(target.project.id)s      |
+ +--------------------------------+------------------------------------------+
+ |Strings                         |        - <variable>:'xpto2035abc'        |
+ |                                |        - 'myproject':<variable>          |
+ +--------------------------------+------------------------------------------+
+ |                                |         - project_id:xpto2035abc         |
+ |Literals                        |         - domain_id:20                   |
+ |                                |         - True:%(user.enabled)s          |
+ +--------------------------------+------------------------------------------+
+
+¹URL checking must return ``True`` to be valid
+
+²User attributes (obtained through the token): user_id, domain_id or project_id
+
+Conjunction operators ``and`` and ``or`` are available, allowing for more
+expressiveness in crafting policies. For example::
+
+    "role:admin or (project_id:%(project_id)s and role:projectadmin)"
+
+The policy language also has the ``not`` operator, allowing a richer
+policy rule::
+
+    "project_id:%(project_id)s and not role:dunce"
+
+In the list-of-lists representation, each check inside the innermost
+list is combined as with an "and" conjunction -- for that check to pass,
+all the specified checks must pass.  These innermost lists are then
+combined as with an "or" conjunction. As an example, take the following
+rule, expressed in the list-of-lists representation::
+
+    [["role:admin"], ["project_id:%(project_id)s", "role:projectadmin"]]
+
+Finally, two special policy checks should be mentioned; the policy
+check "@" will always accept an access, and the policy check "!" will
+always reject an access.  (Note that if a rule is either the empty
+list (``[]``) or the empty string (``""``), this is equivalent to the "@"
+policy check.)  Of these, the "!" policy check is probably the most useful,
+as it allows particular rules to be explicitly disabled.
 
 Generic Checks
 ~~~~~~~~~~~~~~
@@ -132,68 +187,6 @@ The following classes can be used as parents for custom special check types:
     * :class:`~oslo_policy.policy.NotCheck`
     * :class:`~oslo_policy.policy.OrCheck`
     * :class:`~oslo_policy.policy.RuleCheck`
-
-Policy Rule Expressions
-~~~~~~~~~~~~~~~~~~~~~~~
-
-Policy rules can be expressed in one of two forms: A list of lists, or a
-string written in the new policy language.
-
-In the list-of-lists representation, each check inside the innermost
-list is combined as with an "and" conjunction--for that check to pass,
-all the specified checks must pass.  These innermost lists are then
-combined as with an "or" conjunction. As an example, take the following
-rule, expressed in the list-of-lists representation::
-
-    [["role:admin"], ["project_id:%(project_id)s", "role:projectadmin"]]
-
-This is the original way of expressing policies, but there now exists a
-new way: the policy language.
-
-In the policy language, each check is specified the same way as in the
-list-of-lists representation: a simple "a:b" pair that is matched to
-the correct class to perform that check:
-
- +--------------------------------+------------------------------------------+
- |            TYPE                |                SYNTAX                    |
- +================================+==========================================+
- |User's Role                     |              role:admin                  |
- +--------------------------------+------------------------------------------+
- |Rules already defined on policy |          rule:admin_required             |
- +--------------------------------+------------------------------------------+
- |Against URLs¹                   |         http://my-url.org/check          |
- +--------------------------------+------------------------------------------+
- |User attributes²                |    project_id:%(target.project.id)s      |
- +--------------------------------+------------------------------------------+
- |Strings                         |        - <variable>:'xpto2035abc'        |
- |                                |        - 'myproject':<variable>          |
- +--------------------------------+------------------------------------------+
- |                                |         - project_id:xpto2035abc         |
- |Literals                        |         - domain_id:20                   |
- |                                |         - True:%(user.enabled)s          |
- +--------------------------------+------------------------------------------+
-
-¹URL checking must return ``True`` to be valid
-
-²User attributes (obtained through the token): user_id, domain_id or project_id
-
-Conjunction operators are available, allowing for more expressiveness
-in crafting policies. So, in the policy language, the previous check in
-list-of-lists becomes::
-
-    role:admin or (project_id:%(project_id)s and role:projectadmin)
-
-The policy language also has the ``not`` operator, allowing a richer
-policy rule::
-
-    project_id:%(project_id)s and not role:dunce
-
-Finally, two special policy checks should be mentioned; the policy
-check "@" will always accept an access, and the policy check "!" will
-always reject an access.  (Note that if a rule is either the empty
-list ("[]") or the empty string, this is equivalent to the "@" policy
-check.)  Of these, the "!" policy check is probably the most useful,
-as it allows particular rules to be explicitly disabled.
 
 Default Rule
 ~~~~~~~~~~~~
