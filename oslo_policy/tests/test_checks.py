@@ -13,10 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import httpretty
 import mock
 from oslo_serialization import jsonutils
 from oslotest import base as test_base
+from requests_mock.contrib import fixture as rm_fixture
 import six.moves.urllib.parse as urlparse
 
 from oslo_policy import _checks
@@ -81,6 +81,11 @@ class RoleCheckTestCase(base.PolicyBaseTestCase):
 
 
 class HttpCheckTestCase(base.PolicyBaseTestCase):
+
+    def setUp(self):
+        super(HttpCheckTestCase, self).setUp()
+        self.requests_mock = self.useFixture(rm_fixture.Fixture())
+
     def decode_post_data(self, post_data):
         result = {}
         for item in post_data.split('&'):
@@ -88,50 +93,36 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
             result[key] = jsonutils.loads(urlparse.unquote_plus(value))
         return result
 
-    @httpretty.activate
     def test_accept(self):
-        httpretty.register_uri(httpretty.POST,
-                               "http://example.com/target",
-                               body='True')
-        httpretty.HTTPretty.allow_net_connect = False
+        self.requests_mock.post('http://example.com/target', text='True')
 
         check = _checks.HttpCheck('http', '//example.com/%(name)s')
-        self.assertTrue(check(dict(name='target', spam='spammer'),
-                              dict(user='user', roles=['a', 'b', 'c']),
-                              self.enforcer))
 
-        last_request = httpretty.last_request()
+        target_dict = dict(name='target', spam='spammer')
+        cred_dict = dict(user='user', roles=['a', 'b', 'c'])
+        self.assertTrue(check(target_dict, cred_dict, self.enforcer))
+
+        last_request = self.requests_mock.last_request
         self.assertEqual('POST', last_request.method)
-        self.assertEqual(dict(
-            target=dict(name='target', spam='spammer'),
-            credentials=dict(user='user', roles=['a', 'b', 'c']),
-        ), self.decode_post_data(last_request.body.decode("utf8")))
+        self.assertEqual(dict(target=target_dict, credentials=cred_dict),
+                         self.decode_post_data(last_request.body))
 
-    @httpretty.activate
     def test_reject(self):
-        httpretty.register_uri(httpretty.POST,
-                               "http://example.com/target",
-                               body='other')
-        httpretty.HTTPretty.allow_net_connect = False
+        self.requests_mock.post("http://example.com/target", text='other')
 
         check = _checks.HttpCheck('http', '//example.com/%(name)s')
-        self.assertFalse(check(dict(name='target', spam='spammer'),
-                               dict(user='user', roles=['a', 'b', 'c']),
-                               self.enforcer))
 
-        last_request = httpretty.last_request()
+        target_dict = dict(name='target', spam='spammer')
+        cred_dict = dict(user='user', roles=['a', 'b', 'c'])
+        self.assertFalse(check(target_dict, cred_dict, self.enforcer))
+
+        last_request = self.requests_mock.last_request
         self.assertEqual('POST', last_request.method)
-        self.assertEqual(dict(
-            target=dict(name='target', spam='spammer'),
-            credentials=dict(user='user', roles=['a', 'b', 'c']),
-        ), self.decode_post_data(last_request.body.decode("utf8")))
+        self.assertEqual(dict(target=target_dict, credentials=cred_dict),
+                         self.decode_post_data(last_request.body))
 
-    @httpretty.activate
     def test_http_with_objects_in_target(self):
-        httpretty.register_uri(httpretty.POST,
-                               "http://example.com/target",
-                               body='True')
-        httpretty.HTTPretty.allow_net_connect = False
+        self.requests_mock.post("http://example.com/target", text='True')
 
         check = _checks.HttpCheck('http', '//example.com/%(name)s')
         target = {'a': object(),
@@ -141,12 +132,8 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
                               dict(user='user', roles=['a', 'b', 'c']),
                               self.enforcer))
 
-    @httpretty.activate
     def test_http_with_strings_in_target(self):
-        httpretty.register_uri(httpretty.POST,
-                               "http://example.com/target",
-                               body='True')
-        httpretty.HTTPretty.allow_net_connect = False
+        self.requests_mock.post("http://example.com/target", text='True')
 
         check = _checks.HttpCheck('http', '//example.com/%(name)s')
         target = {'a': 'some_string',
