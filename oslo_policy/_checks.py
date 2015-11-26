@@ -78,13 +78,6 @@ class TrueCheck(BaseCheck):
 
 
 class Check(BaseCheck):
-    """A base class to allow for user-defined policy checks.
-
-    :param kind: The kind of the check, i.e., the field before the ``:``.
-    :param match: The match of the check, i.e., the field after the ``:``.
-
-    """
-
     def __init__(self, kind, match):
         self.kind = kind
         self.match = match
@@ -96,14 +89,6 @@ class Check(BaseCheck):
 
 
 class NotCheck(BaseCheck):
-    """Implements the "not" logical operator.
-
-    A policy check that inverts the result of another policy check.
-
-    :param rule: The rule to negate.  Must be a Check.
-
-    """
-
     def __init__(self, rule):
         self.rule = rule
 
@@ -122,14 +107,6 @@ class NotCheck(BaseCheck):
 
 
 class AndCheck(BaseCheck):
-    """Implements the "and" logical operator.
-
-    A policy check that requires that a list of other checks all return True.
-
-    :param list rules: rules that will be tested.
-
-    """
-
     def __init__(self, rules):
         self.rules = rules
 
@@ -165,15 +142,6 @@ class AndCheck(BaseCheck):
 
 
 class OrCheck(BaseCheck):
-    """Implements the "or" operator.
-
-    A policy check that requires that at least one of a list of other
-    checks returns ``True``.
-
-    :param rules: A list of rules that will be tested.
-
-    """
-
     def __init__(self, rules):
         self.rules = rules
 
@@ -205,17 +173,6 @@ class OrCheck(BaseCheck):
 
 
 def register(name, func=None):
-    """Register a function or :class:`.Check` class as a policy check.
-
-    :param name: Gives the name of the check type, e.g., "rule",
-                 "role", etc.  If name is ``None``, a default check type
-                 will be registered.
-    :param func: If given, provides the function or class to register.
-                 If not given, returns a function taking one argument
-                 to specify the function or class to register,
-                 allowing use as a decorator.
-    """
-
     # Perform the actual decoration by registering the function or
     # class.  Returns the function or class for compliance with the
     # decorator interface.
@@ -232,8 +189,6 @@ def register(name, func=None):
 
 @register('rule')
 class RuleCheck(Check):
-    """Recursively checks credentials based on the defined rules."""
-
     def __call__(self, target, creds, enforcer):
         try:
             return enforcer.rules[self.match](target, creds, enforcer)
