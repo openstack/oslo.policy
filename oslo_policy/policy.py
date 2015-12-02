@@ -70,6 +70,22 @@ policy rule::
 
     "project_id:%(project_id)s and not role:dunce"
 
+Operator precedence is below:
+
+ +------------+-------------+-------------+
+ | PRECEDENCE |     TYPE    | EXPRESSION  |
+ +============+=============+=============+
+ |      4     |  Grouping   |    (...)    |
+ +------------+-------------+-------------+
+ |      3     | Logical NOT |   not ...   |
+ +------------+-------------+-------------+
+ |      2     | Logical AND | ... and ... |
+ +------------+-------------+-------------+
+ |      1     | Logical OR  | ... or ...  |
+ +------------+-------------+-------------+
+
+Operator with larger precedence number precedes others with smaller numbers.
+
 In the list-of-lists representation, each check inside the innermost
 list is combined as with an "and" conjunction -- for that check to pass,
 all the specified checks must pass.  These innermost lists are then

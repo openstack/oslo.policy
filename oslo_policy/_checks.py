@@ -171,6 +171,16 @@ class OrCheck(BaseCheck):
         self.rules.append(rule)
         return self
 
+    def pop_check(self):
+        """Pops the last check from the list and returns them
+
+        :returns: self, the popped check
+        :rtype: :class:`.OrCheck`, class:`.Check`
+        """
+
+        check = self.rules.pop()
+        return self, check
+
 
 def register(name, func=None):
     # Perform the actual decoration by registering the function or

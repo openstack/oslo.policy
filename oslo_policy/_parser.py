@@ -159,6 +159,18 @@ class ParseState(object):
 
         return [('and_expr', _checks.AndCheck([check1, check2]))]
 
+    @reducer('or_expr', 'and', 'check')
+    def _mix_or_and_expr(self, or_expr, _and, check):
+        """Modify the case 'A or B and C'"""
+
+        or_expr, check1 = or_expr.pop_check()
+        if isinstance(check1, _checks.AndCheck):
+            and_expr = check1
+            and_expr.add_check(check)
+        else:
+            and_expr = _checks.AndCheck([check1, check])
+        return [('or_expr', or_expr.add_check(and_expr))]
+
     @reducer('and_expr', 'and', 'check')
     def _extend_and_expr(self, and_expr, _and, check):
         """Extend an 'and_expr' by adding one more check."""
@@ -166,6 +178,7 @@ class ParseState(object):
         return [('and_expr', and_expr.add_check(check))]
 
     @reducer('check', 'or', 'check')
+    @reducer('and_expr', 'or', 'check')
     def _make_or_expr(self, check1, _or, check2):
         """Create an 'or_expr'.
 

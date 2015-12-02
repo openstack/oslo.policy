@@ -389,6 +389,13 @@ class OrCheckTestCase(test_base.BaseTestCase):
 
         self.assertEqual(['rule1', 'rule2', 'rule3'], check.rules)
 
+    def test_pop_check(self):
+        check = _checks.OrCheck(['rule1', 'rule2', 'rule3'])
+        rules, check1 = check.pop_check()
+
+        self.assertEqual(['rule1', 'rule2'], check.rules)
+        self.assertEqual('rule3', check1)
+
     def test_str(self):
         check = _checks.OrCheck(['rule1', 'rule2'])
 
