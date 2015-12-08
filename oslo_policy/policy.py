@@ -459,6 +459,8 @@ class Enforcer(object):
 
     @staticmethod
     def _walk_through_policy_directory(path, func, *args):
+        if not os.path.isdir(path):
+            raise ValueError('%s is not a directory' % path)
         # We do not iterate over sub-directories.
         policy_files = next(os.walk(path))[2]
         policy_files.sort()
