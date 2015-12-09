@@ -286,8 +286,8 @@ class Rules(dict):
         """Allow loading of JSON rule data."""
 
         # Suck in the JSON data and parse the rules
-        rules = dict((k, _parser.parse_rule(v)) for k, v in
-                     jsonutils.loads(data).items())
+        rules = {k: _parser.parse_rule(v)
+                 for k, v in jsonutils.loads(data).items()}
 
         return cls(rules, default_rule)
 
@@ -296,7 +296,7 @@ class Rules(dict):
         """Allow loading of rule data from a dictionary."""
 
         # Parse the rules stored in the dictionary
-        rules = dict((k, _parser.parse_rule(v)) for k, v in rules_dict.items())
+        rules = {k: _parser.parse_rule(v) for k, v in rules_dict.items()}
 
         return cls(rules, default_rule)
 
