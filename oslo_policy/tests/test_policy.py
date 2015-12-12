@@ -254,6 +254,13 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertIn('admin', self.enforcer.rules)
         self.check_loaded_files(['policy.json', 'policy.d/a.conf'])
 
+    def test_load_policy_dirs_with_non_directory(self):
+        self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
+        self.conf.set_override('policy_dirs',
+                               ['policy.d/a.conf'],
+                               group='oslo_policy')
+        self.assertRaises(ValueError, self.enforcer.load_rules, True)
+
     def test_set_rules_type(self):
         self.assertRaises(TypeError,
                           self.enforcer.set_rules,
