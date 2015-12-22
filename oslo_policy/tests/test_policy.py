@@ -272,8 +272,8 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.rules = 'spam'
         self.enforcer.clear()
         self.assertEqual({}, self.enforcer.rules)
-        self.assertEqual(None, self.enforcer.default_rule)
-        self.assertEqual(None, self.enforcer.policy_path)
+        self.assertIsNone(self.enforcer.default_rule)
+        self.assertIsNone(self.enforcer.policy_path)
 
     def test_rule_with_check(self):
         rules_json = jsonutils.dumps({
