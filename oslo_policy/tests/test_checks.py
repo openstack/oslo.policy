@@ -92,6 +92,11 @@ class RoleCheckTestCase(base.PolicyBaseTestCase):
         target_dict = dict(target=dict(role=dict()))
         self.assertFalse(check(target_dict, cred_dict, self.enforcer))
 
+    def test_no_roles_case(self):
+        check = _checks.RoleCheck('role', 'spam')
+
+        self.assertFalse(check({}, {}, self.enforcer))
+
 
 class HttpCheckTestCase(base.PolicyBaseTestCase):
 

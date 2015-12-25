@@ -218,7 +218,9 @@ class RoleCheck(Check):
             # While doing RoleCheck if key not
             # present in Target return false
             return False
-        return match.lower() in [x.lower() for x in creds['roles']]
+        if 'roles' in creds:
+            return match.lower() in [x.lower() for x in creds['roles']]
+        return False
 
 
 @register('http')
