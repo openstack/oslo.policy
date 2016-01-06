@@ -212,7 +212,13 @@ class RoleCheck(Check):
     """Check that there is a matching role in the ``creds`` dict."""
 
     def __call__(self, target, creds, enforcer):
-        return self.match.lower() in [x.lower() for x in creds['roles']]
+        try:
+            match = self.match % target
+        except KeyError:
+            # While doing RoleCheck if key not
+            # present in Target return false
+            return False
+        return match.lower() in [x.lower() for x in creds['roles']]
 
 
 @register('http')
