@@ -87,7 +87,7 @@ class RulesTestCase(test_base.BaseTestCase):
             "admin_or_owner": [["role:admin"], ["project_id:%(project_id)s"]],
             "default": []
         })
-        rules = policy.Rules.load_json(exemplar, 'default')
+        rules = policy.Rules.load(exemplar, 'default')
 
         self.assertEqual('default', rules.default_rule)
         self.assertEqual(dict(
@@ -103,12 +103,12 @@ class RulesTestCase(test_base.BaseTestCase):
     "admin_or_owner": [["role:admin"], ["project_id:%(project_id)s"]],
     "default": [
 }"""
-        self.assertRaises(ValueError, policy.Rules.load_json, exemplar,
+        self.assertRaises(ValueError, policy.Rules.load, exemplar,
                           'default')
 
     @mock.patch.object(_parser, 'parse_rule', lambda x: x)
     def test_load_yaml(self):
-        # Test that simplified YAML can be used with load_json.
+        # Test that simplified YAML can be used with load().
         # Show that YAML allows useful comments.
         exemplar = """
 # Define a custom rule.
@@ -116,7 +116,7 @@ admin_or_owner: role:admin or project_id:%(project_id)s
 # The default rule is used when there's no action defined.
 default: []
 """
-        rules = policy.Rules.load_json(exemplar, 'default')
+        rules = policy.Rules.load(exemplar, 'default')
 
         self.assertEqual('default', rules.default_rule)
         self.assertEqual(dict(
@@ -126,7 +126,7 @@ default: []
 
     @mock.patch.object(_parser, 'parse_rule', lambda x: x)
     def test_load_yaml_invalid_exc(self):
-        # When the JSON isn't valid, ValueError is raised on load_json.
+        # When the JSON isn't valid, ValueError is raised on load().
         # Note the trailing , in the exemplar is invalid JSON.
         exemplar = """{
 # Define a custom rule.
@@ -134,7 +134,7 @@ admin_or_owner: role:admin or project_id:%(project_id)s
 # The default rule is used when there's no action defined.
 default: [
 }"""
-        self.assertRaises(ValueError, policy.Rules.load_json, exemplar,
+        self.assertRaises(ValueError, policy.Rules.load, exemplar,
                           'default')
 
     @mock.patch.object(_parser, 'parse_rule', lambda x: x)
@@ -164,6 +164,11 @@ default: [
         ))
 
         self.assertEqual(exemplar, str(rules))
+
+    def test_load_json_deprecated(self):
+        with self.assertWarnsRegex(DeprecationWarning,
+                                   r'load_json\(\).*load\(\)'):
+            policy.Rules.load_json(jsonutils.dumps({'default': ''}, 'default'))
 
 
 class EnforcerTest(base.PolicyBaseTestCase):
@@ -311,7 +316,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
             "deny_stack_user": "not role:stack_user",
             "cloudwatch:PutMetricData": ""
         })
-        rules = policy.Rules.load_json(rules_json)
+        rules = policy.Rules.load(rules_json)
         self.enforcer.set_rules(rules)
         action = 'cloudwatch:PutMetricData'
         creds = {'roles': ''}
@@ -322,7 +327,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
             "deny_stack_user": "not role:stack_user",
             "cloudwatch:PutMetricData": ""
         })
-        rules = policy.Rules.load_json(rules_json)
+        rules = policy.Rules.load(rules_json)
         default_rule = _checks.TrueCheck()
         enforcer = policy.Enforcer(self.conf, default_rule=default_rule)
         enforcer.set_rules(rules)
