@@ -162,6 +162,70 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
                               self.enforcer))
 
 
+class HttpsCheckTestCase(base.PolicyBaseTestCase):
+
+    def setUp(self):
+        super(HttpsCheckTestCase, self).setUp()
+        self.requests_mock = self.useFixture(rm_fixture.Fixture())
+
+    def decode_post_data(self, post_data):
+        result = {}
+        for item in post_data.split('&'):
+            key, _sep, value = item.partition('=')
+            result[key] = jsonutils.loads(urlparse.unquote_plus(value))
+        return result
+
+    def test_accept(self):
+        self.requests_mock.post('https://example.com/target', text='True')
+
+        check = _checks.HttpsCheck('https', '//example.com/%(name)s')
+
+        target_dict = dict(name='target', spam='spammer')
+        cred_dict = dict(user='user', roles=['a', 'b', 'c'])
+        self.assertTrue(check(target_dict, cred_dict, self.enforcer))
+
+        last_request = self.requests_mock.last_request
+        self.assertEqual('POST', last_request.method)
+        self.assertEqual(dict(target=target_dict, credentials=cred_dict),
+                         self.decode_post_data(last_request.body))
+
+    def test_reject(self):
+        self.requests_mock.post("https://example.com/target", text='other')
+
+        check = _checks.HttpsCheck('https', '//example.com/%(name)s')
+
+        target_dict = dict(name='target', spam='spammer')
+        cred_dict = dict(user='user', roles=['a', 'b', 'c'])
+        self.assertFalse(check(target_dict, cred_dict, self.enforcer))
+
+        last_request = self.requests_mock.last_request
+        self.assertEqual('POST', last_request.method)
+        self.assertEqual(dict(target=target_dict, credentials=cred_dict),
+                         self.decode_post_data(last_request.body))
+
+    def test_https_with_objects_in_target(self):
+        self.requests_mock.post("https://example.com/target", text='True')
+
+        check = _checks.HttpsCheck('https', '//example.com/%(name)s')
+        target = {'a': object(),
+                  'name': 'target',
+                  'b': 'test data'}
+        self.assertTrue(check(target,
+                              dict(user='user', roles=['a', 'b', 'c']),
+                              self.enforcer))
+
+    def test_https_with_strings_in_target(self):
+        self.requests_mock.post("https://example.com/target", text='True')
+
+        check = _checks.HttpsCheck('https', '//example.com/%(name)s')
+        target = {'a': 'some_string',
+                  'name': 'target',
+                  'b': 'test data'}
+        self.assertTrue(check(target,
+                              dict(user='user', roles=['a', 'b', 'c']),
+                              self.enforcer))
+
+
 class GenericCheckTestCase(base.PolicyBaseTestCase):
     def test_no_cred(self):
         check = _checks.GenericCheck('name', '%(name)s')

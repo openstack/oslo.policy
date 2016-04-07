@@ -248,6 +248,34 @@ class HttpCheck(Check):
             return r.text == 'True'
 
 
+@register('https')
+class HttpsCheck(Check):
+    """Check ``https:`` rules by calling to a remote server.
+
+    This example implementation simply verifies that the response
+    is exactly ``True``.
+    """
+
+    def __call__(self, target, creds, enforcer):
+        try:
+            url = ('https:' + self.match) % target
+
+            # Convert instances of object() in target temporarily to
+            # empty dict to avoid circular reference detection
+            # errors in jsonutils.dumps().
+            temp_target = copy.deepcopy(target)
+            for key in target.keys():
+                element = target.get(key)
+                if type(element) is object:
+                    temp_target[key] = {}
+            data = {'target': jsonutils.dumps(temp_target),
+                    'credentials': jsonutils.dumps(creds)}
+            with contextlib.closing(requests.post(url, data=data)) as r:
+                return r.text == 'True'
+        except Exception:
+            return False
+
+
 @register(None)
 class GenericCheck(Check):
     """Check an individual match.
