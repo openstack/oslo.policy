@@ -101,7 +101,38 @@ class RulesTestCase(test_base.BaseTestCase):
         # Note the trailing , in the exemplar is invalid JSON.
         exemplar = """{
     "admin_or_owner": [["role:admin"], ["project_id:%(project_id)s"]],
-    "default": [],
+    "default": [
+}"""
+        self.assertRaises(ValueError, policy.Rules.load_json, exemplar,
+                          'default')
+
+    @mock.patch.object(_parser, 'parse_rule', lambda x: x)
+    def test_load_yaml(self):
+        # Test that simplified YAML can be used with load_json.
+        # Show that YAML allows useful comments.
+        exemplar = """
+# Define a custom rule.
+admin_or_owner: role:admin or project_id:%(project_id)s
+# The default rule is used when there's no action defined.
+default: []
+"""
+        rules = policy.Rules.load_json(exemplar, 'default')
+
+        self.assertEqual('default', rules.default_rule)
+        self.assertEqual(dict(
+            admin_or_owner='role:admin or project_id:%(project_id)s',
+            default=[],
+        ), rules)
+
+    @mock.patch.object(_parser, 'parse_rule', lambda x: x)
+    def test_load_yaml_invalid_exc(self):
+        # When the JSON isn't valid, ValueError is raised on load_json.
+        # Note the trailing , in the exemplar is invalid JSON.
+        exemplar = """{
+# Define a custom rule.
+admin_or_owner: role:admin or project_id:%(project_id)s
+# The default rule is used when there's no action defined.
+default: [
 }"""
         self.assertRaises(ValueError, policy.Rules.load_json, exemplar,
                           'default')

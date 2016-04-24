@@ -221,6 +221,7 @@ import os
 from oslo_config import cfg
 from oslo_serialization import jsonutils
 import six
+import yaml
 
 from oslo_policy import _cache_handler
 from oslo_policy import _checks
@@ -299,11 +300,17 @@ class Rules(dict):
 
     @classmethod
     def load_json(cls, data, default_rule=None):
-        """Allow loading of JSON rule data."""
+        """Allow loading of YAML/JSON rule data."""
 
-        # Suck in the JSON data and parse the rules
-        rules = {k: _parser.parse_rule(v)
-                 for k, v in jsonutils.loads(data).items()}
+        try:
+            parsed = yaml.safe_load(data)
+        except yaml.YAMLError as e:
+            # For backwards-compatibility, convert yaml error to ValueError,
+            # which is what JSON loader raised.
+            raise ValueError(six.text_type(e))
+
+        # Parse the rules
+        rules = {k: _parser.parse_rule(v) for k, v in parsed.items()}
 
         return cls(rules, default_rule)
 
