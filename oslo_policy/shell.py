@@ -40,7 +40,7 @@ def tool(policy_file, access_file, apply_rule, is_admin=False):
     access_data['project_id'] = access_data['project']['id']
     access_data['is_admin'] = is_admin
     policy_data = policy_file.read()
-    rules = policy.Rules.load_json(policy_data, "default")
+    rules = policy.Rules.load(policy_data, "default")
 
     class Object(object):
         pass

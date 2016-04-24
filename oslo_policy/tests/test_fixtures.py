@@ -30,7 +30,7 @@ class FixtureTestCase(test_base.PolicyBaseTestCase):
         rules_json = {
             action: "http:" + self.getUniqueString()
         }
-        rules = oslo_policy.Rules.load_json(json.dumps(rules_json))
+        rules = oslo_policy.Rules.load(json.dumps(rules_json))
         self.enforcer.set_rules(rules)
         return self.enforcer.enforce(rule=action,
                                      target={},
