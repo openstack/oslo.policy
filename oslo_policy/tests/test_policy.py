@@ -39,6 +39,29 @@ POLICY_JSON_CONTENTS = jsonutils.dumps({
 })
 
 
+@_checks.register('field')
+class FieldCheck(_checks.Check):
+    """A non reversible check.
+
+    All oslo.policy defined checks have a __str__ method with the property that
+    rule == str(_parser.parse_rule(rule)). Consumers of olso.policy may have
+    defined checks for which that does not hold true. This FieldCheck is not
+    reversible so we can use it for testing to ensure that this type of check
+    does not break anything.
+    """
+    def __init__(self, kind, match):
+        # Process the match
+        resource, field_value = match.split(':', 1)
+        field, value = field_value.split('=', 1)
+        super(FieldCheck, self).__init__(kind, '%s:%s:%s' %
+                                         (resource, field, value))
+        self.field = field
+        self.value = value
+
+    def __call__(self, target_dict, cred_dict, enforcer):
+        return True
+
+
 class MyException(Exception):
     def __init__(self, *args, **kwargs):
         self.args = args
@@ -184,12 +207,41 @@ class EnforcerTest(base.PolicyBaseTestCase):
             self.enforcer._loaded_files
         )
 
+    def _test_scenario_with_opts_registered(self, scenario, *args, **kwargs):
+        # This test registers some rules, calls the scenario and then checks
+        # the registered rules. The scenario should be a method which loads
+        # policy files containing POLICY_*_CONTENTS defined above. They should
+        # be loaded on the self.enforcer object.
+
+        # This should be overridden by the policy file
+        self.enforcer.register_default(policy.RuleDefault(name='admin',
+                                       check_str='is_admin:False'))
+        # This is not in the policy file, only registered
+        self.enforcer.register_default(policy.RuleDefault(name='owner',
+                                       check_str='role:owner'))
+
+        scenario(*args, **kwargs)
+
+        self.assertIn('owner', self.enforcer.rules)
+        self.assertEqual('role:owner', str(self.enforcer.rules['owner']))
+        self.assertEqual('is_admin:True', str(self.enforcer.rules['admin']))
+        self.assertIn('owner', self.enforcer.registered_rules)
+        self.assertIn('admin', self.enforcer.registered_rules)
+        self.assertNotIn('default', self.enforcer.registered_rules)
+        self.assertNotIn('owner', self.enforcer.file_rules)
+        self.assertIn('admin', self.enforcer.file_rules)
+        self.assertIn('default', self.enforcer.file_rules)
+
     def test_load_file(self):
         self.conf.set_override('policy_dirs', [], group='oslo_policy')
         self.enforcer.load_rules(True)
         self.assertIsNotNone(self.enforcer.rules)
         self.assertIn('default', self.enforcer.rules)
         self.assertIn('admin', self.enforcer.rules)
+        self.assertEqual('is_admin:True', str(self.enforcer.rules['admin']))
+
+    def test_load_file_opts_registered(self):
+        self._test_scenario_with_opts_registered(self.test_load_file)
 
     def test_load_directory(self):
         self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
@@ -204,6 +256,9 @@ class EnforcerTest(base.PolicyBaseTestCase):
             'policy.d/a.conf',
             'policy.d/b.conf',
         ])
+
+    def test_load_directory_opts_registered(self):
+        self._test_scenario_with_opts_registered(self.test_load_directory)
 
     def test_load_directory_caching_with_files_updated(self):
         self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
@@ -233,8 +288,12 @@ class EnforcerTest(base.PolicyBaseTestCase):
             'policy.d/a.conf',
         ])
 
+    def test_load_directory_caching_with_files_updated_opts_registered(self):
+        self._test_scenario_with_opts_registered(
+            self.test_load_directory_caching_with_files_updated)
+
     def test_load_directory_caching_with_files_same(self, overwrite=True):
-        self.enforcer = policy.Enforcer(self.conf, overwrite=overwrite)
+        self.enforcer.overwrite = overwrite
 
         self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
 
@@ -260,6 +319,16 @@ class EnforcerTest(base.PolicyBaseTestCase):
     def test_load_directory_caching_with_files_same_but_overwrite_false(self):
         self.test_load_directory_caching_with_files_same(overwrite=False)
 
+    def test_load_directory_caching_with_files_same_opts_registered(self):
+        self._test_scenario_with_opts_registered(
+            self.test_load_directory_caching_with_files_same)
+
+    def test_load_dir_caching_with_files_same_overwrite_false_opts_reg(self):
+        # Very long test name makes this difficult
+        test = getattr(self,
+            'test_load_directory_caching_with_files_same_but_overwrite_false')  # NOQA
+        self._test_scenario_with_opts_registered(test)
+
     def test_load_multiple_directories(self):
         self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
         self.create_config_file('policy.d/b.conf', POLICY_B_CONTENTS)
@@ -279,6 +348,10 @@ class EnforcerTest(base.PolicyBaseTestCase):
             'policy.2.d/fake.conf',
         ])
 
+    def test_load_multiple_directories_opts_registered(self):
+        self._test_scenario_with_opts_registered(
+            self.test_load_multiple_directories)
+
     def test_load_non_existed_directory(self):
         self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
         self.conf.set_override('policy_dirs',
@@ -289,6 +362,10 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertIn('default', self.enforcer.rules)
         self.assertIn('admin', self.enforcer.rules)
         self.check_loaded_files(['policy.json', 'policy.d/a.conf'])
+
+    def test_load_non_existed_directory_opts_registered(self):
+        self._test_scenario_with_opts_registered(
+            self.test_load_non_existed_directory)
 
     def test_load_policy_dirs_with_non_directory(self):
         self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
@@ -310,6 +387,17 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual({}, self.enforcer.rules)
         self.assertIsNone(self.enforcer.default_rule)
         self.assertIsNone(self.enforcer.policy_path)
+
+    def test_clear_opts_registered(self):
+        # This should be overridden by the policy file
+        self.enforcer.register_default(policy.RuleDefault(name='admin',
+                                       check_str='is_admin:False'))
+        # This is not in the policy file, only registered
+        self.enforcer.register_default(policy.RuleDefault(name='owner',
+                                       check_str='role:owner'))
+
+        self.test_clear()
+        self.assertEqual({}, self.enforcer.registered_rules)
 
     def test_rule_with_check(self):
         rules_json = jsonutils.dumps({
@@ -335,7 +423,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         creds = {'roles': ''}
         self.assertTrue(enforcer.enforce(action, {}, creds))
 
-    def test_enforcer_force_reload_with_overwrite(self):
+    def test_enforcer_force_reload_with_overwrite(self, opts_registered=0):
         self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
         self.create_config_file('policy.d/b.conf', POLICY_B_CONTENTS)
 
@@ -362,11 +450,15 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertIn('default', self.enforcer.rules)
         self.assertIn('admin', self.enforcer.rules)
         loaded_rules = jsonutils.loads(str(self.enforcer.rules))
-        self.assertEqual(2, len(loaded_rules))
+        self.assertEqual(2 + opts_registered, len(loaded_rules))
         self.assertIn('role:fakeB', loaded_rules['default'])
         self.assertIn('is_admin:True', loaded_rules['admin'])
 
-    def test_enforcer_force_reload_without_overwrite(self):
+    def test_enforcer_force_reload_with_overwrite_opts_registered(self):
+        self._test_scenario_with_opts_registered(
+            self.test_enforcer_force_reload_with_overwrite, opts_registered=1)
+
+    def test_enforcer_force_reload_without_overwrite(self, opts_registered=0):
         self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
         self.create_config_file('policy.d/b.conf', POLICY_B_CONTENTS)
 
@@ -396,41 +488,62 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertIn('default', self.enforcer.rules)
         self.assertIn('admin', self.enforcer.rules)
         loaded_rules = jsonutils.loads(str(self.enforcer.rules))
-        self.assertEqual(3, len(loaded_rules))
+        self.assertEqual(3 + opts_registered, len(loaded_rules))
         self.assertIn('role:test', loaded_rules['test'])
         self.assertIn('role:fakeB', loaded_rules['default'])
         self.assertIn('is_admin:True', loaded_rules['admin'])
+
+    def test_enforcer_force_reload_without_overwrite_opts_registered(self):
+        self._test_scenario_with_opts_registered(
+            self.test_enforcer_force_reload_without_overwrite,
+            opts_registered=1)
 
     def test_enforcer_keep_use_conf_flag_after_reload(self):
         self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
         self.create_config_file('policy.d/b.conf', POLICY_B_CONTENTS)
 
-        # We initialized enforcer with
-        # policy configure files.
-        enforcer = policy.Enforcer(self.conf)
-        self.assertTrue(enforcer.use_conf)
-        self.assertTrue(enforcer.enforce('default', {},
-                                         {'roles': ['fakeB']}))
-        self.assertFalse(enforcer.enforce('test', {},
-                                          {'roles': ['test']}))
+        self.assertTrue(self.enforcer.use_conf)
+        self.assertTrue(self.enforcer.enforce('default', {},
+                                              {'roles': ['fakeB']}))
+        self.assertFalse(self.enforcer.enforce('test', {},
+                                               {'roles': ['test']}))
         # After enforcement the flag should
         # be remained there.
-        self.assertTrue(enforcer.use_conf)
-        self.assertFalse(enforcer.enforce('_dynamic_test_rule', {},
-                                          {'roles': ['test']}))
+        self.assertTrue(self.enforcer.use_conf)
+        self.assertFalse(self.enforcer.enforce('_dynamic_test_rule', {},
+                                               {'roles': ['test']}))
         # Then if configure file got changed,
         # reloading will be triggered when calling
         # enforcer(), this case could happen only
         # when use_conf flag equals True.
-        rules = jsonutils.loads(str(enforcer.rules))
+        rules = jsonutils.loads(str(self.enforcer.rules))
         rules['_dynamic_test_rule'] = 'role:test'
 
-        with open(enforcer.policy_path, 'w') as f:
+        with open(self.enforcer.policy_path, 'w') as f:
             f.write(jsonutils.dumps(rules))
 
-        enforcer.load_rules(force_reload=True)
-        self.assertTrue(enforcer.enforce('_dynamic_test_rule', {},
-                                         {'roles': ['test']}))
+        self.enforcer.load_rules(force_reload=True)
+        self.assertTrue(self.enforcer.enforce('_dynamic_test_rule', {},
+                                              {'roles': ['test']}))
+
+    def test_enforcer_keep_use_conf_flag_after_reload_opts_registered(self):
+        # This test does not use _test_scenario_with_opts_registered because
+        # it loads all rules and then dumps them to a policy file and reloads.
+        # That breaks the ability to differentiate between registered and file
+        # loaded policies.
+
+        # This should be overridden by the policy file
+        self.enforcer.register_default(policy.RuleDefault(name='admin',
+                                       check_str='is_admin:False'))
+        # This is not in the policy file, only registered
+        self.enforcer.register_default(policy.RuleDefault(name='owner',
+                                       check_str='role:owner'))
+
+        self.test_enforcer_keep_use_conf_flag_after_reload()
+
+        self.assertIn('owner', self.enforcer.rules)
+        self.assertEqual('role:owner', str(self.enforcer.rules['owner']))
+        self.assertEqual('is_admin:True', str(self.enforcer.rules['admin']))
 
     def test_enforcer_force_reload_false(self):
         self.enforcer.set_rules({'test': 'test'})
@@ -480,6 +593,36 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual('foo_rule', enforcer.rules.default_rule)
         enforcer = policy.Enforcer(self.conf, )
         self.assertEqual('bar_rule', enforcer.rules.default_rule)
+
+    def test_enforcer_register_twice_raises(self):
+        self.enforcer.register_default(policy.RuleDefault(name='owner',
+                                       check_str='role:owner'))
+        self.assertRaises(policy.DuplicatePolicyError,
+                          self.enforcer.register_default,
+                          policy.RuleDefault(name='owner',
+                                             check_str='role:owner'))
+
+    def test_non_reversible_check(self):
+        self.create_config_file('policy.json',
+                                jsonutils.dumps(
+                                    {'shared': 'field:networks:shared=True'}))
+        # load_rules succeeding without error is the focus of this test
+        self.enforcer.load_rules(True)
+        self.assertIsNotNone(self.enforcer.rules)
+        loaded_rules = jsonutils.loads(str(self.enforcer.rules))
+        self.assertNotEqual('field:networks:shared=True',
+                            loaded_rules['shared'])
+
+    def test_authorize_opt_registered(self):
+        self.enforcer.register_default(policy.RuleDefault(name='test',
+                                       check_str='role:test'))
+        self.assertTrue(self.enforcer.authorize('test', {},
+                                                {'roles': ['test']}))
+
+    def test_authorize_opt_not_registered(self):
+        self.assertRaises(policy.PolicyNotRegistered,
+                          self.enforcer.authorize, 'test', {},
+                          {'roles': ['test']})
 
 
 class CheckFunctionTestCase(base.PolicyBaseTestCase):
@@ -565,3 +708,14 @@ class BaseCheckTypesTestCase(base.PolicyBaseTestCase):
             self.assertEqual(
                 TestCheck, _checks.registered_checks[check_str],
                 message='%s check type is not public.' % check_str)
+
+
+class RuleDefaultTestCase(base.PolicyBaseTestCase):
+    def test_rule_is_parsed(self):
+        opt = policy.RuleDefault(name='foo', check_str='rule:foo')
+        self.assertTrue(isinstance(opt.check, _checks.BaseCheck))
+        self.assertEqual('rule:foo', str(opt.check))
+
+    def test_str(self):
+        opt = policy.RuleDefault(name='foo', check_str='rule:foo')
+        self.assertEqual('"foo": "rule:foo"', str(opt))
