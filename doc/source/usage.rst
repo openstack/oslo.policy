@@ -53,6 +53,8 @@ benefits.
   Enforcer.enforce.
 
 * More will be documented as capabilities are added.
+* A sample policy file can be generated based on the registered policies
+  rather than needing to manually maintain one.
 
 How to register
 ---------------
@@ -74,3 +76,33 @@ How to register
     enforcer.register_default(policy.RuleDefault('identity:create_region',
                                                  'rule:admin_required',
                                                  description='helpful text'))
+
+Sample file generation
+----------------------
+
+In setup.cfg of a project using oslo.policy::
+
+    [entry_points]
+    oslo.policy.policies =
+        nova.api = nova.api.opts:list_policies
+        nova.compute.api = nova.compute.api.opts:list_policies
+
+where list_policies is a method that returns a list of policy.RuleDefault
+objects.
+
+Run the oslopolicy-sample-generator script with some configuration options::
+
+    oslopolicy-sample-generator --namespace nova.api --namespace nova.compute.api --output-file policy-sample.yaml
+
+or::
+
+    oslopolicy-sample-generator --config-file policy-generator.conf
+
+where policy-generator.conf looks like::
+
+    [DEFAULT]
+    output_file = policy-sample.yaml
+    namespace = nova.api
+    namespace = nova.compute.api
+
+If output_file is ommitted the sample file will be sent to stdout.
