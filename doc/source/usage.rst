@@ -34,6 +34,6 @@ When using oslo.policy
 
 ::
 
-    from keystone import config
-    CONF = config.CONF
+    from oslo_config import cfg
+    CONF = cfg.CONF
     enforcer = policy.Enforcer(CONF, policy_file=_POLICY_PATH)
