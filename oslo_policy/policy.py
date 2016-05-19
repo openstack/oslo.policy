@@ -296,6 +296,37 @@ class PolicyNotAuthorized(Exception):
         super(PolicyNotAuthorized, self).__init__(msg)
 
 
+class DuplicatePolicyError(Exception):
+    def __init__(self, name):
+        msg = _('Policy %(name)s is already registered') % {'name': name}
+        super(DuplicatePolicyError, self).__init__(msg)
+
+
+class PolicyNotRegistered(Exception):
+    def __init__(self, name):
+        msg = _('Policy %(name)s has not been registered') % {'name': name}
+        super(PolicyNotRegistered, self).__init__(msg)
+
+
+def parse_file_contents(data):
+    """Parse the raw contents of a policy file.
+
+    Parses the contents of a policy file which currently can be in either
+    yaml or json format. Both can be parsed as yaml.
+
+    :param data: A string containing the contents of a policy file.
+    :returns: A dict of of the form {'policy_name1': 'policy1',
+                                     'policy_name2': 'policy2,...}
+    """
+    try:
+        parsed = yaml.safe_load(data)
+    except yaml.YAMLError as e:
+        # For backwards-compatibility, convert yaml error to ValueError,
+        # which is what JSON loader raised.
+        raise ValueError(six.text_type(e))
+    return parsed
+
+
 class Rules(dict):
     """A store for rules. Handles the default_rule setting directly."""
 
@@ -306,16 +337,10 @@ class Rules(dict):
         .. versionadded:: 1.5.0
 
         """
-
-        try:
-            parsed = yaml.safe_load(data)
-        except yaml.YAMLError as e:
-            # For backwards-compatibility, convert yaml error to ValueError,
-            # which is what JSON loader raised.
-            raise ValueError(six.text_type(e))
+        parsed_file = parse_file_contents(data)
 
         # Parse the rules
-        rules = {k: _parser.parse_rule(v) for k, v in parsed.items()}
+        rules = {k: _parser.parse_rule(v) for k, v in parsed_file.items()}
 
         return cls(rules, default_rule)
 
@@ -413,6 +438,8 @@ class Enforcer(object):
         self.default_rule = (default_rule or
                              self.conf.oslo_policy.policy_default_rule)
         self.rules = Rules(rules, self.default_rule)
+        self.registered_rules = {}
+        self.file_rules = {}
 
         self.policy_path = None
 
@@ -453,6 +480,8 @@ class Enforcer(object):
         self._loaded_files = []
         self._policy_dir_mtimes = {}
         self._file_cache.clear()
+        self.registered_rules = {}
+        self.file_rules = {}
 
     def load_rules(self, force_reload=False):
         """Loads policy_path's rules.
@@ -482,6 +511,10 @@ class Enforcer(object):
                                                         self._load_policy_file,
                                                         force_reload, False)
 
+            for default in self.registered_rules.values():
+                if default.name not in self.rules:
+                    self.rules[default.name] = default.check
+
     @staticmethod
     def _is_directory_updated(cache, path):
         # Get the current modified time and compare it to what is in
@@ -510,12 +543,29 @@ class Enforcer(object):
         for policy_file in [p for p in policy_files if not p.startswith('.')]:
             func(os.path.join(path, policy_file), *args)
 
+    def _record_file_rules(self, data, overwrite=False):
+        """Store a copy of rules loaded from a file.
+
+        It is useful to be able to distinguish between rules loaded from a file
+        and those registered by a consuming service. In order to do so we keep
+        a record of rules loaded from a file.
+
+        :param data: The raw contents of a policy file.
+        :param overwrite: If True clear out previously loaded rules.
+        """
+        if overwrite:
+            self.file_rules = {}
+        parsed_file = parse_file_contents(data)
+        for name, check_str in parsed_file.items():
+            self.file_rules[name] = RuleDefault(name, check_str)
+
     def _load_policy_file(self, path, force_reload, overwrite=True):
         reloaded, data = _cache_handler.read_cached_file(
             self._file_cache, path, force_reload=force_reload)
         if reloaded or not self.rules:
             rules = Rules.load(data, self.default_rule)
             self.set_rules(rules, overwrite=overwrite, use_conf=True)
+            self._record_file_rules(data, overwrite)
             self._loaded_files.append(path)
             LOG.debug('Reloaded policy file: %(path)s', {'path': path})
 
@@ -589,3 +639,70 @@ class Enforcer(object):
             raise PolicyNotAuthorized(rule, target, creds)
 
         return result
+
+    def register_default(self, default):
+        """Registers a RuleDefault.
+
+        Adds a RuleDefault to the list of registered rules. Rules must be
+        registered before using the Enforcer.authorize method.
+
+        :param default: A RuleDefault object to register.
+        """
+        if default.name in self.registered_rules:
+            raise DuplicatePolicyError(default.name)
+
+        self.registered_rules[default.name] = default
+
+    def register_defaults(self, defaults):
+        """Registers a list of RuleDefaults.
+
+        Adds each RuleDefault to the list of registered rules. Rules must be
+        registered before using the Enforcer.authorize method.
+
+        :param default: A list of RuleDefault objects to register.
+        """
+        for default in defaults:
+            self.register_default(default)
+
+    def authorize(self, rule, target, creds, do_raise=False,
+                  exc=None, *args, **kwargs):
+        """A wrapper around 'enforce' that checks for policy registration.
+
+        To ensure that a policy being checked has been registered this method
+        should be used rather than enforce. By doing so a project can be sure
+        that all of it's used policies are registered and therefore available
+        for sample file generation.
+
+        The parameters match the enforce method and a description of them can
+        be found there.
+        """
+        if rule not in self.registered_rules:
+            raise PolicyNotRegistered(rule)
+        return self.enforce(rule, target, creds, do_raise, exc,
+                            *args, **kwargs)
+
+
+class RuleDefault(object):
+    """A class for holding policy definitions.
+
+    It is required to supply a name and value at creation time. It is
+    encouraged to also supply a description to assist operators.
+
+    :param name: The name of the policy. This is used when referencing it
+                 from another rule or during policy enforcement.
+    :param check_str: The policy. This is a string  defining a policy that
+                      conforms to the policy language outlined at the top of
+                      the file.
+    :param description: A plain text description of the policy. This will be
+                        used to comment sample policy files for use by
+                        deployers.
+    """
+    def __init__(self, name, check_str, description=None):
+        self.name = name
+        self.check_str = check_str
+        self.check = _parser.parse_rule(check_str)
+        self.description = description
+
+    def __str__(self):
+        return '"%(name)s": "%(check_str)s"' % {'name': self.name,
+                                                'check_str': self.check_str}
