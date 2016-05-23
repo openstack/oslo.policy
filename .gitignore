@@ -20,3 +20,6 @@ openstack/versioninfo
 .pydevproject
 *.mo
 doc/build
+
+# reno build
+releasenotes/build
