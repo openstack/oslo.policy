@@ -17,15 +17,27 @@ import textwrap
 from oslo_config import cfg
 import stevedore
 
+from oslo_policy import policy
+
 LOG = logging.getLogger(__name__)
 
 _generator_opts = [
     cfg.StrOpt('output-file',
                help='Path of the file to write to. Defaults to stdout.'),
+]
+
+_rule_opts = [
     cfg.MultiStrOpt('namespace',
                     required=True,
                     help='Option namespace(s) under "oslo.policy.policies" in '
                          'which to query for options.'),
+]
+
+_enforcer_opts = [
+    cfg.StrOpt('namespace',
+               required=True,
+               help='Option namespace under "oslo.policy.enforcer" in '
+                    'which to look for a policy.Enforcer.'),
 ]
 
 
@@ -45,6 +57,23 @@ def _get_policies_dict(namespaces):
     opts = {ep.name: ep.obj for ep in mgr}
 
     return opts
+
+
+def _get_enforcer(namespace):
+    """Find a policy.Enforcer via an entry point with the given namespace.
+
+    :param namespace: a namespace under oslo.policy.enforcer where the desired
+                      enforcer object can be found.
+    :returns: a policy.Enforcer object
+    """
+    mgr = stevedore.named.NamedExtensionManager(
+        'oslo.policy.enforcer',
+        names=[namespace],
+        on_load_failure_callback=on_load_failure_callback,
+        invoke_on_load=True)
+    enforcer = mgr[namespace].obj
+
+    return enforcer
 
 
 def _format_help_text(description):
@@ -117,6 +146,51 @@ def _generate_sample(namespaces, output_file=None):
         output_file.write(section)
 
 
+def _generate_policy(namespace, output_file=None):
+    """Generate a policy file showing what will be used.
+
+    This takes all registered policies and merges them with what's defined in
+    a policy file and outputs the result. That result is the effective policy
+    that will be honored by policy checks.
+
+    :param output_file: The path of a file to output to. stdout used if None.
+    """
+    enforcer = _get_enforcer(namespace)
+    # Ensure that files have been parsed
+    enforcer.load_rules()
+
+    file_rules = [policy.RuleDefault(name, default.check_str)
+                  for name, default in enforcer.file_rules.items()]
+    registered_rules = [policy.RuleDefault(name, default.check_str)
+                        for name, default in enforcer.registered_rules.items()
+                        if name not in enforcer.file_rules]
+    policies = {'rules': file_rules + registered_rules}
+
+    output_file = (open(output_file, 'w') if output_file
+                   else sys.stdout)
+
+    for section in _sort_and_format_by_section(policies, include_help=False):
+        output_file.write(section)
+
+
+def _list_redundant(namespace):
+    """Generate a list of configured policies which match defaults.
+
+    This checks all policies loaded from policy files and checks to see if they
+    match registered policies. If so then it is redundant to have them defined
+    in a policy file and operators should consider removing them.
+    """
+    enforcer = _get_enforcer(namespace)
+    # Ensure that files have been parsed
+    enforcer.load_rules()
+
+    for name, file_rule in enforcer.file_rules.items():
+        reg_rule = enforcer.registered_rules.get(name, None)
+        if reg_rule:
+            if file_rule == reg_rule:
+                print(reg_rule)
+
+
 def on_load_failure_callback(*args, **kwargs):
     raise
 
@@ -124,7 +198,25 @@ def on_load_failure_callback(*args, **kwargs):
 def generate_sample(args=None):
     logging.basicConfig(level=logging.WARN)
     conf = cfg.ConfigOpts()
-    conf.register_cli_opts(_generator_opts)
-    conf.register_opts(_generator_opts)
+    conf.register_cli_opts(_generator_opts + _rule_opts)
+    conf.register_opts(_generator_opts + _rule_opts)
     conf(args)
     _generate_sample(conf.namespace, conf.output_file)
+
+
+def generate_policy(args=None):
+    logging.basicConfig(level=logging.WARN)
+    conf = cfg.ConfigOpts()
+    conf.register_cli_opts(_generator_opts + _enforcer_opts)
+    conf.register_opts(_generator_opts + _enforcer_opts)
+    conf(args)
+    _generate_policy(conf.namespace, conf.output_file)
+
+
+def list_redundant(args=None):
+    logging.basicConfig(level=logging.WARN)
+    conf = cfg.ConfigOpts()
+    conf.register_cli_opts(_enforcer_opts)
+    conf.register_opts(_enforcer_opts)
+    conf(args)
+    _list_redundant(conf.namespace)

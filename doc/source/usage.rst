@@ -52,9 +52,15 @@ benefits.
   policies used are registered. The signature of Enforcer.authorize matches
   Enforcer.enforce.
 
-* More will be documented as capabilities are added.
 * A sample policy file can be generated based on the registered policies
   rather than needing to manually maintain one.
+
+* A policy file can be generated which is a merge of registered defaults and
+  policies loaded from a file. This shows the effective policy in use.
+
+* A list can be generated which contains policies defined in a file which match
+  defaults registered in code. These are candidates for removal from the file
+  in order to keep it small and understandable.
 
 How to register
 ---------------
@@ -106,3 +112,71 @@ where policy-generator.conf looks like::
     namespace = nova.compute.api
 
 If output_file is ommitted the sample file will be sent to stdout.
+
+Merged file generation
+----------------------
+
+This will output a policy file which includes all registered policy defaults
+and all policies configured with a policy file. This file shows the effective
+policy in use by the project.
+
+In setup.cfg of a project using oslo.policy::
+
+    [entry_points]
+    oslo.policy.enforcer =
+        nova = nova.policy:get_enforcer
+
+where get_enforcer is a method that returns a configured
+oslo_policy.policy.Enforcer object. This object should be setup exactly as it
+is used for actual policy enforcement, if it differs the generated policy file
+may not match reality.
+
+Run the oslopolicy-policy-generator script with some configuration options::
+
+    oslopolicy-policy-generator --namespace nova --output-file policy-merged.yaml
+
+or::
+
+    oslopolicy-policy-generator --config-file policy-merged-generator.conf
+
+where policy-merged-generator.conf looks like::
+
+    [DEFAULT]
+    output_file = policy-merged.yaml
+    namespace = nova
+
+If output_file is ommitted the file will be sent to stdout.
+
+List of redundant configuration
+-------------------------------
+
+This will output a list of matches for policy rules that are defined in a
+configuration file where the rule does not differ from a registered default
+rule. These are rules that can be removed from the policy file with no change
+in effective policy.
+
+In setup.cfg of a project using oslo.policy::
+
+    [entry_points]
+    oslo.policy.enforcer =
+        nova = nova.policy:get_enforcer
+
+where get_enforcer is a method that returns a configured
+oslo_policy.policy.Enforcer object. This object should be setup exactly as it
+is used for actual policy enforcement, if it differs the generated policy file
+may not match reality.
+
+Run the oslopolicy-list-redundant script::
+
+    oslopolicy-list-redundant --namespace nova
+
+or::
+
+    oslopolicy-list-redundant --config-file policy-redundant.conf
+
+where policy-redundant.conf looks like::
+
+    [DEFAULT]
+    namespace = nova
+
+Output will go to stdout.
