@@ -706,3 +706,23 @@ class RuleDefault(object):
     def __str__(self):
         return '"%(name)s": "%(check_str)s"' % {'name': self.name,
                                                 'check_str': self.check_str}
+
+    def __eq__(self, other):
+        """Equality operator.
+
+        All check objects have a stable string representation. It is used for
+        comparison rather than check_str because multiple check_str's may parse
+        to the same check object. For instance '' and '@' are equivalent and
+        the parsed rule string representation for both is '@'.
+
+        The description does not play a role in the meaning of the check so it
+        is not considered for equality.
+        """
+        # Name should match, check should match, and class should be equivalent
+        # or one should be a subclass of the other.
+        if (self.name == other.name and
+                str(self.check) == str(other.check) and
+                (isinstance(self, other.__class__) or
+                 isinstance(other, self.__class__))):
+            return True
+        return False
