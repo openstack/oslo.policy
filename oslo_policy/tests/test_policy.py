@@ -44,7 +44,7 @@ class FieldCheck(_checks.Check):
     """A non reversible check.
 
     All oslo.policy defined checks have a __str__ method with the property that
-    rule == str(_parser.parse_rule(rule)). Consumers of olso.policy may have
+    rule == str(_parser.parse_rule(rule)). Consumers of oslo.policy may have
     defined checks for which that does not hold true. This FieldCheck is not
     reversible so we can use it for testing to ensure that this type of check
     does not break anything.
