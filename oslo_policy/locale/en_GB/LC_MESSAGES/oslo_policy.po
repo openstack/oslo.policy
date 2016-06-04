@@ -1,0 +1,49 @@
+# OpenStack Infra <zanata@openstack.org>, 2015. #zanata
+# Andi Chandler <andi@gowling.com>, 2016. #zanata
+msgid ""
+msgstr ""
+"Project-Id-Version: oslo.policy 1.8.1.dev10\n"
+"Report-Msgid-Bugs-To: https://bugs.launchpad.net/openstack-i18n/\n"
+"POT-Creation-Date: 2016-06-04 04:38+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2016-06-03 10:51+0000\n"
+"Last-Translator: Andi Chandler <andi@gowling.com>\n"
+"Language-Team: English (United Kingdom)\n"
+"Language: en-GB\n"
+"X-Generator: Zanata 3.7.3\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+
+#, python-format
+msgid "%(rule)s on %(target)s by %(creds)s disallowed by policy"
+msgstr "%(rule)s on %(target)s by %(creds)s disallowed by policy"
+
+msgid "Default rule. Enforced when a requested rule is not found."
+msgstr "Default rule. Enforced when a requested rule is not found."
+
+msgid ""
+"Directories where policy configuration files are stored. They can be "
+"relative to any directory in the search path defined by the config_dir "
+"option, or absolute paths. The file defined by policy_file must exist for "
+"these directories to be searched.  Missing or empty directories are ignored."
+msgstr ""
+"Directories where policy configuration files are stored. They can be "
+"relative to any directory in the search path defined by the config_dir "
+"option, or absolute paths. The file defined by policy_file must exist for "
+"these directories to be searched.  Missing or empty directories are ignored."
+
+#, python-format
+msgid "Policy %(name)s has not been registered"
+msgstr "Policy %(name)s has not been registered"
+
+#, python-format
+msgid "Policy %(name)s is already registered"
+msgstr "Policy %(name)s is already registered"
+
+#, python-format
+msgid "Rules must be an instance of dict or Rules, got %s instead"
+msgstr "Rules must be an instance of dict or Rules, got %s instead"
+
+msgid "The JSON file that defines policies."
+msgstr "The JSON file that defines policies."
