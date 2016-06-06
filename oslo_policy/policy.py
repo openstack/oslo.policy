@@ -127,6 +127,11 @@ attributes obtained through a token:
     - domain_id or project_id (depending on the token scope)
     - list of roles held for the given token scope
 
+.. note:: Some resources which are exposed by the API do not support policy
+enforcement by user_id, and only support policy enforcement by project_id.
+Some global resources do not support policy enforcement by combination of
+user_id and project_id.
+
 For example, a check on the user_id would be defined as::
 
     user_id:<some_value>
