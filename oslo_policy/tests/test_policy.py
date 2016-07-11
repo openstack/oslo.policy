@@ -244,8 +244,10 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self._test_scenario_with_opts_registered(self.test_load_file)
 
     def test_load_directory(self):
-        self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
-        self.create_config_file('policy.d/b.conf', POLICY_B_CONTENTS)
+        self.create_config_file(
+            os.path.join('policy.d', 'a.conf'), POLICY_A_CONTENTS)
+        self.create_config_file(
+            os.path.join('policy.d', 'b.conf'), POLICY_B_CONTENTS)
         self.enforcer.load_rules(True)
         self.assertIsNotNone(self.enforcer.rules)
         loaded_rules = jsonutils.loads(str(self.enforcer.rules))
@@ -253,15 +255,16 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual('is_admin:True', loaded_rules['admin'])
         self.check_loaded_files([
             'policy.json',
-            'policy.d/a.conf',
-            'policy.d/b.conf',
+            os.path.join('policy.d', 'a.conf'),
+            os.path.join('policy.d', 'b.conf'),
         ])
 
     def test_load_directory_opts_registered(self):
         self._test_scenario_with_opts_registered(self.test_load_directory)
 
     def test_load_directory_caching_with_files_updated(self):
-        self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
+        self.create_config_file(
+            os.path.join('policy.d', 'a.conf'), POLICY_A_CONTENTS)
 
         self.enforcer.load_rules(False)
         self.assertIsNotNone(self.enforcer.rules)
@@ -271,7 +274,8 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual(1, len(self.enforcer._policy_dir_mtimes))
 
         # Touch the file
-        conf_path = os.path.join(self.config_dir, 'policy.d/a.conf')
+        conf_path = os.path.join(self.config_dir, os.path.join(
+            'policy.d', 'a.conf'))
         stinfo = os.stat(conf_path)
         os.utime(conf_path, (stinfo.st_atime + 10, stinfo.st_mtime + 10))
 
@@ -284,8 +288,8 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual('is_admin:True', loaded_rules['admin'])
         self.check_loaded_files([
             'policy.json',
-            'policy.d/a.conf',
-            'policy.d/a.conf',
+            os.path.join('policy.d', 'a.conf'),
+            os.path.join('policy.d', 'a.conf'),
         ])
 
     def test_load_directory_caching_with_files_updated_opts_registered(self):
@@ -295,7 +299,8 @@ class EnforcerTest(base.PolicyBaseTestCase):
     def test_load_directory_caching_with_files_same(self, overwrite=True):
         self.enforcer.overwrite = overwrite
 
-        self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
+        self.create_config_file(
+            os.path.join('policy.d', 'a.conf'), POLICY_A_CONTENTS)
 
         self.enforcer.load_rules(False)
         self.assertIsNotNone(self.enforcer.rules)
@@ -313,7 +318,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual('is_admin:True', loaded_rules['admin'])
         self.check_loaded_files([
             'policy.json',
-            'policy.d/a.conf',
+            os.path.join('policy.d', 'a.conf'),
         ])
 
     def test_load_directory_caching_with_files_same_but_overwrite_false(self):
@@ -330,9 +335,12 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self._test_scenario_with_opts_registered(test)
 
     def test_load_multiple_directories(self):
-        self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
-        self.create_config_file('policy.d/b.conf', POLICY_B_CONTENTS)
-        self.create_config_file('policy.2.d/fake.conf', POLICY_FAKE_CONTENTS)
+        self.create_config_file(
+            os.path.join('policy.d', 'a.conf'), POLICY_A_CONTENTS)
+        self.create_config_file(
+            os.path.join('policy.d', 'b.conf'), POLICY_B_CONTENTS)
+        self.create_config_file(
+            os.path.join('policy.2.d', 'fake.conf'), POLICY_FAKE_CONTENTS)
         self.conf.set_override('policy_dirs',
                                ['policy.d', 'policy.2.d'],
                                group='oslo_policy')
@@ -343,9 +351,9 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual('is_admin:True', loaded_rules['admin'])
         self.check_loaded_files([
             'policy.json',
-            'policy.d/a.conf',
-            'policy.d/b.conf',
-            'policy.2.d/fake.conf',
+            os.path.join('policy.d', 'a.conf'),
+            os.path.join('policy.d', 'b.conf'),
+            os.path.join('policy.2.d', 'fake.conf'),
         ])
 
     def test_load_multiple_directories_opts_registered(self):
@@ -353,7 +361,8 @@ class EnforcerTest(base.PolicyBaseTestCase):
             self.test_load_multiple_directories)
 
     def test_load_non_existed_directory(self):
-        self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
+        self.create_config_file(
+            os.path.join('policy.d', 'a.conf'), POLICY_A_CONTENTS)
         self.conf.set_override('policy_dirs',
                                ['policy.d', 'policy.x.d'],
                                group='oslo_policy')
@@ -361,16 +370,18 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertIsNotNone(self.enforcer.rules)
         self.assertIn('default', self.enforcer.rules)
         self.assertIn('admin', self.enforcer.rules)
-        self.check_loaded_files(['policy.json', 'policy.d/a.conf'])
+        self.check_loaded_files(
+            ['policy.json', os.path.join('policy.d', 'a.conf')])
 
     def test_load_non_existed_directory_opts_registered(self):
         self._test_scenario_with_opts_registered(
             self.test_load_non_existed_directory)
 
     def test_load_policy_dirs_with_non_directory(self):
-        self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
+        self.create_config_file(
+            os.path.join('policy.d', 'a.conf'), POLICY_A_CONTENTS)
         self.conf.set_override('policy_dirs',
-                               ['policy.d/a.conf'],
+                               [os.path.join('policy.d', 'a.conf')],
                                group='oslo_policy')
         self.assertRaises(ValueError, self.enforcer.load_rules, True)
 
@@ -424,8 +435,10 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertTrue(enforcer.enforce(action, {}, creds))
 
     def test_enforcer_force_reload_with_overwrite(self, opts_registered=0):
-        self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
-        self.create_config_file('policy.d/b.conf', POLICY_B_CONTENTS)
+        self.create_config_file(
+            os.path.join('policy.d', 'a.conf'), POLICY_A_CONTENTS)
+        self.create_config_file(
+            os.path.join('policy.d', 'b.conf'), POLICY_B_CONTENTS)
 
         # Prepare in memory fake policies.
         self.enforcer.set_rules({'test': _parser.parse_rule('role:test')},
@@ -459,8 +472,10 @@ class EnforcerTest(base.PolicyBaseTestCase):
             self.test_enforcer_force_reload_with_overwrite, opts_registered=1)
 
     def test_enforcer_force_reload_without_overwrite(self, opts_registered=0):
-        self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
-        self.create_config_file('policy.d/b.conf', POLICY_B_CONTENTS)
+        self.create_config_file(
+            os.path.join('policy.d', 'a.conf'), POLICY_A_CONTENTS)
+        self.create_config_file(
+            os.path.join('policy.d', 'b.conf'), POLICY_B_CONTENTS)
 
         # Prepare in memory fake policies.
         self.enforcer.set_rules({'test': _parser.parse_rule('role:test')},
@@ -499,8 +514,10 @@ class EnforcerTest(base.PolicyBaseTestCase):
             opts_registered=1)
 
     def test_enforcer_keep_use_conf_flag_after_reload(self):
-        self.create_config_file('policy.d/a.conf', POLICY_A_CONTENTS)
-        self.create_config_file('policy.d/b.conf', POLICY_B_CONTENTS)
+        self.create_config_file(
+            os.path.join('policy.d', 'a.conf'), POLICY_A_CONTENTS)
+        self.create_config_file(
+            os.path.join('policy.d', 'b.conf'), POLICY_B_CONTENTS)
 
         self.assertTrue(self.enforcer.use_conf)
         self.assertTrue(self.enforcer.enforce('default', {},
