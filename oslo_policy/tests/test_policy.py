@@ -625,6 +625,48 @@ class EnforcerTest(base.PolicyBaseTestCase):
                           {'roles': ['test']})
 
 
+class EnforcerNoPolicyFileTest(base.PolicyBaseTestCase):
+    def setUp(self):
+        super(EnforcerNoPolicyFileTest, self).setUp()
+
+    def check_loaded_files(self, filenames):
+        self.assertEqual(
+            [self.get_config_file_fullname(n)
+             for n in filenames],
+            self.enforcer._loaded_files
+        )
+
+    def test_load_rules(self):
+        # Check that loading rules with no policy file does not error
+        self.enforcer.load_rules(True)
+        self.assertIsNotNone(self.enforcer.rules)
+        self.assertEqual(0, len(self.enforcer.rules))
+
+    def test_opts_registered(self):
+        self.enforcer.register_default(policy.RuleDefault(name='admin',
+                                       check_str='is_admin:False'))
+        self.enforcer.register_default(policy.RuleDefault(name='owner',
+                                       check_str='role:owner'))
+        self.enforcer.load_rules(True)
+
+        self.assertEqual({}, self.enforcer.file_rules)
+        self.assertEqual('role:owner', str(self.enforcer.rules['owner']))
+        self.assertEqual('is_admin:False', str(self.enforcer.rules['admin']))
+
+    def test_load_directory(self):
+        self.create_config_file('policy.d/a.conf', POLICY_JSON_CONTENTS)
+        self.create_config_file('policy.d/b.conf', POLICY_B_CONTENTS)
+        self.enforcer.load_rules(True)
+        self.assertIsNotNone(self.enforcer.rules)
+        loaded_rules = jsonutils.loads(str(self.enforcer.rules))
+        self.assertEqual('role:fakeB', loaded_rules['default'])
+        self.assertEqual('is_admin:True', loaded_rules['admin'])
+        self.check_loaded_files([
+            'policy.d/a.conf',
+            'policy.d/b.conf',
+        ])
+
+
 class CheckFunctionTestCase(base.PolicyBaseTestCase):
 
     def setUp(self):
