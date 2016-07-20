@@ -338,11 +338,7 @@ class Rules(dict):
 
         """
         parsed_file = parse_file_contents(data)
-
-        # Parse the rules
-        rules = {k: _parser.parse_rule(v) for k, v in parsed_file.items()}
-
-        return cls(rules, default_rule)
+        return cls.from_dict(parsed_file, default_rule)
 
     @classmethod
     def load_json(cls, data, default_rule=None):
@@ -364,7 +360,10 @@ class Rules(dict):
         """Allow loading of rule data from a dictionary."""
 
         # Parse the rules stored in the dictionary
-        rules = {k: _parser.parse_rule(v) for k, v in rules_dict.items()}
+        rules = dict()
+        for k, v in rules_dict.items():
+            LOG.debug('Processing policy: "%s": "%s"', k, v)
+            rules[k] = _parser.parse_rule(v)
 
         return cls(rules, default_rule)
 
