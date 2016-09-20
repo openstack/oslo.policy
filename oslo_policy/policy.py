@@ -232,6 +232,7 @@ import yaml
 from oslo_policy import _cache_handler
 from oslo_policy import _checks
 from oslo_policy._i18n import _
+from oslo_policy._i18n import _LW
 from oslo_policy import _parser
 from oslo_policy import opts
 
@@ -528,6 +529,76 @@ class Enforcer(object):
             for default in self.registered_rules.values():
                 if default.name not in self.rules:
                     self.rules[default.name] = default.check
+
+            # Detect and log obvious incorrect rule definitions
+            self.check_rules()
+
+    def check_rules(self):
+        """Look for rule definitions that are obviously incorrect."""
+        undefined_checks = []
+        cyclic_checks = []
+        violation = False
+        for name, check in self.rules.items():
+            if self._undefined_check(check):
+                undefined_checks.append(name)
+                violation = True
+            if self._cycle_check(check):
+                cyclic_checks.append(name)
+                violation = True
+
+        if undefined_checks:
+            LOG.warning(_LW('Policies %(names)s reference a rule that is not '
+                        'defined.'), {'names': undefined_checks})
+        if cyclic_checks:
+            LOG.warning(_LW('Policies %(names)s are part of a cyclical '
+                        'reference.'), {'names': cyclic_checks})
+
+        return not violation
+
+    def _undefined_check(self, check):
+        '''Check if a RuleCheck references an undefined rule.'''
+        if isinstance(check, RuleCheck):
+            if check.match not in self.rules:
+                # Undefined rule
+                return True
+
+        # An AndCheck or OrCheck is composed of multiple rules so check
+        # each of those.
+        rules = getattr(check, 'rules', None)
+        if rules:
+            for rule in rules:
+                if self._undefined_check(rule):
+                    return True
+        return False
+
+    def _cycle_check(self, check, seen=None):
+        '''Check if RuleChecks cycle.
+
+        Looking for something like:
+        "foo": "rule:bar"
+        "bar": "rule:foo"
+        '''
+        if seen is None:
+            seen = set()
+
+        if isinstance(check, RuleCheck):
+            if check.match in seen:
+                # Cycle found
+                return True
+            seen.add(check.match)
+            if check.match in self.rules:
+                # There can only be a cycle if the referenced rule is defined.
+                if self._cycle_check(self.rules[check.match], seen):
+                    return True
+
+        # An AndCheck or OrCheck is composed of multiple rules so check
+        # each of those.
+        rules = getattr(check, 'rules', None)
+        if rules:
+            for rule in rules:
+                if self._cycle_check(rule, seen):
+                    return True
+        return False
 
     @staticmethod
     def _is_directory_updated(cache, path):

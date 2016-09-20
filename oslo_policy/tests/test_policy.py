@@ -832,3 +832,36 @@ class RuleDefaultTestCase(base.PolicyBaseTestCase):
         opt1 = policy.RuleDefault(name='foo', check_str='rule:foo')
         opt2 = RuleDefaultSub(name='bar', check_str='rule:foo')
         self.assertNotEqual(opt1, opt2)
+
+
+class EnforcerCheckRulesTest(base.PolicyBaseTestCase):
+    def setUp(self):
+        super(EnforcerCheckRulesTest, self).setUp()
+
+    def test_no_violations(self):
+        self.create_config_file('policy.json', POLICY_JSON_CONTENTS)
+        self.enforcer.load_rules(True)
+        self.assertTrue(self.enforcer.check_rules())
+
+    def test_undefined_rule(self):
+        rules = jsonutils.dumps({'foo': 'rule:bar'})
+        self.create_config_file('policy.json', rules)
+        self.enforcer.load_rules(True)
+
+        self.assertFalse(self.enforcer.check_rules())
+
+    def test_cyclical_rules(self):
+        rules = jsonutils.dumps({'foo': 'rule:bar', 'bar': 'rule:foo'})
+        self.create_config_file('policy.json', rules)
+        self.enforcer.load_rules(True)
+
+        self.assertFalse(self.enforcer.check_rules())
+
+    def test_complex_cyclical_rules(self):
+        rules = jsonutils.dumps({'foo': 'rule:bar',
+                                 'bar': 'rule:baz and role:admin',
+                                 'baz': 'rule:foo or role:user'})
+        self.create_config_file('policy.json', rules)
+        self.enforcer.load_rules(True)
+
+        self.assertFalse(self.enforcer.check_rules())
