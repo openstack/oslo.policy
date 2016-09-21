@@ -841,7 +841,7 @@ class EnforcerCheckRulesTest(base.PolicyBaseTestCase):
     def test_no_violations(self):
         self.create_config_file('policy.json', POLICY_JSON_CONTENTS)
         self.enforcer.load_rules(True)
-        self.assertTrue(self.enforcer.check_rules())
+        self.assertTrue(self.enforcer.check_rules(raise_on_violation=True))
 
     def test_undefined_rule(self):
         rules = jsonutils.dumps({'foo': 'rule:bar'})
@@ -850,12 +850,28 @@ class EnforcerCheckRulesTest(base.PolicyBaseTestCase):
 
         self.assertFalse(self.enforcer.check_rules())
 
+    def test_undefined_rule_raises(self):
+        rules = jsonutils.dumps({'foo': 'rule:bar'})
+        self.create_config_file('policy.json', rules)
+        self.enforcer.load_rules(True)
+
+        self.assertRaises(policy.InvalidDefinitionError,
+                          self.enforcer.check_rules, raise_on_violation=True)
+
     def test_cyclical_rules(self):
         rules = jsonutils.dumps({'foo': 'rule:bar', 'bar': 'rule:foo'})
         self.create_config_file('policy.json', rules)
         self.enforcer.load_rules(True)
 
         self.assertFalse(self.enforcer.check_rules())
+
+    def test_cyclical_rules_raises(self):
+        rules = jsonutils.dumps({'foo': 'rule:bar', 'bar': 'rule:foo'})
+        self.create_config_file('policy.json', rules)
+        self.enforcer.load_rules(True)
+
+        self.assertRaises(policy.InvalidDefinitionError,
+                          self.enforcer.check_rules, raise_on_violation=True)
 
     def test_complex_cyclical_rules_false(self):
         rules = jsonutils.dumps({'foo': 'rule:bar',
