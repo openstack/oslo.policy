@@ -90,15 +90,14 @@ In setup.cfg of a project using oslo.policy::
 
     [entry_points]
     oslo.policy.policies =
-        nova.api = nova.api.opts:list_policies
-        nova.compute.api = nova.compute.api.opts:list_policies
+        nova = nova.policy:list_policies
 
 where list_policies is a method that returns a list of policy.RuleDefault
 objects.
 
 Run the oslopolicy-sample-generator script with some configuration options::
 
-    oslopolicy-sample-generator --namespace nova.api --namespace nova.compute.api --output-file policy-sample.yaml
+    oslopolicy-sample-generator --namespace nova --output-file policy-sample.yaml
 
 or::
 
@@ -108,8 +107,7 @@ where policy-generator.conf looks like::
 
     [DEFAULT]
     output_file = policy-sample.yaml
-    namespace = nova.api
-    namespace = nova.compute.api
+    namespace = nova
 
 If output_file is ommitted the sample file will be sent to stdout.
 
