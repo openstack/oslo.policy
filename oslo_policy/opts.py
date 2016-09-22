@@ -27,7 +27,7 @@ _option_group = 'oslo_policy'
 _options = [
     cfg.StrOpt('policy_file',
                default='policy.json',
-               help=_('The JSON file that defines policies.'),
+               help=_('The file that defines policies.'),
                deprecated_group='DEFAULT'),
     cfg.StrOpt('policy_default_rule',
                default='default',
@@ -84,7 +84,7 @@ def set_defaults(conf, policy_file=None):
     :param conf: Configuration object, managed by the caller.
     :type conf: oslo.config.cfg.ConfigOpts
 
-    :param policy_file: The base filename for the JSON file that
+    :param policy_file: The base filename for the file that
                         defines policies.
     :type policy_file: unicode
     """
