@@ -14,6 +14,7 @@ Contents
    opts
    cli
    contributing
+   sphinxpolicygen
    history
 
 Indices and tables
