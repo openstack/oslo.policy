@@ -584,7 +584,7 @@ class Enforcer(object):
             LOG.debug('Reloaded policy file: %(path)s', {'path': path})
 
     def _get_policy_path(self, path):
-        """Locate the policy JSON data file/path.
+        """Locate the policy YAML/JSON data file/path.
 
         :param path: It's value can be a full path or related path. When
                      full path specified, this function just returns the full
