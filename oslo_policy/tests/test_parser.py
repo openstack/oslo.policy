@@ -26,23 +26,23 @@ class ParseCheckTestCase(test_base.BaseTestCase):
     def test_false(self):
         result = _parser._parse_check('!')
 
-        self.assertTrue(isinstance(result, _checks.FalseCheck))
+        self.assertIsInstance(result, _checks.FalseCheck)
 
     def test_true(self):
         result = _parser._parse_check('@')
 
-        self.assertTrue(isinstance(result, _checks.TrueCheck))
+        self.assertIsInstance(result, _checks.TrueCheck)
 
     def test_bad_rule(self):
         result = _parser._parse_check('foobar')
 
-        self.assertTrue(isinstance(result, _checks.FalseCheck))
+        self.assertIsInstance(result, _checks.FalseCheck)
 
     @mock.patch.object(_checks, 'registered_checks', {})
     def test_no_handler(self):
         result = _parser._parse_check('no:handler')
 
-        self.assertTrue(isinstance(result, _checks.FalseCheck))
+        self.assertIsInstance(result, _checks.FalseCheck)
 
     @mock.patch.object(_checks, 'registered_checks', {
         'spam': mock.Mock(return_value='spam_check'),
@@ -71,21 +71,21 @@ class ParseListRuleTestCase(test_base.BaseTestCase):
     def test_empty(self):
         result = _parser._parse_list_rule([])
 
-        self.assertTrue(isinstance(result, _checks.TrueCheck))
+        self.assertIsInstance(result, _checks.TrueCheck)
         self.assertEqual('@', str(result))
 
     @mock.patch.object(_parser, '_parse_check', base.FakeCheck)
     def test_oneele_zeroele(self):
         result = _parser._parse_list_rule([[]])
 
-        self.assertTrue(isinstance(result, _checks.FalseCheck))
+        self.assertIsInstance(result, _checks.FalseCheck)
         self.assertEqual('!', str(result))
 
     @mock.patch.object(_parser, '_parse_check', base.FakeCheck)
     def test_oneele_bare(self):
         result = _parser._parse_list_rule(['rule'])
 
-        self.assertTrue(isinstance(result, base.FakeCheck))
+        self.assertIsInstance(result, base.FakeCheck)
         self.assertEqual('rule', result.result)
         self.assertEqual('rule', str(result))
 
@@ -93,7 +93,7 @@ class ParseListRuleTestCase(test_base.BaseTestCase):
     def test_oneele_oneele(self):
         result = _parser._parse_list_rule([['rule']])
 
-        self.assertTrue(isinstance(result, base.FakeCheck))
+        self.assertIsInstance(result, base.FakeCheck)
         self.assertEqual('rule', result.result)
         self.assertEqual('rule', str(result))
 
@@ -101,10 +101,10 @@ class ParseListRuleTestCase(test_base.BaseTestCase):
     def test_oneele_multi(self):
         result = _parser._parse_list_rule([['rule1', 'rule2']])
 
-        self.assertTrue(isinstance(result, _checks.AndCheck))
+        self.assertIsInstance(result, _checks.AndCheck)
         self.assertEqual(2, len(result.rules))
         for i, value in enumerate(['rule1', 'rule2']):
-            self.assertTrue(isinstance(result.rules[i], base.FakeCheck))
+            self.assertIsInstance(result.rules[i], base.FakeCheck)
             self.assertEqual(value, result.rules[i].result)
         self.assertEqual('(rule1 and rule2)', str(result))
 
@@ -112,10 +112,10 @@ class ParseListRuleTestCase(test_base.BaseTestCase):
     def test_multi_oneele(self):
         result = _parser._parse_list_rule([['rule1'], ['rule2']])
 
-        self.assertTrue(isinstance(result, _checks.OrCheck))
+        self.assertIsInstance(result, _checks.OrCheck)
         self.assertEqual(2, len(result.rules))
         for i, value in enumerate(['rule1', 'rule2']):
-            self.assertTrue(isinstance(result.rules[i], base.FakeCheck))
+            self.assertIsInstance(result.rules[i], base.FakeCheck)
             self.assertEqual(value, result.rules[i].result)
         self.assertEqual('(rule1 or rule2)', str(result))
 
@@ -124,14 +124,14 @@ class ParseListRuleTestCase(test_base.BaseTestCase):
         result = _parser._parse_list_rule([['rule1', 'rule2'],
                                           ['rule3', 'rule4']])
 
-        self.assertTrue(isinstance(result, _checks.OrCheck))
+        self.assertIsInstance(result, _checks.OrCheck)
         self.assertEqual(2, len(result.rules))
         for i, values in enumerate([['rule1', 'rule2'], ['rule3', 'rule4']]):
-            self.assertTrue(isinstance(result.rules[i], _checks.AndCheck))
+            self.assertIsInstance(result.rules[i], _checks.AndCheck)
             self.assertEqual(2, len(result.rules[i].rules))
             for j, value in enumerate(values):
-                self.assertTrue(isinstance(result.rules[i].rules[j],
-                                           base.FakeCheck))
+                self.assertIsInstance(result.rules[i].rules[j],
+                                      base.FakeCheck)
                 self.assertEqual(value, result.rules[i].rules[j].result)
         self.assertEqual('((rule1 and rule2) or (rule3 and rule4))',
                          str(result))
@@ -360,7 +360,7 @@ class ParseTextRuleTestCase(test_base.BaseTestCase):
     def test_empty(self):
         result = _parser._parse_text_rule('')
 
-        self.assertTrue(isinstance(result, _checks.TrueCheck))
+        self.assertIsInstance(result, _checks.TrueCheck)
 
     @mock.patch.object(_parser, '_parse_tokenize',
                        return_value=[('tok1', 'val1'), ('tok2', 'val2')])
@@ -378,7 +378,7 @@ class ParseTextRuleTestCase(test_base.BaseTestCase):
     def test_fail(self, mock_parse_tokenize):
         result = _parser._parse_text_rule('test rule')
 
-        self.assertTrue(isinstance(result, _checks.FalseCheck))
+        self.assertIsInstance(result, _checks.FalseCheck)
         mock_parse_tokenize.assert_called_once_with('test rule')
 
     def test_A_or_B_or_C(self):
