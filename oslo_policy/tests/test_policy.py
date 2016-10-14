@@ -772,7 +772,7 @@ class BaseCheckTypesTestCase(base.PolicyBaseTestCase):
 class RuleDefaultTestCase(base.PolicyBaseTestCase):
     def test_rule_is_parsed(self):
         opt = policy.RuleDefault(name='foo', check_str='rule:foo')
-        self.assertTrue(isinstance(opt.check, _checks.BaseCheck))
+        self.assertIsInstance(opt.check, _checks.BaseCheck)
         self.assertEqual('rule:foo', str(opt.check))
 
     def test_str(self):
