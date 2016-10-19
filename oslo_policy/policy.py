@@ -275,7 +275,6 @@ NotCheck = _checks.NotCheck
 A policy check that inverts the result of another policy check.
 
 :param rule: The rule to negate.
-:type rule: oslo_policy.policy.Check
 
 """
 
