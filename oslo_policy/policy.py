@@ -596,7 +596,10 @@ class Enforcer(object):
         rules = getattr(check, 'rules', None)
         if rules:
             for rule in rules:
-                if self._cycle_check(rule, seen):
+                # As there being an OrCheck or AndCheck, a copy of the father's
+                # seen should be called here. In order that the checks in
+                # different branchs are seperated.
+                if self._cycle_check(rule, seen.copy()):
                     return True
         return False
 

@@ -857,7 +857,7 @@ class EnforcerCheckRulesTest(base.PolicyBaseTestCase):
 
         self.assertFalse(self.enforcer.check_rules())
 
-    def test_complex_cyclical_rules(self):
+    def test_complex_cyclical_rules_false(self):
         rules = jsonutils.dumps({'foo': 'rule:bar',
                                  'bar': 'rule:baz and role:admin',
                                  'baz': 'rule:foo or role:user'})
@@ -865,3 +865,12 @@ class EnforcerCheckRulesTest(base.PolicyBaseTestCase):
         self.enforcer.load_rules(True)
 
         self.assertFalse(self.enforcer.check_rules())
+
+    def test_complex_cyclical_rules_true(self):
+        rules = jsonutils.dumps({'foo': 'rule:bar or rule:baz',
+                                 'bar': 'role:admin',
+                                 'baz': 'rule:bar or role:user'})
+        self.create_config_file('policy.json', rules)
+        self.enforcer.load_rules(True)
+
+        self.assertTrue(self.enforcer.check_rules())
