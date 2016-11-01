@@ -109,7 +109,7 @@ where policy-generator.conf looks like::
     output_file = policy-sample.yaml
     namespace = nova
 
-If output_file is ommitted the sample file will be sent to stdout.
+If output_file is omitted the sample file will be sent to stdout.
 
 Merged file generation
 ----------------------
@@ -143,7 +143,7 @@ where policy-merged-generator.conf looks like::
     output_file = policy-merged.yaml
     namespace = nova
 
-If output_file is ommitted the file will be sent to stdout.
+If output_file is omitted the file will be sent to stdout.
 
 List of redundant configuration
 -------------------------------
