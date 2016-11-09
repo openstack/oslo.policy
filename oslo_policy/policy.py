@@ -297,7 +297,8 @@ class PolicyNotAuthorized(Exception):
     """Default exception raised for policy enforcement failure."""
 
     def __init__(self, rule, target, creds):
-        msg = (_('%(rule)s on %(target)s by %(creds)s disallowed by policy') %
+        msg = (_('%(target)s is disallowed by policy rule %(rule)s '
+                 'with %(creds)s ') %
                {'rule': rule, 'target': target, 'creds': creds})
         super(PolicyNotAuthorized, self).__init__(msg)
 
