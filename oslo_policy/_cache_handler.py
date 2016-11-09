@@ -22,6 +22,8 @@ LOG = logging.getLogger(__name__)
 def read_cached_file(cache, filename, force_reload=False):
     """Read from a file if it has been modified.
 
+    :param cache: dictionary to hold opaque cache.
+    :param filename: the file path to read.
     :param force_reload: Whether to reload the file.
     :returns: A tuple with a boolean specifying if the data is fresh
               or not.
@@ -46,6 +48,7 @@ def read_cached_file(cache, filename, force_reload=False):
 def delete_cached_file(cache, filename):
     """Delete cached file if present.
 
+    :param cache: dictionary to hold opaque cache.
     :param filename: filename to delete
     """
 
