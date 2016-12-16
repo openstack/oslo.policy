@@ -56,14 +56,10 @@ def tool(policy_file, access_file, apply_rule, is_admin=False):
         return
     for key, rule in rules.items():
         if ":" in key:
-            if apply_rule:
-                if (apply_rule == key):
-                    _try_rule(key, rule, target, access_data, o)
-            else:
-                _try_rule(key, rule, target, access_data, o)
+            _try_rule(key, rule, target, access_data, o)
 
 
-def main(argv=sys.argv[1:]):
+def main():
     parser = argparse.ArgumentParser(sys.argv[0])
     parser.add_argument(
         '--policy',
@@ -86,15 +82,11 @@ def main(argv=sys.argv[1:]):
 
     args = parser.parse_args()
     try:
-        apply_rule = args.rule
-    except Exception:
-        apply_rule = None
-    try:
         is_admin = args.is_admin.lower() == "true"
     except Exception:
         is_admin = False
-    tool(args.policy, args.access, apply_rule, is_admin)
+    tool(args.policy, args.access, args.rule, is_admin)
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(main())
