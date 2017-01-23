@@ -321,8 +321,8 @@ def parse_file_contents(data):
     yaml or json format. Both can be parsed as yaml.
 
     :param data: A string containing the contents of a policy file.
-    :returns: A dict of of the form {'policy_name1': 'policy1',
-                                     'policy_name2': 'policy2,...}
+    :returns: A dict of the form {'policy_name1': 'policy1',
+                                  'policy_name2': 'policy2,...}
     """
     try:
         # NOTE(snikitin): jsonutils.loads() is much faster than
