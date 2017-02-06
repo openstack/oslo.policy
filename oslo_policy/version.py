@@ -15,4 +15,4 @@
 
 import pbr.version
 
-version_info = pbr.version.VersionInfo('oslo_policy')
+version_info = pbr.version.VersionInfo('oslo.policy')
