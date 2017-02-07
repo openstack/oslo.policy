@@ -314,6 +314,13 @@ class PolicyNotRegistered(Exception):
         super(PolicyNotRegistered, self).__init__(msg)
 
 
+class InvalidDefinitionError(Exception):
+    def __init__(self, names):
+        msg = _('Policies %(names)s are not well defined. Check logs for '
+                'more details.') % {'names': names}
+        super(InvalidDefinitionError, self).__init__(msg)
+
+
 def parse_file_contents(data):
     """Parse the raw contents of a policy file.
 
@@ -541,7 +548,7 @@ class Enforcer(object):
             # Detect and log obvious incorrect rule definitions
             self.check_rules()
 
-    def check_rules(self):
+    def check_rules(self, raise_on_violation=False):
         """Look for rule definitions that are obviously incorrect."""
         undefined_checks = []
         cyclic_checks = []
@@ -560,6 +567,9 @@ class Enforcer(object):
         if cyclic_checks:
             LOG.warning(_LW('Policies %(names)s are part of a cyclical '
                         'reference.'), {'names': cyclic_checks})
+
+        if raise_on_violation and violation:
+            raise InvalidDefinitionError(undefined_checks + cyclic_checks)
 
         return not violation
 
