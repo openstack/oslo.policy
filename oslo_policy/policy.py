@@ -321,6 +321,13 @@ class InvalidDefinitionError(Exception):
         super(InvalidDefinitionError, self).__init__(msg)
 
 
+class InvalidRuleDefault(Exception):
+    def __init__(self, error):
+        msg = (_('Invalid policy rule default: '
+                 '%(error)s.') % {'error': error})
+        super(InvalidRuleDefault, self).__init__(msg)
+
+
 def parse_file_contents(data):
     """Parse the raw contents of a policy file.
 
@@ -832,3 +839,56 @@ class RuleDefault(object):
                  isinstance(other, self.__class__))):
             return True
         return False
+
+
+class DocumentedRuleDefault(RuleDefault):
+    """A class for holding policy-in-code policy objects definitions
+
+    This class provides the same functionality as the RuleDefault class, but it
+    also requires additional data about the policy rule being registered. This
+    is necessary so that proper documentation can be rendered based on the
+    attributes of this class. Eventually, all usage of RuleDefault should be
+    converted to use DocumentedRuleDefault.
+
+    :param operations: List of dicts containing each api url and
+                       corresponding http request method.
+
+                       Example:
+                       operations=[{'path': '/foo', 'method': 'GET'},
+                                   {'path': '/some', 'method': 'POST'}]
+    """
+    def __init__(self, name, check_str, description, operations):
+        super(DocumentedRuleDefault, self).__init__(
+            name, check_str, description)
+        self.operations = operations
+
+    @property
+    def description(self):
+        return self._description
+
+    @description.setter
+    def description(self, value):
+        # Validates description isn't empty.
+        if not value:
+            raise InvalidRuleDefault('Description is required')
+        self._description = value
+
+    @property
+    def operations(self):
+        return self._operations
+
+    @operations.setter
+    def operations(self, ops):
+        if not isinstance(ops, list):
+            raise InvalidRuleDefault('Operations must be a list')
+        if not ops:
+            raise InvalidRuleDefault('Operations list must not be empty')
+
+        for op in ops:
+            if 'path' not in op:
+                raise InvalidRuleDefault('Operation must contain a path')
+            if 'method' not in op:
+                raise InvalidRuleDefault('Operation must contain a method')
+            if len(op.keys()) > 2:
+                raise InvalidRuleDefault('Operation contains > 2 keys')
+        self._operations = ops
