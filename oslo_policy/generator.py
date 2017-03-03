@@ -85,10 +85,19 @@ def _format_help_text(description):
     if not description:
         return '#'
 
-    return textwrap.fill(description, 70, initial_indent='# ',
-                         subsequent_indent='# ',
-                         break_long_words=False,
-                         replace_whitespace=False)
+    lines = description.splitlines()
+    formatted_lines = []
+    # wrap each line to support multi line descriptions
+    for line in lines:
+        if not line:
+            formatted_lines.append('#')
+        else:
+            formatted_lines.append(textwrap.fill(line, 70,
+                                   initial_indent='# ',
+                                   subsequent_indent='# ',
+                                   break_long_words=False,
+                                   replace_whitespace=False))
+    return "\n".join(formatted_lines)
 
 
 def _format_rule_default_yaml(default, include_help=True):

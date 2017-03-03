@@ -141,6 +141,39 @@ class GenerateSampleTestCase(base.PolicyBaseTestCase):
 
         self.assertEqual(expected, stdout.getvalue())
 
+    def test_empty_line_formatting(self):
+        rule = [policy.RuleDefault('admin', 'is_admin:True',
+                                   description='Check Summary \n'
+                                   '\n'
+                                   'This is a description to '
+                                   'check that empty line has '
+                                   'no white spaces.')]
+        ext = stevedore.extension.Extension(name='check_rule',
+                                            entry_point=None,
+                                            plugin=None, obj=rule)
+        test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
+            extensions=[ext], namespace=['check_rule'])
+
+        # no whitespace on empty line
+        expected = '''# Check Summary
+#
+# This is a description to check that empty line has no white spaces.
+"admin": "is_admin:True"
+'''
+        output_file = self.get_config_file_fullname('policy.yaml')
+        with mock.patch('stevedore.named.NamedExtensionManager',
+                        return_value=test_mgr) as mock_ext_mgr:
+            generator._generate_sample(['check_rule'], output_file)
+            mock_ext_mgr.assert_called_once_with(
+                'oslo.policy.policies', names=['check_rule'],
+                on_load_failure_callback=generator.on_load_failure_callback,
+                invoke_on_load=True)
+
+        with open(output_file, 'r') as written_file:
+            written_policy = written_file.read()
+
+        self.assertEqual(expected, written_policy)
+
 
 class GeneratorRaiseErrorTestCase(testtools.TestCase):
     def test_generator_raises_error(self):
