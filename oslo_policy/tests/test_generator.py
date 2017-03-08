@@ -26,12 +26,17 @@ from oslo_policy.tests import base
 
 OPTS = {'base_rules': [policy.RuleDefault('admin', 'is_admin:True',
                                           description='Basic admin check'),
-                       policy.RuleDefault('owner',
-                                          'project_id:%(project_id)s',
-                                          description='This is a long '
-                                                      'description to check '
-                                                      'that line wrapping '
-                                                      'functions properly')],
+                       policy.DocumentedRuleDefault('owner',
+                                                    ('project_id:%'
+                                                     '(project_id)s'),
+                                                    'This is a long '
+                                                    'description to check '
+                                                    'that line wrapping '
+                                                    'functions properly',
+                                                    [{'path': '/foo/',
+                                                      'method': 'GET'},
+                                                     {'path': '/test/',
+                                                      'method': 'POST'}])],
         'custom_field': [policy.RuleDefault('shared',
                                             'field:networks:shared=True')],
         'rules': [policy.RuleDefault('admin_or_owner',
@@ -93,6 +98,8 @@ class GenerateSampleTestCase(base.PolicyBaseTestCase):
 
 # This is a long description to check that line wrapping functions
 # properly
+# GET  /foo/
+# POST  /test/
 #"owner": "project_id:%(project_id)s"
 
 #
@@ -130,6 +137,8 @@ class GenerateSampleTestCase(base.PolicyBaseTestCase):
 
 # This is a long description to check that line wrapping functions
 # properly
+# GET  /foo/
+# POST  /test/
 #"owner": "project_id:%(project_id)s"
 
 #
