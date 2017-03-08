@@ -110,7 +110,7 @@ def _format_rule_default_yaml(default, include_help=True):
             {'name': default.name,
              'check_str': default.check_str})
     if include_help:
-        text = ('%(help)s\n%(text)s' %
+        text = ('%(help)s\n%(text)s\n' %
                 {'help': _format_help_text(default.description),
                  'text': text})
     return text

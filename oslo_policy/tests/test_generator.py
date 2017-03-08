@@ -88,13 +88,17 @@ class GenerateSampleTestCase(base.PolicyBaseTestCase):
 
         expected = '''# Basic admin check
 "admin": "is_admin:True"
+
 # This is a long description to check that line wrapping functions
 # properly
 "owner": "project_id:%(project_id)s"
+
 #
 "shared": "field:networks:shared=True"
+
 #
 "admin_or_owner": "rule:admin or rule:owner"
+
 '''
         output_file = self.get_config_file_fullname('policy.yaml')
         with mock.patch('stevedore.named.NamedExtensionManager',
@@ -121,13 +125,17 @@ class GenerateSampleTestCase(base.PolicyBaseTestCase):
 
         expected = '''# Basic admin check
 "admin": "is_admin:True"
+
 # This is a long description to check that line wrapping functions
 # properly
 "owner": "project_id:%(project_id)s"
+
 #
 "shared": "field:networks:shared=True"
+
 #
 "admin_or_owner": "rule:admin or rule:owner"
+
 '''
         stdout = self._capture_stdout()
         with mock.patch('stevedore.named.NamedExtensionManager',
@@ -159,6 +167,7 @@ class GenerateSampleTestCase(base.PolicyBaseTestCase):
 #
 # This is a description to check that empty line has no white spaces.
 "admin": "is_admin:True"
+
 '''
         output_file = self.get_config_file_fullname('policy.yaml')
         with mock.patch('stevedore.named.NamedExtensionManager',
