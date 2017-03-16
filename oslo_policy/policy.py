@@ -127,10 +127,11 @@ attributes obtained through a token:
     - domain_id or project_id (depending on the token scope)
     - list of roles held for the given token scope
 
-.. note:: Some resources which are exposed by the API do not support policy
-enforcement by user_id, and only support policy enforcement by project_id.
-Some global resources do not support policy enforcement by combination of
-user_id and project_id.
+.. note::
+   Some resources which are exposed by the API do not support policy
+   enforcement by user_id, and only support policy enforcement by project_id.
+   Some global resources do not support policy enforcement by combination of
+   user_id and project_id.
 
 For example, a check on the user_id would be defined as::
 
@@ -204,10 +205,10 @@ using the :func:`~oslo_policy.policy.register` function.
 
 The following classes can be used as parents for custom special check types:
 
-    * :class:`~oslo_policy.policy.AndCheck`
-    * :class:`~oslo_policy.policy.NotCheck`
-    * :class:`~oslo_policy.policy.OrCheck`
-    * :class:`~oslo_policy.policy.RuleCheck`
+* :class:`~oslo_policy.policy.AndCheck`
+* :class:`~oslo_policy.policy.NotCheck`
+* :class:`~oslo_policy.policy.OrCheck`
+* :class:`~oslo_policy.policy.RuleCheck`
 
 Default Rule
 ~~~~~~~~~~~~
@@ -851,11 +852,12 @@ class DocumentedRuleDefault(RuleDefault):
     converted to use DocumentedRuleDefault.
 
     :param operations: List of dicts containing each api url and
-                       corresponding http request method.
+        corresponding http request method.
 
-                       Example:
-                       operations=[{'path': '/foo', 'method': 'GET'},
-                                   {'path': '/some', 'method': 'POST'}]
+        Example::
+
+            operations=[{'path': '/foo', 'method': 'GET'},
+                        {'path': '/some', 'method': 'POST'}]
     """
     def __init__(self, name, check_str, description, operations):
         super(DocumentedRuleDefault, self).__init__(
