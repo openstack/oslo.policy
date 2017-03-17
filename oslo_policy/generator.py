@@ -135,7 +135,7 @@ def _sort_and_format_by_section(policies, include_help=True):
                                             include_help=include_help)
 
 
-def _generate_sample(namespaces, output_file=None):
+def _generate_sample(namespaces, output_file=None, include_help=True):
     """Generate a sample policy file.
 
     List all of the policies available via the namespace specified in the
@@ -145,13 +145,17 @@ def _generate_sample(namespaces, output_file=None):
                        'oslo.policy.policies'. Stevedore will look here for
                        policy options.
     :param output_file: The path of a file to output to. stdout used if None.
+    :param include_help: True, generates a sample-policy file with help text
+                         along with rules in which everything is commented out.
+                         False, generates a sample-policy file with only rules.
     """
     policies = _get_policies_dict(namespaces)
 
     output_file = (open(output_file, 'w') if output_file
                    else sys.stdout)
 
-    for section in _sort_and_format_by_section(policies):
+    for section in _sort_and_format_by_section(policies,
+                                               include_help=include_help):
         output_file.write(section)
 
 

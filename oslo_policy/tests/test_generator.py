@@ -60,7 +60,9 @@ class GenerateSampleTestCase(base.PolicyBaseTestCase):
         output_file = self.get_config_file_fullname('policy.yaml')
         with mock.patch('stevedore.named.NamedExtensionManager',
                         return_value=test_mgr) as mock_ext_mgr:
-            generator._generate_sample(['base_rules', 'rules'], output_file)
+            # generate sample-policy file with only rules
+            generator._generate_sample(['base_rules', 'rules'], output_file,
+                                       include_help=False)
             mock_ext_mgr.assert_called_once_with(
                 'oslo.policy.policies', names=['base_rules', 'rules'],
                 on_load_failure_callback=generator.on_load_failure_callback,
@@ -230,7 +232,9 @@ class GeneratePolicyTestCase(base.PolicyBaseTestCase):
         sample_file = self.get_config_file_fullname('policy-sample.yaml')
         with mock.patch('stevedore.named.NamedExtensionManager',
                         return_value=test_mgr):
-            generator._generate_sample(['base_rules', 'rules'], sample_file)
+            # generate sample-policy file with only rules
+            generator._generate_sample(['base_rules', 'rules'], sample_file,
+                                       include_help=False)
 
         enforcer = policy.Enforcer(self.conf, policy_file='policy-sample.yaml')
         # register an opt defined in the file
@@ -288,7 +292,9 @@ class ListRedundantTestCase(base.PolicyBaseTestCase):
         sample_file = self.get_config_file_fullname('policy-sample.yaml')
         with mock.patch('stevedore.named.NamedExtensionManager',
                         return_value=test_mgr):
-            generator._generate_sample(['base_rules', 'rules'], sample_file)
+            # generate sample-policy file with only rules
+            generator._generate_sample(['base_rules', 'rules'], sample_file,
+                                       include_help=False)
 
         enforcer = policy.Enforcer(self.conf, policy_file='policy-sample.yaml')
         # register opts that match those defined in policy-sample.yaml
