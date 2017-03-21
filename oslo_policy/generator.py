@@ -101,18 +101,25 @@ def _format_help_text(description):
 
 
 def _format_rule_default_yaml(default, include_help=True):
-    """Create a yaml node from the provided policy.RuleDefault.
+    """Create a yaml node from policy.RuleDefault or policy.DocumentedRuleDefault.
 
-    :param default: A policy.RuleDefault object
+    :param default: A policy.RuleDefault or policy.DocumentedRuleDefault object
     :returns: A string containing a yaml representation of the RuleDefault
     """
     text = ('"%(name)s": "%(check_str)s"\n' %
             {'name': default.name,
              'check_str': default.check_str})
+    op = ""
+    if hasattr(default, 'operations'):
+        for operation in default.operations:
+            op += ('# %(method)s  %(path)s\n' %
+                   {'method': operation['method'], 'path': operation['path']})
     if include_help:
-        text = ('%(help)s\n#%(text)s\n' %
+        text = ('%(help)s\n%(op)s#%(text)s\n' %
                 {'help': _format_help_text(default.description),
+                 'op': op,
                  'text': text})
+
     return text
 
 
