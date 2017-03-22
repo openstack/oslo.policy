@@ -52,6 +52,11 @@ benefits.
   policies used are registered. The signature of Enforcer.authorize matches
   Enforcer.enforce.
 
+* Projects can register policies as `DocumentedRuleDefault` objects, which
+  require a method and path of the corresponding policy. This helps policy
+  readers understand which path maps to a particular policy ultimately
+  providing better documentation.
+
 * A sample policy file can be generated based on the registered policies
   rather than needing to manually maintain one.
 
@@ -82,6 +87,27 @@ How to register
     enforcer.register_default(policy.RuleDefault('identity:create_region',
                                                  'rule:admin_required',
                                                  description='helpful text'))
+
+To provide more information about the policy, use the `DocumentedRuleDefault`
+class::
+
+    enforcer.register_default(
+        policy.DocumentedRuleDefault(
+            'identity:create_region',
+            'rule:admin_required',
+            'helpful text',
+            [{'path': '/regions/{region_id}', 'method': 'POST'}]
+        )
+    )
+
+The `DocumentedRuleDefault` class inherits from the `RuleDefault`
+implementation, but it must be supplied with the `description` attribute in
+order to be used. In addition, the `DocumentedRuleDefault` class requires a new
+`operations` attributes that is a list of dictionaries. Each dictionary must
+have a `path` and a `method` key. The `path` should map to the path used to
+interact with the resource the policy protects. The `method` should be the HTTP
+verb corresponding to the `path`. The list of `operations` can be supplied with
+multiple dictionaries if the policy is used to protect multiple paths.
 
 Sample file generation
 ----------------------
