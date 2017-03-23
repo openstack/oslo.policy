@@ -233,7 +233,6 @@ import yaml
 from oslo_policy import _cache_handler
 from oslo_policy import _checks
 from oslo_policy._i18n import _
-from oslo_policy._i18n import _LW
 from oslo_policy import _parser
 from oslo_policy import opts
 
@@ -570,11 +569,11 @@ class Enforcer(object):
                 violation = True
 
         if undefined_checks:
-            LOG.warning(_LW('Policies %(names)s reference a rule that is not '
-                        'defined.'), {'names': undefined_checks})
+            LOG.warning('Policies %(names)s reference a rule that is not '
+                        'defined.', {'names': undefined_checks})
         if cyclic_checks:
-            LOG.warning(_LW('Policies %(names)s are part of a cyclical '
-                        'reference.'), {'names': cyclic_checks})
+            LOG.warning('Policies %(names)s are part of a cyclical '
+                        'reference.', {'names': cyclic_checks})
 
         if raise_on_violation and violation:
             raise InvalidDefinitionError(undefined_checks + cyclic_checks)
