@@ -724,8 +724,10 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
         # raised.
         self.enforcer.set_rules(dict(default=_checks.FalseCheck()))
 
-        self.assertRaises(policy.PolicyNotAuthorized, self.enforcer.enforce,
-                          'rule', 'target', 'creds', True)
+        self.assertRaisesRegex(policy.PolicyNotAuthorized,
+                               " is disallowed by policy",
+                               self.enforcer.enforce,
+                               'rule', 'target', 'creds', True)
 
     def test_check_raise_custom_exception(self):
         self.enforcer.set_rules(dict(default=_checks.FalseCheck()))
