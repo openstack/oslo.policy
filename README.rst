@@ -2,8 +2,8 @@
 Team and repository tags
 ========================
 
-.. image:: http://governance.openstack.org/badges/oslo.policy.svg
-    :target: http://governance.openstack.org/reference/tags/index.html
+.. image:: https://governance.openstack.org/badges/oslo.policy.svg
+    :target: https://governance.openstack.org/reference/tags/index.html
 
 .. Change things from this point on
 
@@ -23,7 +23,7 @@ The Oslo Policy library provides support for RBAC policy enforcement across
 all OpenStack services.
 
 * Free software: Apache license
-* Documentation: http://docs.openstack.org/developer/oslo.policy
-* Source: http://git.openstack.org/cgit/openstack/oslo.policy
-* Bugs: http://bugs.launchpad.net/oslo.policy
+* Documentation: https://docs.openstack.org/developer/oslo.policy
+* Source: https://git.openstack.org/cgit/openstack/oslo.policy
+* Bugs: https://bugs.launchpad.net/oslo.policy
 
