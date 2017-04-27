@@ -21,19 +21,19 @@ from oslo_policy import policy
 
 LOG = logging.getLogger(__name__)
 
-_generator_opts = [
+GENERATOR_OPTS = [
     cfg.StrOpt('output-file',
                help='Path of the file to write to. Defaults to stdout.'),
 ]
 
-_rule_opts = [
+RULE_OPTS = [
     cfg.MultiStrOpt('namespace',
                     required=True,
                     help='Option namespace(s) under "oslo.policy.policies" in '
                          'which to query for options.'),
 ]
 
-_enforcer_opts = [
+ENFORCER_OPTS = [
     cfg.StrOpt('namespace',
                required=True,
                help='Option namespace under "oslo.policy.enforcer" in '
@@ -41,7 +41,7 @@ _enforcer_opts = [
 ]
 
 
-def _get_policies_dict(namespaces):
+def get_policies_dict(namespaces):
     """Find the options available via the given namespaces.
 
     :param namespaces: a list of namespaces registered under
@@ -156,7 +156,7 @@ def _generate_sample(namespaces, output_file=None, include_help=True):
                          along with rules in which everything is commented out.
                          False, generates a sample-policy file with only rules.
     """
-    policies = _get_policies_dict(namespaces)
+    policies = get_policies_dict(namespaces)
 
     output_file = (open(output_file, 'w') if output_file
                    else sys.stdout)
@@ -218,8 +218,8 @@ def on_load_failure_callback(*args, **kwargs):
 def generate_sample(args=None):
     logging.basicConfig(level=logging.WARN)
     conf = cfg.ConfigOpts()
-    conf.register_cli_opts(_generator_opts + _rule_opts)
-    conf.register_opts(_generator_opts + _rule_opts)
+    conf.register_cli_opts(GENERATOR_OPTS + RULE_OPTS)
+    conf.register_opts(GENERATOR_OPTS + RULE_OPTS)
     conf(args)
     _generate_sample(conf.namespace, conf.output_file)
 
@@ -227,8 +227,8 @@ def generate_sample(args=None):
 def generate_policy(args=None):
     logging.basicConfig(level=logging.WARN)
     conf = cfg.ConfigOpts()
-    conf.register_cli_opts(_generator_opts + _enforcer_opts)
-    conf.register_opts(_generator_opts + _enforcer_opts)
+    conf.register_cli_opts(GENERATOR_OPTS + ENFORCER_OPTS)
+    conf.register_opts(GENERATOR_OPTS + ENFORCER_OPTS)
     conf(args)
     _generate_policy(conf.namespace, conf.output_file)
 
@@ -236,7 +236,7 @@ def generate_policy(args=None):
 def list_redundant(args=None):
     logging.basicConfig(level=logging.WARN)
     conf = cfg.ConfigOpts()
-    conf.register_cli_opts(_enforcer_opts)
-    conf.register_opts(_enforcer_opts)
+    conf.register_cli_opts(ENFORCER_OPTS)
+    conf.register_opts(ENFORCER_OPTS)
     conf(args)
     _list_redundant(conf.namespace)
