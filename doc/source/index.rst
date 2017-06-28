@@ -9,9 +9,10 @@ OpenStack services.
    :maxdepth: 2
 
    install/index
-   user/index
+   admin/index
    configuration/index
    cli/index
+   user/index
    reference/index
    contributor/index
 
