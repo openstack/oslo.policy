@@ -5,30 +5,17 @@
 An OpenStack library providing support for RBAC policy enforcement across all
 OpenStack services.
 
-Contents
-========
-
 .. toctree::
    :maxdepth: 2
 
-   installation
-   api/modules
-   usage
-   opts
-   cli
-   contributing
-   sphinxpolicygen
+   install/index
+   user/index
+   configuration/index
+   cli/index
+   reference/index
+   contributor/index
 
-Release Notes
-=============
-
-.. toctree::
-   :maxdepth: 1
-
-   history
-
-Indices and tables
-==================
+.. rubric:: Indices and tables
 
 * :ref:`genindex`
 * :ref:`modindex`

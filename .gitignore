@@ -9,7 +9,7 @@ cover/
 oslo.policy.egg-info/
 build/
 dist/
-doc/source/api
+doc/source/reference/api/
 AUTHORS
 .update-venv/
 ChangeLog
