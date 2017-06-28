@@ -23,9 +23,15 @@ sys.path.insert(0, os.path.abspath('../..'))
 extensions = [
     'sphinx.ext.autodoc',
     #'sphinx.ext.intersphinx',
-    'oslosphinx',
+    'openstackdocstheme',
     'oslo_config.sphinxext',
 ]
+
+# openstackdocstheme options
+repository_name = 'openstack/oslo.policy'
+bug_project = 'oslo.policy'
+bug_tag = ''
+html_last_updated_fmt = '%Y-%m-%d %H:%M'
 
 # autodoc generation is a bit aggressive and a nuisance when doing heavy
 # text edit cycles.
@@ -65,6 +71,7 @@ modindex_common_prefix = ['oslo_policy.']
 # html_theme_path = ["."]
 # html_theme = '_theme'
 # html_static_path = ['static']
+html_theme = 'openstackdocs'
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = '%sdoc' % project
