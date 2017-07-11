@@ -350,7 +350,7 @@ def parse_file_contents(data):
             # For backwards-compatibility, convert yaml error to ValueError,
             # which is what JSON loader raised.
             raise ValueError(six.text_type(e))
-    return parsed
+    return parsed or {}
 
 
 class Rules(dict):

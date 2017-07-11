@@ -130,6 +130,11 @@ class RulesTestCase(test_base.BaseTestCase):
                           'default')
 
     @mock.patch.object(_parser, 'parse_rule', lambda x: x)
+    def test_load_empty_data(self):
+        result = policy.Rules.load('', 'default')
+        self.assertEqual(result, {})
+
+    @mock.patch.object(_parser, 'parse_rule', lambda x: x)
     def test_load_yaml(self):
         # Test that simplified YAML can be used with load().
         # Show that YAML allows useful comments.
