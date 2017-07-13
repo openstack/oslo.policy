@@ -43,7 +43,6 @@ def _format_policy_rule(rule):
     For example:
 
         ``os_compute_api:servers:create``
-
             Create a server
 
             Default::
@@ -55,12 +54,12 @@ def _format_policy_rule(rule):
             - **POST** ``/servers``
     """
     yield '``{}``'.format(rule.name)
-    yield ''
 
     if rule.description:
         for line in statemachine.string2lines(
                 rule.description, tab_width=4, convert_whitespace=True):
-            yield _indent(line)
+            if line:
+                yield _indent(line)
 
         yield ''
 

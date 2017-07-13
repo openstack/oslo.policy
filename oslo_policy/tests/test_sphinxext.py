@@ -31,7 +31,6 @@ class FormatPolicyTest(base.BaseTestCase):
         ===
 
         ``rule_a``
-
             Default::
 
                 @
@@ -47,7 +46,6 @@ class FormatPolicyTest(base.BaseTestCase):
         ===
 
         ``rule_a``
-
             My sample rule
 
             Default::
@@ -68,7 +66,6 @@ class FormatPolicyTest(base.BaseTestCase):
         ===
 
         ``rule_a``
-
             My sample rule
 
             Default::
