@@ -31,9 +31,9 @@ class FormatPolicyTest(base.BaseTestCase):
         ===
 
         ``rule_a``
-            Default::
+            :Default: ``@``
 
-                @
+            (no description provided)
         """).lstrip(), results)
 
     def test_with_description(self):
@@ -46,11 +46,9 @@ class FormatPolicyTest(base.BaseTestCase):
         ===
 
         ``rule_a``
+            :Default: ``@``
+
             My sample rule
-
-            Default::
-
-                @
         """).lstrip(), results)
 
     def test_with_operations(self):
@@ -66,14 +64,10 @@ class FormatPolicyTest(base.BaseTestCase):
         ===
 
         ``rule_a``
+            :Default: ``@``
+            :Operations:
+                - **GET** ``/foo``
+                - **POST** ``/some``
+
             My sample rule
-
-            Default::
-
-                @
-
-            Operations:
-
-            - **GET** ``/foo``
-            - **POST** ``/some``
         """).lstrip(), results)
