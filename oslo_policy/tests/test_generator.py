@@ -11,6 +11,7 @@
 
 import operator
 import sys
+import warnings
 
 import fixtures
 import mock
@@ -227,10 +228,9 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
         expected = '''# Create a bar.
 #"foo:create_bar": "role:fizz"
 
-# DEPRECATED
-# "foo:post_bar":"role:fizz" has been deprecated since N in favor of
-# "foo:create_bar":"role:fizz".
-# foo:post_bar is being removed in favor of foo:create_bar
+# DEPRECATED "foo:post_bar":"role:fizz" has been deprecated since N in
+# favor of "foo:create_bar":"role:fizz". foo:post_bar is being removed
+# in favor of foo:create_bar
 "foo:post_bar": "rule:foo:create_bar"
 '''
         stdout = self._capture_stdout()
@@ -244,26 +244,15 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
             )
         self.assertEqual(expected, stdout.getvalue())
 
-    def test_empty_line_formatting(self):
+    def _test_formatting(self, description, expected):
         rule = [policy.RuleDefault('admin', 'is_admin:True',
-                                   description='Check Summary \n'
-                                   '\n'
-                                   'This is a description to '
-                                   'check that empty line has '
-                                   'no white spaces.')]
+                                   description=description)]
         ext = stevedore.extension.Extension(name='check_rule',
                                             entry_point=None,
                                             plugin=None, obj=rule)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
             extensions=[ext], namespace=['check_rule'])
 
-        # no whitespace on empty line
-        expected = '''# Check Summary
-#
-# This is a description to check that empty line has no white spaces.
-#"admin": "is_admin:True"
-
-'''
         output_file = self.get_config_file_fullname('policy.yaml')
         with mock.patch('stevedore.named.NamedExtensionManager',
                         return_value=test_mgr) as mock_ext_mgr:
@@ -277,6 +266,76 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
             written_policy = written_file.read()
 
         self.assertEqual(expected, written_policy)
+
+    def test_empty_line_formatting(self):
+        description = ('Check Summary \n'
+                       '\n'
+                       'This is a description to '
+                       'check that empty line has '
+                       'no white spaces.')
+        expected = """# Check Summary
+#
+# This is a description to check that empty line has no white spaces.
+#"admin": "is_admin:True"
+
+"""
+
+        self._test_formatting(description, expected)
+
+    def test_paragraph_formatting(self):
+        description = """
+Here's a neat description with a paragraph. We want to make sure that it wraps
+properly.
+"""
+        expected = """# Here's a neat description with a paragraph. We want \
+to make sure
+# that it wraps properly.
+#"admin": "is_admin:True"
+
+"""
+
+        self._test_formatting(description, expected)
+
+    def test_literal_block_formatting(self):
+        description = """Here's another description.
+
+    This one has a literal block.
+    These lines should be kept apart.
+    They should not be wrapped, even though they may be longer than 70 chars
+"""
+        expected = """# Here's another description.
+#
+#     This one has a literal block.
+#     These lines should be kept apart.
+#     They should not be wrapped, even though they may be longer than 70 chars
+#"admin": "is_admin:True"
+
+"""
+
+        self._test_formatting(description, expected)
+
+    def test_invalid_formatting(self):
+        description = """Here's a broken description.
+
+We have some text...
+    Followed by a literal block without any spaces.
+    We don't support definition lists, so this is just wrong!
+"""
+        expected = """# Here's a broken description.
+#
+# We have some text...
+#
+#     Followed by a literal block without any spaces.
+#     We don't support definition lists, so this is just wrong!
+#"admin": "is_admin:True"
+
+"""
+
+        with warnings.catch_warnings(record=True) as warns:
+            self._test_formatting(description, expected)
+            self.assertEqual(1, len(warns))
+            self.assertTrue(issubclass(warns[-1].category, FutureWarning))
+            self.assertIn('Invalid policy description', str(warns[-1].message))
 
 
 class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
