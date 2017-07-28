@@ -121,7 +121,9 @@ class ShowPolicyDirective(rst.Directive):
                 config_path = c
                 break
         else:
-            self.error('could not find config file in: %s' % str(candidates))
+            raise ValueError(
+                'could not find config file in: %s' % str(candidates)
+            )
 
         self.info('loading config file %s' % config_path)
 
