@@ -51,7 +51,10 @@ def _format_policy_rule(rule):
     """
     yield '``{}``'.format(rule.name)
 
-    yield _indent(':Default: ``{}``'.format(rule.check_str))
+    if rule.check_str:
+        yield _indent(':Default: ``{}``'.format(rule.check_str))
+    else:
+        yield _indent(':Default: <empty string>')
 
     if hasattr(rule, 'operations'):
         yield _indent(':Operations:')
