@@ -44,6 +44,25 @@ _options = [
                            'be searched.  Missing or empty directories are '
                            'ignored.'),
                     deprecated_group='DEFAULT'),
+    cfg.StrOpt('remote_content_type',
+               choices=('application/x-www-form-urlencoded',
+                        'application/json'),
+               default='application/x-www-form-urlencoded',
+               help=_("Content Type to send and receive data for "
+                      "REST based policy check")),
+    cfg.BoolOpt('remote_ssl_verify_server_crt',
+                help=_("server identity verification for REST based "
+                       "policy check"),
+                default=False),
+    cfg.StrOpt('remote_ssl_ca_crt_file',
+               help=_("Absolute path to ca cert file for REST based "
+                      "policy check")),
+    cfg.StrOpt('remote_ssl_client_crt_file',
+               help=_("Absolute path to client cert for REST based "
+                      "policy check")),
+    cfg.StrOpt('remote_ssl_client_key_file',
+               help=_("Absolute path client key file REST based "
+                      "policy check")),
 ]
 
 
