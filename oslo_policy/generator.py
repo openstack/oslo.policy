@@ -31,6 +31,10 @@ RULE_OPTS = [
                     required=True,
                     help='Option namespace(s) under "oslo.policy.policies" in '
                          'which to query for options.'),
+    cfg.StrOpt('format',
+               help='Desired format for the output.',
+               default='yaml',
+               choices=['json', 'yaml']),
 ]
 
 ENFORCER_OPTS = [
@@ -109,12 +113,15 @@ def _format_rule_default_yaml(default, include_help=True):
     text = ('"%(name)s": "%(check_str)s"\n' %
             {'name': default.name,
              'check_str': default.check_str})
-    op = ""
-    if hasattr(default, 'operations'):
-        for operation in default.operations:
-            op += ('# %(method)s  %(path)s\n' %
-                   {'method': operation['method'], 'path': operation['path']})
+
     if include_help:
+        op = ""
+        if hasattr(default, 'operations'):
+            for operation in default.operations:
+                op += ('# %(method)s  %(path)s\n' %
+                       {'method': operation['method'],
+                        'path': operation['path']})
+
         text = ('%(help)s\n%(op)s#%(text)s\n' %
                 {'help': _format_help_text(default.description),
                  'op': op,
@@ -123,7 +130,19 @@ def _format_rule_default_yaml(default, include_help=True):
     return text
 
 
-def _sort_and_format_by_section(policies, include_help=True):
+def _format_rule_default_json(default):
+    """Create a json node from policy.RuleDefault or policy.DocumentedRuleDefault.
+
+    :param default: A policy.RuleDefault or policy.DocumentedRuleDefault object
+    :returns: A string containing a json representation of the RuleDefault
+    """
+    return ('"%(name)s": "%(check_str)s"' %
+            {'name': default.name,
+             'check_str': default.check_str})
+
+
+def _sort_and_format_by_section(policies, output_format='yaml',
+                                include_help=True):
     """Generate a list of policy section texts
 
     The text for a section will be created and returned one at a time. The
@@ -134,15 +153,20 @@ def _sort_and_format_by_section(policies, include_help=True):
 
     :param policies: A dict of {section1: [rule_default_1, rule_default_2],
                                 section2: [rule_default_3]}
+    :param output_format: The format of the file to output to.
     """
     for section in sorted(policies.keys()):
         rule_defaults = policies[section]
         for rule_default in rule_defaults:
-            yield _format_rule_default_yaml(rule_default,
-                                            include_help=include_help)
+            if output_format == 'yaml':
+                yield _format_rule_default_yaml(rule_default,
+                                                include_help=include_help)
+            elif output_format == 'json':
+                yield _format_rule_default_json(rule_default)
 
 
-def _generate_sample(namespaces, output_file=None, include_help=True):
+def _generate_sample(namespaces, output_file=None, output_format='yaml',
+                     include_help=True):
     """Generate a sample policy file.
 
     List all of the policies available via the namespace specified in the
@@ -152,6 +176,7 @@ def _generate_sample(namespaces, output_file=None, include_help=True):
                        'oslo.policy.policies'. Stevedore will look here for
                        policy options.
     :param output_file: The path of a file to output to. stdout used if None.
+    :param output_format: The format of the file to output to.
     :param include_help: True, generates a sample-policy file with help text
                          along with rules in which everything is commented out.
                          False, generates a sample-policy file with only rules.
@@ -161,9 +186,18 @@ def _generate_sample(namespaces, output_file=None, include_help=True):
     output_file = (open(output_file, 'w') if output_file
                    else sys.stdout)
 
-    for section in _sort_and_format_by_section(policies,
+    sections_text = []
+    for section in _sort_and_format_by_section(policies, output_format,
                                                include_help=include_help):
-        output_file.write(section)
+        sections_text.append(section)
+
+    if output_format == 'yaml':
+        output_file.writelines(sections_text)
+    elif output_format == 'json':
+        output_file.writelines((
+            '{\n    ',
+            ',\n    '.join(sections_text),
+            '\n}\n'))
 
 
 def _generate_policy(namespace, output_file=None):
@@ -221,7 +255,7 @@ def generate_sample(args=None):
     conf.register_cli_opts(GENERATOR_OPTS + RULE_OPTS)
     conf.register_opts(GENERATOR_OPTS + RULE_OPTS)
     conf(args)
-    _generate_sample(conf.namespace, conf.output_file)
+    _generate_sample(conf.namespace, conf.output_file, conf.format)
 
 
 def generate_policy(args=None):
