@@ -51,21 +51,17 @@ class RuleCheckTestCase(base.PolicyBaseTestCase):
         self.assertFalse(check('target', 'creds', self.enforcer))
 
     def test_rule_false(self):
-        self.enforcer.rules = dict(spam=mock.Mock(return_value=False))
+        self.enforcer.rules = dict(spam=_BoolCheck(False))
 
         check = _checks.RuleCheck('rule', 'spam')
 
         self.assertFalse(check('target', 'creds', self.enforcer))
-        self.enforcer.rules['spam'].assert_called_once_with('target', 'creds',
-                                                            self.enforcer)
 
     def test_rule_true(self):
-        self.enforcer.rules = dict(spam=mock.Mock(return_value=True))
+        self.enforcer.rules = dict(spam=_BoolCheck(True))
         check = _checks.RuleCheck('rule', 'spam')
 
         self.assertTrue(check('target', 'creds', self.enforcer))
-        self.enforcer.rules['spam'].assert_called_once_with('target', 'creds',
-                                                            self.enforcer)
 
 
 class RoleCheckTestCase(base.PolicyBaseTestCase):
@@ -122,7 +118,8 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
 
         last_request = self.requests_mock.last_request
         self.assertEqual('POST', last_request.method)
-        self.assertEqual(dict(target=target_dict, credentials=cred_dict),
+        self.assertEqual(dict(target=target_dict, credentials=cred_dict,
+                              rule=None),
                          self.decode_post_data(last_request.body))
 
     def test_reject(self):
@@ -136,7 +133,8 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
 
         last_request = self.requests_mock.last_request
         self.assertEqual('POST', last_request.method)
-        self.assertEqual(dict(target=target_dict, credentials=cred_dict),
+        self.assertEqual(dict(target=target_dict, credentials=cred_dict,
+                              rule=None),
                          self.decode_post_data(last_request.body))
 
     def test_http_with_objects_in_target(self):
@@ -160,6 +158,40 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
         self.assertTrue(check(target,
                               dict(user='user', roles=['a', 'b', 'c']),
                               self.enforcer))
+
+    def test_accept_with_rule_in_argument(self):
+        self.requests_mock.post('http://example.com/target', text='True')
+
+        check = _checks.HttpCheck('http', '//example.com/%(name)s')
+
+        target_dict = dict(name='target', spam='spammer')
+        cred_dict = dict(user='user', roles=['a', 'b', 'c'])
+        current_rule = "a_rule"
+        self.assertTrue(check(target_dict, cred_dict, self.enforcer,
+                              current_rule))
+
+        last_request = self.requests_mock.last_request
+        self.assertEqual('POST', last_request.method)
+        self.assertEqual(dict(target=target_dict, credentials=cred_dict,
+                              rule=current_rule),
+                         self.decode_post_data(last_request.body))
+
+    def test_reject_with_rule_in_argument(self):
+        self.requests_mock.post("http://example.com/target", text='other')
+
+        check = _checks.HttpCheck('http', '//example.com/%(name)s')
+
+        target_dict = dict(name='target', spam='spammer')
+        cred_dict = dict(user='user', roles=['a', 'b', 'c'])
+        current_rule = "a_rule"
+        self.assertFalse(check(target_dict, cred_dict, self.enforcer,
+                               current_rule))
+
+        last_request = self.requests_mock.last_request
+        self.assertEqual('POST', last_request.method)
+        self.assertEqual(dict(target=target_dict, credentials=cred_dict,
+                              rule=current_rule),
+                         self.decode_post_data(last_request.body))
 
 
 class GenericCheckTestCase(base.PolicyBaseTestCase):
@@ -339,18 +371,60 @@ class NotCheckTestCase(test_base.BaseTestCase):
         self.assertEqual('not rule', str(check))
 
     def test_call_true(self):
-        rule = mock.Mock(return_value=True)
+        rule = _checks.TrueCheck()
         check = _checks.NotCheck(rule)
-
         self.assertFalse(check('target', 'cred', None))
-        rule.assert_called_once_with('target', 'cred', None)
 
     def test_call_false(self):
-        rule = mock.Mock(return_value=False)
+        rule = _checks.FalseCheck()
         check = _checks.NotCheck(rule)
-
         self.assertTrue(check('target', 'cred', None))
-        rule.assert_called_once_with('target', 'cred', None)
+
+    def test_rule_takes_current_rule(self):
+        results = []
+
+        class TestCheck(object):
+            def __call__(self, target, cred, enforcer, current_rule=None):
+                results.append((target, cred, enforcer, current_rule))
+                return True
+
+        check = _checks.NotCheck(TestCheck())
+
+        self.assertFalse(check('target', 'cred', None, current_rule="a_rule"))
+        self.assertEqual(
+            [('target', 'cred', None, 'a_rule')],
+            results,
+        )
+
+    def test_rule_does_not_take_current_rule(self):
+        results = []
+
+        class TestCheck(object):
+            def __call__(self, target, cred, enforcer):
+                results.append((target, cred, enforcer))
+                return True
+
+        check = _checks.NotCheck(TestCheck())
+
+        self.assertFalse(check('target', 'cred', None, current_rule="a_rule"))
+        self.assertEqual(
+            [('target', 'cred', None)],
+            results,
+        )
+
+
+class _BoolCheck(_checks.BaseCheck):
+
+    def __init__(self, result):
+        self.called = False
+        self.result = result
+
+    def __str__(self):
+        return str(self.result)
+
+    def __call__(self, target, creds, enforcer, current_rule=None):
+        self.called = True
+        return self.result
 
 
 class AndCheckTestCase(test_base.BaseTestCase):
@@ -371,28 +445,69 @@ class AndCheckTestCase(test_base.BaseTestCase):
         self.assertEqual('(rule1 and rule2)', str(check))
 
     def test_call_all_false(self):
-        rules = [mock.Mock(return_value=False), mock.Mock(return_value=False)]
+        rules = [
+            _BoolCheck(False),
+            _BoolCheck(False),
+        ]
         check = _checks.AndCheck(rules)
 
         self.assertFalse(check('target', 'cred', None))
-        rules[0].assert_called_once_with('target', 'cred', None)
+        self.assertTrue(rules[0].called)
         self.assertFalse(rules[1].called)
 
     def test_call_first_true(self):
-        rules = [mock.Mock(return_value=True), mock.Mock(return_value=False)]
+        rules = [
+            _BoolCheck(True),
+            _BoolCheck(False),
+        ]
         check = _checks.AndCheck(rules)
 
         self.assertFalse(check('target', 'cred', None))
-        rules[0].assert_called_once_with('target', 'cred', None)
-        rules[1].assert_called_once_with('target', 'cred', None)
+        self.assertTrue(rules[0].called)
+        self.assertTrue(rules[1].called)
 
     def test_call_second_true(self):
-        rules = [mock.Mock(return_value=False), mock.Mock(return_value=True)]
+        rules = [
+            _BoolCheck(False),
+            _BoolCheck(True),
+        ]
         check = _checks.AndCheck(rules)
 
         self.assertFalse(check('target', 'cred', None))
-        rules[0].assert_called_once_with('target', 'cred', None)
+        self.assertTrue(rules[0].called)
         self.assertFalse(rules[1].called)
+
+    def test_rule_takes_current_rule(self):
+        results = []
+
+        class TestCheck(object):
+            def __call__(self, target, cred, enforcer, current_rule=None):
+                results.append((target, cred, enforcer, current_rule))
+                return False
+
+        check = _checks.AndCheck([TestCheck()])
+
+        self.assertFalse(check('target', 'cred', None, current_rule="a_rule"))
+        self.assertEqual(
+            [('target', 'cred', None, 'a_rule')],
+            results,
+        )
+
+    def test_rule_does_not_take_current_rule(self):
+        results = []
+
+        class TestCheck(object):
+            def __call__(self, target, cred, enforcer):
+                results.append((target, cred, enforcer))
+                return False
+
+        check = _checks.AndCheck([TestCheck()])
+
+        self.assertFalse(check('target', 'cred', None, current_rule="a_rule"))
+        self.assertEqual(
+            [('target', 'cred', None)],
+            results,
+        )
 
 
 class OrCheckTestCase(test_base.BaseTestCase):
@@ -420,25 +535,66 @@ class OrCheckTestCase(test_base.BaseTestCase):
         self.assertEqual('(rule1 or rule2)', str(check))
 
     def test_call_all_false(self):
-        rules = [mock.Mock(return_value=False), mock.Mock(return_value=False)]
+        rules = [
+            _BoolCheck(False),
+            _BoolCheck(False),
+        ]
         check = _checks.OrCheck(rules)
 
         self.assertFalse(check('target', 'cred', None))
-        rules[0].assert_called_once_with('target', 'cred', None)
-        rules[1].assert_called_once_with('target', 'cred', None)
+        self.assertTrue(rules[0].called)
+        self.assertTrue(rules[1].called)
 
     def test_call_first_true(self):
-        rules = [mock.Mock(return_value=True), mock.Mock(return_value=False)]
+        rules = [
+            _BoolCheck(True),
+            _BoolCheck(False),
+        ]
         check = _checks.OrCheck(rules)
 
         self.assertTrue(check('target', 'cred', None))
-        rules[0].assert_called_once_with('target', 'cred', None)
+        self.assertTrue(rules[0].called)
         self.assertFalse(rules[1].called)
 
     def test_call_second_true(self):
-        rules = [mock.Mock(return_value=False), mock.Mock(return_value=True)]
+        rules = [
+            _BoolCheck(False),
+            _BoolCheck(True),
+        ]
         check = _checks.OrCheck(rules)
 
         self.assertTrue(check('target', 'cred', None))
-        rules[0].assert_called_once_with('target', 'cred', None)
-        rules[1].assert_called_once_with('target', 'cred', None)
+        self.assertTrue(rules[0].called)
+        self.assertTrue(rules[1].called)
+
+    def test_rule_takes_current_rule(self):
+        results = []
+
+        class TestCheck(object):
+            def __call__(self, target, cred, enforcer, current_rule=None):
+                results.append((target, cred, enforcer, current_rule))
+                return False
+
+        check = _checks.OrCheck([TestCheck()])
+
+        self.assertFalse(check('target', 'cred', None, current_rule="a_rule"))
+        self.assertEqual(
+            [('target', 'cred', None, 'a_rule')],
+            results,
+        )
+
+    def test_rule_does_not_take_current_rule(self):
+        results = []
+
+        class TestCheck(object):
+            def __call__(self, target, cred, enforcer):
+                results.append((target, cred, enforcer))
+                return False
+
+        check = _checks.OrCheck([TestCheck()])
+
+        self.assertFalse(check('target', 'cred', None, current_rule="a_rule"))
+        self.assertEqual(
+            [('target', 'cred', None)],
+            results,
+        )

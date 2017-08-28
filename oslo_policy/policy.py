@@ -729,18 +729,33 @@ class Enforcer(object):
 
         # Allow the rule to be a Check tree
         if isinstance(rule, _checks.BaseCheck):
-            result = rule(target, creds, self)
+            # If the thing we're given is a Check, we don't know the
+            # name of the rule, so pass None for current_rule.
+            result = _checks._check(
+                rule=rule,
+                target=target,
+                creds=creds,
+                enforcer=self,
+                current_rule=None,
+            )
         elif not self.rules:
             # No rules to reference means we're going to fail closed
             result = False
         else:
             try:
-                # Evaluate the rule
-                result = self.rules[rule](target, creds, self)
+                to_check = self.rules[rule]
             except KeyError:
                 LOG.debug('Rule [%s] does not exist', rule)
                 # If the rule doesn't exist, fail closed
                 result = False
+            else:
+                result = _checks._check(
+                    rule=to_check,
+                    target=target,
+                    creds=creds,
+                    enforcer=self,
+                    current_rule=rule,
+                )
 
         # If it is False, raise the exception if requested
         if do_raise and not result:
