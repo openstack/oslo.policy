@@ -14,10 +14,8 @@ __all__ = ['HttpCheckFixture']
 
 import fixtures
 
-from oslo_policy import policy as oslo_policy
 
-
-class HttpCheckFixture(fixtures.MockPatchObject):
+class HttpCheckFixture(fixtures.Fixture):
     """Helps short circuit the external http call"""
 
     def __init__(self, return_value=True):
@@ -27,8 +25,18 @@ class HttpCheckFixture(fixtures.MockPatchObject):
                implies that the policy check failed
         :type return_value: boolean
         """
-        super(HttpCheckFixture, self).__init__(
-            oslo_policy._checks.HttpCheck,
-            '__call__',
-            return_value=return_value
+        super(HttpCheckFixture, self).__init__()
+        self.return_value = return_value
+
+    def setUp(self):
+        super(HttpCheckFixture, self).setUp()
+
+        def mocked_call(target, cred, enforcer, rule):
+            return self.return_value
+
+        self.useFixture(
+            fixtures.MonkeyPatch(
+                'oslo_policy._checks.HttpCheck.__call__',
+                mocked_call,
+            )
         )
