@@ -841,6 +841,161 @@ class RuleDefaultTestCase(base.PolicyBaseTestCase):
         self.assertNotEqual(opt1, opt2)
 
 
+class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
+
+    def test_deprecate_a_policy_check_string(self):
+        deprecated_rule = policy.DeprecatedRule(
+            name='foo:create_bar',
+            check_str='role:fizz'
+        )
+
+        rule_list = [policy.DocumentedRuleDefault(
+            name='foo:create_bar',
+            check_str='role:bang',
+            description='Create a bar.',
+            operations=[{'path': '/v1/bars', 'method': 'POST'}],
+            deprecated_rule=deprecated_rule,
+            deprecated_reason='"role:bang" is a better default',
+            deprecated_since='N'
+        )]
+        enforcer = policy.Enforcer(self.conf)
+        enforcer.register_defaults(rule_list)
+        expected_msg = (
+            'Policy "foo:create_bar":"role:fizz" was deprecated in N in favor '
+            'of "foo:create_bar":"role:bang". Reason: "role:bang" is a better '
+            'default. Either ensure your deployment is ready for the new '
+            'default or copy/paste the deprecated policy into your policy '
+            'file and maintain it manually.'
+        )
+
+        with mock.patch('warnings.warn') as mock_warn:
+            enforcer.load_rules()
+            mock_warn.assert_called_once_with(expected_msg)
+
+    def test_deprecate_a_policy_name(self):
+        deprecated_rule = policy.DeprecatedRule(
+            name='foo:bar',
+            check_str='role:baz'
+        )
+
+        rule_list = [policy.DocumentedRuleDefault(
+            name='foo:create_bar',
+            check_str='role:baz',
+            description='Create a bar.',
+            operations=[{'path': '/v1/bars/', 'method': 'POST'}],
+            deprecated_rule=deprecated_rule,
+            deprecated_reason=(
+                '"foo:bar" is not granular enough. If your deployment has '
+                'overridden "foo:bar", ensure you override the new policies '
+                'with same role or rule. Not doing this will require the '
+                'service to assume the new defaults for "foo:bar:create", '
+                '"foo:bar:update", "foo:bar:list", and "foo:bar:delete", '
+                'which might be backwards incompatible for your deployment'
+            ),
+            deprecated_since='N'
+        )]
+        expected_msg = (
+            'Policy "foo:bar":"role:baz" was deprecated in N in favor of '
+            '"foo:create_bar":"role:baz". Reason: "foo:bar" is not granular '
+            'enough. If your deployment has overridden "foo:bar", ensure you '
+            'override the new policies with same role or rule. Not doing this '
+            'will require the service to assume the new defaults for '
+            '"foo:bar:create", "foo:bar:update", "foo:bar:list", and '
+            '"foo:bar:delete", which might be backwards incompatible for your '
+            'deployment. Either ensure your deployment is ready for the new '
+            'default or copy/paste the deprecated policy into your policy '
+            'file and maintain it manually.'
+        )
+
+        rules = jsonutils.dumps({'foo:bar': 'role:bang'})
+        self.create_config_file('policy.json', rules)
+        enforcer = policy.Enforcer(self.conf)
+        enforcer.register_defaults(rule_list)
+
+        with mock.patch('warnings.warn') as mock_warn:
+            enforcer.load_rules(True)
+            mock_warn.assert_called_once_with(expected_msg)
+
+    def test_deprecate_a_policy_for_removal(self):
+        rule_list = [policy.DocumentedRuleDefault(
+            name='foo:bar',
+            check_str='role:baz',
+            description='Create a foo.',
+            operations=[{'path': '/v1/foos/', 'method': 'POST'}],
+            deprecated_for_removal=True,
+            deprecated_reason=(
+                '"foo:bar" is no longer a policy used by the service'
+            ),
+            deprecated_since='N'
+        )]
+        expected_msg = (
+            'Policy "foo:bar":"role:baz" was deprecated for removal in N. '
+            'Reason: "foo:bar" is no longer a policy used by the service. Its '
+            'value may be silently ignored in the future.'
+        )
+        rules = jsonutils.dumps({'foo:bar': 'role:bang'})
+        self.create_config_file('policy.json', rules)
+        enforcer = policy.Enforcer(self.conf)
+        enforcer.register_defaults(rule_list)
+
+        with mock.patch('warnings.warn') as mock_warn:
+            enforcer.load_rules()
+            mock_warn.assert_called_once_with(expected_msg)
+
+    def test_deprecated_policy_for_removal_must_include_deprecated_since(self):
+        self.assertRaises(
+            ValueError,
+            policy.DocumentedRuleDefault,
+            name='foo:bar',
+            check_str='rule:baz',
+            description='Create a foo.',
+            operations=[{'path': '/v1/foos/', 'method': 'POST'}],
+            deprecated_for_removal=True,
+            deprecated_reason='Some reason.'
+        )
+
+    def test_deprecated_policy_must_include_deprecated_since(self):
+        deprecated_rule = policy.DeprecatedRule(
+            name='foo:bar',
+            check_str='rule:baz'
+        )
+
+        self.assertRaises(
+            ValueError,
+            policy.DocumentedRuleDefault,
+            name='foo:bar',
+            check_str='rule:baz',
+            description='Create a foo.',
+            operations=[{'path': '/v1/foos/', 'method': 'POST'}],
+            deprecated_rule=deprecated_rule,
+            deprecated_reason='Some reason.'
+        )
+
+    def test_deprecated_rule_requires_deprecated_rule_object(self):
+        self.assertRaises(
+            ValueError,
+            policy.DocumentedRuleDefault,
+            name='foo:bar',
+            check_str='rule:baz',
+            description='Create a foo.',
+            operations=[{'path': '/v1/foos/', 'method': 'POST'}],
+            deprecated_rule='foo:bar',
+            deprecated_reason='Some reason.'
+        )
+
+    def test_deprecated_policy_must_include_deprecated_reason(self):
+        self.assertRaises(
+            ValueError,
+            policy.DocumentedRuleDefault,
+            name='foo:bar',
+            check_str='rule:baz',
+            description='Create a foo.',
+            operations=[{'path': '/v1/foos/', 'method': 'POST'}],
+            deprecated_for_removal=True,
+            deprecated_since='N'
+        )
+
+
 class DocumentedRuleDefaultTestCase(base.PolicyBaseTestCase):
 
     def test_contain_operations(self):

@@ -221,6 +221,7 @@ by setting the ``policy_default_rule`` configuration setting to the
 desired rule name.
 """
 
+import copy
 import logging
 import os
 import warnings
@@ -547,6 +548,66 @@ class Enforcer(object):
                                                         force_reload, False)
 
             for default in self.registered_rules.values():
+                if default.deprecated_rule:
+                    deprecated_msg = (
+                        'Policy "%(old_name)s":"%(old_check_str)s" was '
+                        'deprecated in %(release)s in favor of "%(name)s":'
+                        '"%(check_str)s". Reason: %(reason)s. Either ensure '
+                        'your deployment is ready for the new default or '
+                        'copy/paste the deprecated policy into your policy '
+                        'file and maintain it manually.' % {
+                            'old_name': default.deprecated_rule.name,
+                            'old_check_str': default.deprecated_rule.check_str,
+                            'release': default.deprecated_since,
+                            'name': default.name,
+                            'check_str': default.check_str,
+                            'reason': default.deprecated_reason
+                        }
+                    )
+                    if default.deprecated_rule.name != default.name and (
+                            default.deprecated_rule.name in self.rules):
+                        # Print a warning because the actual policy name is
+                        # changing. If deployers are relying on an override for
+                        # foo:bar and it's getting renamed to foo:create_bar
+                        # then they need to be able to see that before they
+                        # roll out the next release.
+                        warnings.warn(deprecated_msg)
+                    if (default.deprecated_rule.check_str !=
+                            default.check_str and default.name not in
+                            self.rules):
+                        # In this case, the default check_str is changing. We
+                        # need to let operators know that this is going to
+                        # change. If they don't want to override it, they are
+                        # going to have to make sure the right infrastructure
+                        # exists before they upgrade. This overrides the new
+                        # check with an OrCheck that combines the new and old
+                        # check_str attributes from the new and deprecated
+                        # policies. This will make it so that deployments don't
+                        # break on upgrade, but they receive log messages
+                        # telling them stuff is going to change if they don't
+                        # maintain the policy manually or add infrastructure to
+                        # their deployment to support the new policy.
+                        default.check = _parser.parse_rule(
+                            default.check_str + ' or ' +
+                            default.deprecated_rule.check_str
+                        )
+                        warnings.warn(deprecated_msg)
+                if default.deprecated_for_removal and (
+                        default.name in self.rules):
+                    # If a policy is going to be removed altogether, then we
+                    # need to make sure we let operators know so they can clean
+                    # up their policy files, if they are overriding it.
+                    warnings.warn(
+                        'Policy "%(policy)s":"%(check_str)s" was '
+                        'deprecated for removal in %(release)s. Reason: '
+                        '%(reason)s. Its value may be silently ignored in '
+                        'the future.' % {
+                            'policy': default.name,
+                            'check_str': default.check_str,
+                            'release': default.deprecated_since,
+                            'reason': default.deprecated_reason
+                        }
+                    )
                 if default.name not in self.rules:
                     self.rules[default.name] = default.check
 
@@ -822,12 +883,54 @@ class RuleDefault(object):
     :param description: A plain text description of the policy. This will be
                         used to comment sample policy files for use by
                         deployers.
+    :param deprecated_rule: :class:`.DeprecatedRule`
+    :param deprecated_for_removal: indicates whether the policy is planned for
+                                   removal in a future release.
+    :param deprecated_reason: indicates why this policy is planned for removal
+                              in a future release. Silently ignored if
+                              deprecated_for_removal is False.
+    :param deprecated_since: indicates which release this policy was deprecated
+                             in. Accepts any string, though valid version
+                             strings are encouraged. Silently ignored if
+                             deprecated_for_removal is False.
+
+    .. versionchanged 1.29
+       Added *deprecated_rule* parameter.
+
+    .. versionchanged 1.29
+       Added *deprecated_for_removal* parameter.
+
+    .. versionchanged 1.29
+       Added *deprecated_reason* parameter.
+
+    .. versionchanged 1.29
+       Added *deprecated_since* parameter.
     """
-    def __init__(self, name, check_str, description=None):
+    def __init__(self, name, check_str, description=None,
+                 deprecated_rule=None, deprecated_for_removal=False,
+                 deprecated_reason=None, deprecated_since=None):
         self.name = name
         self.check_str = check_str
         self.check = _parser.parse_rule(check_str)
         self.description = description
+        self.deprecated_rule = copy.deepcopy(deprecated_rule) or []
+        self.deprecated_for_removal = deprecated_for_removal
+        self.deprecated_reason = deprecated_reason
+        self.deprecated_since = deprecated_since
+
+        if self.deprecated_rule:
+            if not isinstance(self.deprecated_rule, DeprecatedRule):
+                raise ValueError(
+                    'deprecated_rule must be a DeprecatedRule object.'
+                )
+
+        if (deprecated_for_removal or deprecated_rule) and (
+                deprecated_reason is None or deprecated_since is None):
+            raise ValueError(
+                '%(name)s deprecated without deprecated_reason or '
+                'deprecated_since. Both must be supplied if deprecating a '
+                'policy' % {'name': self.name}
+            )
 
     def __str__(self):
         return '"%(name)s": "%(check_str)s"' % {'name': self.name,
@@ -871,9 +974,16 @@ class DocumentedRuleDefault(RuleDefault):
             operations=[{'path': '/foo', 'method': 'GET'},
                         {'path': '/some', 'method': 'POST'}]
     """
-    def __init__(self, name, check_str, description, operations):
+    def __init__(self, name, check_str, description, operations,
+                 deprecated_rule=None, deprecated_for_removal=False,
+                 deprecated_reason=None, deprecated_since=None):
         super(DocumentedRuleDefault, self).__init__(
-            name, check_str, description)
+            name, check_str, description,
+            deprecated_rule=deprecated_rule,
+            deprecated_for_removal=deprecated_for_removal,
+            deprecated_reason=deprecated_reason,
+            deprecated_since=deprecated_since
+        )
         self.operations = operations
 
     @property
@@ -906,3 +1016,172 @@ class DocumentedRuleDefault(RuleDefault):
             if len(op.keys()) > 2:
                 raise InvalidRuleDefault('Operation contains > 2 keys')
         self._operations = ops
+
+
+class DeprecatedRule(object):
+
+    """Represents a Deprecated policy or rule.
+
+    Here's how you can use it to change a policy's default role or rule. Assume
+    the following policy exists in code::
+
+        from oslo_policy import policy
+
+        policy.DocumentedRuleDefault(
+            name='foo:create_bar',
+            check_str='role:fizz',
+            description='Create a bar.',
+            operations=[{'path': '/v1/bars', 'method': 'POST'}]
+        )
+
+    The next snippet will maintain the deprecated option, but allow
+    ``foo:create_bar`` to default to ``role:bang`` instead of ``role:fizz``::
+
+        deprecated_rule = policy.DeprecatedRule(
+            name='foo:create_bar',
+            check_str='role:fizz'
+        )
+
+        policy.DocumentedRuleDefault(
+            name='foo:create_bar',
+            check_str='role:bang',
+            description='Create a bar.',
+            operations=[{'path': '/v1/bars', 'method': 'POST'}],
+            deprecated_rule=deprecated_rule,
+            deprecated_reason='role:bang is a better default',
+            deprecated_since='N'
+        )
+
+    DeprecatedRule can be used to change the policy name itself. Assume the
+    following policy exists in code::
+
+        from oslo_policy import policy
+
+        policy.DocumentedRuleDefault(
+            name='foo:post_bar',
+            check_str='role:fizz',
+            description='Create a bar.',
+            operations=[{'path': '/v1/bars', 'method': 'POST'}]
+        )
+
+    For the sake of consistency, let's say we want to replace ``foo:post_bar``
+    with ``foo:create_bar``, but keep the same ``check_str`` as the default. We
+    can accomplish this by doing::
+
+        deprecated_rule = policy.DeprecatedRule(
+            name='foo:post_bar',
+            check_str='role:fizz'
+        )
+
+        policy.DocumentedRuleDefault(
+            name='foo:create_bar',
+            check_str='role:fizz',
+            description='Create a bar.',
+            operations=[{'path': '/v1/bars', 'method': 'POST'}],
+            deprecated_rule=deprecated_rule,
+            deprecated_reason='foo:create_bar is more consistent',
+            deprecated_since='N'
+        )
+
+    Finally, let's use DeprecatedRule to break a policy into more granular
+    policies. Let's assume the following policy exists in code::
+
+        policy.DocumentedRuleDefault(
+            name='foo:bar',
+            check_str='role:bazz',
+            description='Create, read, update, or delete a bar.',
+            operations=[
+                {
+                    'path': '/v1/bars',
+                    'method': 'POST'
+                },
+                {
+                    'path': '/v1/bars',
+                    'method': 'GET'
+                },
+                {
+                    'path': '/v1/bars/{bar_id}',
+                    'method': 'GET'
+                },
+                {
+                    'path': '/v1/bars/{bar_id}',
+                    'method': 'PATCH'
+                },
+                {
+                    'path': '/v1/bars/{bar_id}',
+                    'method': 'DELETE'
+                }
+            ]
+        )
+
+    Here we can see the same policy is used to protect multiple operations on
+    bars. This prevents operators from being able to assign different roles to
+    different actions that can be taken on bar. For example, what if an
+    operator wanted to require a less restrictive role or rule to list bars but
+    a more restrictive rule to delete them? The following will introduce a
+    policy that helps achieve that and deprecate the original, overly-broad
+    policy::
+
+        deprecated_rule = policy.DeprecatedRule(
+            name='foo:bar',
+            check_str='role:bazz'
+        )
+
+        policy.DocumentedRuleDefault(
+            name='foo:create_bar',
+            check_str='role:bang',
+            description='Create a bar.',
+            operations=[{'path': '/v1/bars', 'method': 'POST'}],
+            deprecated_rule=deprecated_rule,
+            deprecated_reason='foo:create_bar is more granular than foo:bar',
+            deprecated_since='N'
+        )
+        policy.DocumentedRuleDefault(
+            name='foo:list_bars',
+            check_str='role:bazz',
+            description='List bars.',
+            operations=[{'path': '/v1/bars', 'method': 'GET'}],
+            deprecated_rule=deprecated_rule,
+            deprecated_reason='foo:list_bars is more granular than foo:bar',
+            deprecated_since='N'
+        )
+        policy.DocumentedRuleDefault(
+            name='foo:get_bar',
+            check_str='role:bazz',
+            description='Get a bar.',
+            operations=[{'path': '/v1/bars/{bar_id}', 'method': 'GET'}],
+            deprecated_rule=deprecated_rule,
+            deprecated_reason='foo:get_bar is more granular than foo:bar',
+            deprecated_since='N'
+        )
+        policy.DocumentedRuleDefault(
+            name='foo:update_bar',
+            check_str='role:bang',
+            description='Update a bar.',
+            operations=[{'path': '/v1/bars/{bar_id}', 'method': 'PATCH'}],
+            deprecated_rule=deprecated_rule,
+            deprecated_reason='foo:update_bar is more granular than foo:bar',
+            deprecated_since='N'
+        )
+        policy.DocumentedRuleDefault(
+            name='foo:delete_bar',
+            check_str='role:bang',
+            description='Delete a bar.',
+            operations=[{'path': '/v1/bars/{bar_id}', 'method': 'DELETE'}],
+            deprecated_rule=deprecated_rule,
+            deprecated_reason='foo:delete_bar is more granular than foo:bar',
+            deprecated_since='N'
+        )
+
+    .. versionchanged 1.29
+       Added *DeprecatedRule* object.
+    """
+
+    def __init__(self, name, check_str):
+        """Construct a DeprecatedRule object.
+
+        :param name: the policy name
+        :param check_str: the value of the policy's check string
+        """
+        self.name = name
+        self.check_str = check_str
