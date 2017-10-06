@@ -742,7 +742,8 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
         creds = {}
         exc = self.assertRaises(
             MyException, self.enforcer.enforce, 'rule', 'target', creds,
-            True, MyException, 'arg1', 'arg2', kw1='kwarg1', kw2='kwarg2')
+            True, MyException, False, 'arg1', 'arg2', kw1='kwarg1',
+            kw2='kwarg2')
         self.assertEqual(('arg1', 'arg2'), exc.args)
         self.assertEqual(dict(kw1='kwarg1', kw2='kwarg2'), exc.kwargs)
 
@@ -842,6 +843,42 @@ class RuleDefaultTestCase(base.PolicyBaseTestCase):
         opt1 = policy.RuleDefault(name='foo', check_str='rule:foo')
         opt2 = RuleDefaultSub(name='bar', check_str='rule:foo')
         self.assertNotEqual(opt1, opt2)
+
+    def test_create_opt_with_scope_types(self):
+        scope_types = ['project']
+        opt = policy.RuleDefault(
+            name='foo',
+            check_str='role:bar',
+            scope_types=scope_types
+        )
+        self.assertEqual(opt.scope_types, scope_types)
+
+    def test_create_opt_with_scope_type_strings_fails(self):
+        self.assertRaises(
+            ValueError,
+            policy.RuleDefault,
+            name='foo',
+            check_str='role:bar',
+            scope_types='project'
+        )
+
+    def test_create_opt_with_multiple_scope_types(self):
+        opt = policy.RuleDefault(
+            name='foo',
+            check_str='role:bar',
+            scope_types=['project', 'system']
+        )
+
+        self.assertEqual(opt.scope_types, ['project', 'system'])
+
+    def test_ensure_scope_types_are_unique(self):
+        self.assertRaises(
+            ValueError,
+            policy.RuleDefault,
+            name='foo',
+            check_str='role:bar',
+            scope_types=['project', 'project']
+        )
 
 
 class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):

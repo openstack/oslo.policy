@@ -109,6 +109,16 @@ interact with the resource the policy protects. The `method` should be the HTTP
 verb corresponding to the `path`. The list of `operations` can be supplied with
 multiple dictionaries if the policy is used to protect multiple paths.
 
+Setting scope
+-------------
+
+The `RuleDefault` and `DocumentedRuleDefault` objects have an attribute
+dedicated to the intended scope of the operation called `scope_types`. This
+attribute can only be set at rule definition and never overridden via a policy
+file. This variable is designed to save the scope at which a policy should
+operate. During enforcement, the information in `scope_types` is compared to
+the scope of the token used in the request.
+
 Sample file generation
 ----------------------
 
