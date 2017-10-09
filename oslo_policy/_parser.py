@@ -216,7 +216,10 @@ def _parse_check(rule):
         return _checks.FalseCheck()
 
     # Find what implements the check
-    if kind in _checks.registered_checks:
+    extension_checks = _checks.get_extensions()
+    if kind in extension_checks:
+        return extension_checks[kind](kind, match)
+    elif kind in _checks.registered_checks:
         return _checks.registered_checks[kind](kind, match)
     elif None in _checks.registered_checks:
         return _checks.registered_checks[None](kind, match)

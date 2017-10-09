@@ -36,7 +36,7 @@ class HttpCheckFixture(fixtures.Fixture):
 
         self.useFixture(
             fixtures.MonkeyPatch(
-                'oslo_policy._checks.HttpCheck.__call__',
+                'oslo_policy._external.HttpCheck.__call__',
                 mocked_call,
             )
         )
@@ -63,7 +63,7 @@ class HttpsCheckFixture(fixtures.Fixture):
 
         self.useFixture(
             fixtures.MonkeyPatch(
-                'oslo_policy._checks.HttpCheck.__call__',
+                'oslo_policy._external.HttpsCheck.__call__',
                 mocked_call,
             )
         )
