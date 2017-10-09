@@ -5,6 +5,7 @@
 .. toctree::
 
    usage
+   plugins
    sphinxpolicygen
    history
 

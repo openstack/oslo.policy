@@ -22,6 +22,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.extlinks',
     #'sphinx.ext.intersphinx',
     'openstackdocstheme',
     'oslo_config.sphinxext',
@@ -50,6 +51,7 @@ exclude_patterns = ['api/oslo_policy.tests.*', 'api/setup.rst']
 # General information about the project.
 project = u'oslo.policy'
 copyright = u'2014, OpenStack Foundation'
+source_tree = 'https://git.openstack.org/cgit/openstack/oslo.policy/tree'
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = True
@@ -85,6 +87,11 @@ latex_documents = [
      u'%s Documentation' % project,
      u'OpenStack Foundation', 'manual'),
 ]
+
+# Shortened external links.
+extlinks = {
+    'example': (source_tree + '/oslo_policy/%s', ''),
+}
 
 # Example configuration for intersphinx: refer to the Python standard library.
 #intersphinx_mapping = {'http://docs.python.org/': None}
