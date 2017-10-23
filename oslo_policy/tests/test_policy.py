@@ -710,9 +710,10 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
 
     def test_check_with_rule(self):
         self.enforcer.set_rules(dict(default=base.FakeCheck()))
-        result = self.enforcer.enforce('default', 'target', 'creds')
+        creds = {}
+        result = self.enforcer.enforce('default', 'target', creds)
 
-        self.assertEqual(('target', 'creds', self.enforcer), result)
+        self.assertEqual(('target', creds, self.enforcer), result)
 
     def test_check_rule_not_exist_not_empty_policy_file(self):
         # If the rule doesn't exist, then enforce() fails rather than KeyError.
@@ -729,16 +730,18 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
         # raised.
         self.enforcer.set_rules(dict(default=_checks.FalseCheck()))
 
+        creds = {}
         self.assertRaisesRegex(policy.PolicyNotAuthorized,
                                " is disallowed by policy",
                                self.enforcer.enforce,
-                               'rule', 'target', 'creds', True)
+                               'rule', 'target', creds, True)
 
     def test_check_raise_custom_exception(self):
         self.enforcer.set_rules(dict(default=_checks.FalseCheck()))
 
+        creds = {}
         exc = self.assertRaises(
-            MyException, self.enforcer.enforce, 'rule', 'target', 'creds',
+            MyException, self.enforcer.enforce, 'rule', 'target', creds,
             True, MyException, 'arg1', 'arg2', kw1='kwarg1', kw2='kwarg2')
         self.assertEqual(('arg1', 'arg2'), exc.args)
         self.assertEqual(dict(kw1='kwarg1', kw2='kwarg2'), exc.kwargs)
