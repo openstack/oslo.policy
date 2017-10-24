@@ -390,6 +390,66 @@ class EnforcerTest(base.PolicyBaseTestCase):
                                group='oslo_policy')
         self.assertRaises(ValueError, self.enforcer.load_rules, True)
 
+    @mock.patch('oslo_policy.policy.Enforcer.check_rules')
+    def test_load_rules_twice(self, mock_check_rules):
+        self.enforcer.load_rules()
+        self.enforcer.load_rules()
+        self.assertEqual(1, mock_check_rules.call_count)
+
+    @mock.patch('oslo_policy.policy.Enforcer.check_rules')
+    def test_load_rules_twice_force(self, mock_check_rules):
+        self.enforcer.load_rules(True)
+        self.enforcer.load_rules(True)
+        self.assertEqual(2, mock_check_rules.call_count)
+
+    @mock.patch('oslo_policy.policy.Enforcer.check_rules')
+    def test_load_rules_twice_clear(self, mock_check_rules):
+        self.enforcer.load_rules()
+        self.enforcer.clear()
+        # NOTE(bnemec): It's weird that we have to pass True here, but clear
+        # sets enforcer.use_conf to False, which causes load_rules to be a
+        # noop when called with no parameters.  This is probably a bug.
+        self.enforcer.load_rules(True)
+        self.assertEqual(2, mock_check_rules.call_count)
+
+    @mock.patch('oslo_policy.policy.Enforcer.check_rules')
+    def test_load_directory_twice(self, mock_check_rules):
+        self.create_config_file(
+            os.path.join('policy.d', 'a.conf'), POLICY_A_CONTENTS)
+        self.create_config_file(
+            os.path.join('policy.d', 'b.conf'), POLICY_B_CONTENTS)
+        self.enforcer.load_rules()
+        self.enforcer.load_rules()
+        self.assertEqual(1, mock_check_rules.call_count)
+        self.assertIsNotNone(self.enforcer.rules)
+
+    @mock.patch('oslo_policy.policy.Enforcer.check_rules')
+    def test_load_directory_twice_force(self, mock_check_rules):
+        self.create_config_file(
+            os.path.join('policy.d', 'a.conf'), POLICY_A_CONTENTS)
+        self.create_config_file(
+            os.path.join('policy.d', 'b.conf'), POLICY_B_CONTENTS)
+        self.enforcer.load_rules(True)
+        self.enforcer.load_rules(True)
+        self.assertEqual(2, mock_check_rules.call_count)
+        self.assertIsNotNone(self.enforcer.rules)
+
+    @mock.patch('oslo_policy.policy.Enforcer.check_rules')
+    def test_load_directory_twice_changed(self, mock_check_rules):
+        self.create_config_file(
+            os.path.join('policy.d', 'a.conf'), POLICY_A_CONTENTS)
+        self.enforcer.load_rules()
+
+        # Touch the file
+        conf_path = os.path.join(self.config_dir, os.path.join(
+            'policy.d', 'a.conf'))
+        stinfo = os.stat(conf_path)
+        os.utime(conf_path, (stinfo.st_atime + 10, stinfo.st_mtime + 10))
+
+        self.enforcer.load_rules()
+        self.assertEqual(2, mock_check_rules.call_count)
+        self.assertIsNotNone(self.enforcer.rules)
+
     def test_set_rules_type(self):
         self.assertRaises(TypeError,
                           self.enforcer.set_rules,
