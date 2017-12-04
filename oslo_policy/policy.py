@@ -301,6 +301,21 @@ class PolicyNotAuthorized(Exception):
         super(PolicyNotAuthorized, self).__init__(msg)
 
 
+class InvalidScope(Exception):
+    """Raised when the scope of the request mismatches the policy scope."""
+
+    def __init__(self, rule, operation_scopes, token_scope):
+        msg = (
+            "(rule)s requires a scope of %(operation_scopes)s, request "
+            "was made with %(token_scope)s scope." % {
+                'rule': rule,
+                'operation_scopes': operation_scopes,
+                'token_scope': token_scope
+            }
+        )
+        super(InvalidScope, self).__init__(msg)
+
+
 class DuplicatePolicyError(Exception):
     def __init__(self, name):
         msg = _('Policy %(name)s is already registered') % {'name': name}
@@ -761,8 +776,8 @@ class Enforcer(object):
 
         raise cfg.ConfigFilesNotFoundError((path,))
 
-    def enforce(self, rule, target, creds, do_raise=False,
-                exc=None, *args, **kwargs):
+    def enforce(self, rule, target, creds, do_raise=False, exc=None,
+                enforce_scope=True, *args, **kwargs):
         """Checks authorization of a rule against the target and credentials.
 
         :param rule: The rule to evaluate.
@@ -778,6 +793,12 @@ class Enforcer(object):
                     positional and keyword arguments) will be passed to
                     the exception class. If not specified,
                     :class:`PolicyNotAuthorized` will be used.
+        :param enforce_scope: A boolean value denoting if an exception should
+                              be raised in the event the operation requires a
+                              different scope from the one in the request (e.g.
+                              using a project-scope token to do something
+                              system-wide). If False, a warning will be logged
+                              with details of the scope failure.
 
         :return: ``False`` if the policy does not allow the action and `exc` is
                  not provided; otherwise, returns a value that evaluates to
@@ -810,6 +831,41 @@ class Enforcer(object):
                 # If the rule doesn't exist, fail closed
                 result = False
             else:
+                # Check the scope of the operation against the possible scope
+                # attributes provided in `creds`.
+                if creds.get('system'):
+                    token_scope = 'system'
+                else:
+                    # If the token isn't system-scoped then we're dealing with
+                    # either a domain-scoped token or a project-scoped token.
+                    # From a policy perspective, both are "project" operations.
+                    # Whether or not the project is a domain depends on where
+                    # it sits in the hierarchy.
+                    token_scope = 'project'
+
+                registered_rule = self.registered_rules.get(rule)
+                if registered_rule and registered_rule.scope_types:
+                    if token_scope not in registered_rule.scope_types:
+                        if enforce_scope:
+                            raise InvalidScope(
+                                rule, registered_rule.scope_types, token_scope
+                            )
+                        # If we don't raise an exception we should at least
+                        # inform operators about policies that are being used
+                        # with improper scopes.
+                        msg = (
+                            'Policy %(rule)s failed scope check. The token '
+                            'used to make the request was %(token_scope)s '
+                            'scoped but the policy requires %(policy_scope)s '
+                            'scope. This behavior may change in the future '
+                            'where using the intended scope is required' % {
+                                'rule': rule,
+                                'token_scope': token_scope,
+                                'policy_scope': registered_rule.scope_types
+                            }
+                        )
+                        warnings.warn(msg)
+
                 result = _checks._check(
                     rule=to_check,
                     target=target,
@@ -893,6 +949,8 @@ class RuleDefault(object):
                              in. Accepts any string, though valid version
                              strings are encouraged. Silently ignored if
                              deprecated_for_removal is False.
+    :param scope_types: A list containing the intended scopes of the operation
+                        being done.
 
     .. versionchanged 1.29
        Added *deprecated_rule* parameter.
@@ -905,10 +963,15 @@ class RuleDefault(object):
 
     .. versionchanged 1.29
        Added *deprecated_since* parameter.
+
+    .. versionchanged 1.31
+       Added *scope_types* parameter.
+
     """
     def __init__(self, name, check_str, description=None,
                  deprecated_rule=None, deprecated_for_removal=False,
-                 deprecated_reason=None, deprecated_since=None):
+                 deprecated_reason=None, deprecated_since=None,
+                 scope_types=None):
         self.name = name
         self.check_str = check_str
         self.check = _parser.parse_rule(check_str)
@@ -931,6 +994,19 @@ class RuleDefault(object):
                 'deprecated_since. Both must be supplied if deprecating a '
                 'policy' % {'name': self.name}
             )
+
+        if scope_types:
+            msg = 'scope_types must be a list of strings.'
+            if not isinstance(scope_types, list):
+                raise ValueError(msg)
+            for scope_type in scope_types:
+                if not isinstance(scope_type, six.string_types):
+                    raise ValueError(msg)
+                if scope_types.count(scope_type) > 1:
+                    raise ValueError(
+                        'scope_types must be a list of unique strings.'
+                    )
+        self.scope_types = scope_types
 
     def __str__(self):
         return '"%(name)s": "%(check_str)s"' % {'name': self.name,
@@ -976,13 +1052,15 @@ class DocumentedRuleDefault(RuleDefault):
     """
     def __init__(self, name, check_str, description, operations,
                  deprecated_rule=None, deprecated_for_removal=False,
-                 deprecated_reason=None, deprecated_since=None):
+                 deprecated_reason=None, deprecated_since=None,
+                 scope_types=None):
         super(DocumentedRuleDefault, self).__init__(
             name, check_str, description,
             deprecated_rule=deprecated_rule,
             deprecated_for_removal=deprecated_for_removal,
             deprecated_reason=deprecated_reason,
-            deprecated_since=deprecated_since
+            deprecated_since=deprecated_since,
+            scope_types=scope_types
         )
         self.operations = operations
 

@@ -121,10 +121,16 @@ def _format_rule_default_yaml(default, include_help=True):
                 op += ('# %(method)s  %(path)s\n' %
                        {'method': operation['method'],
                         'path': operation['path']})
+        intended_scope = ""
+        if getattr(default, 'scope_types', None) is not None:
+            intended_scope = (
+                '# Intended scope(s): ' + ', '.join(default.scope_types) + '\n'
+            )
 
-        text = ('%(help)s\n%(op)s#%(text)s\n' %
+        text = ('%(help)s\n%(op)s%(scope)s#%(text)s\n' %
                 {'help': _format_help_text(default.description),
                  'op': op,
+                 'scope': intended_scope,
                  'text': text})
 
     if default.deprecated_for_removal:
