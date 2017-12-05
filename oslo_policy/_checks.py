@@ -22,6 +22,11 @@ import inspect
 import six
 import stevedore
 
+if hasattr(inspect, 'getfullargspec'):
+    getargspec = inspect.getfullargspec
+else:
+    getargspec = inspect.getargspec
+
 registered_checks = {}
 extension_checks = None
 
@@ -73,7 +78,7 @@ def _check(rule, target, creds, enforcer, current_rule):
 
     """
     # Evaluate the rule
-    argspec = inspect.getargspec(rule.__call__)
+    argspec = getargspec(rule.__call__)
     rule_args = [target, creds, enforcer]
     # Check if the rule argument must be included or not
     if len(argspec.args) > 4:
