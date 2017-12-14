@@ -782,8 +782,12 @@ class Enforcer(object):
 
         :param rule: The rule to evaluate.
         :type rule: string or :class:`BaseCheck`
-        :param dict target: As much information about the object being operated
-                            on as possible.
+        :param dict target: As much information about the object being
+                            operated on as possible. The target
+                            argument should be a dict instance or an
+                            instance of a class that fully supports
+                            the Mapping abstract base class and deep
+                            copying.
         :param dict creds: As much information about the user performing the
                            action as possible.
         :param do_raise: Whether to raise an exception or not if check
