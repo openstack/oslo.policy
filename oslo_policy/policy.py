@@ -306,7 +306,7 @@ class InvalidScope(Exception):
 
     def __init__(self, rule, operation_scopes, token_scope):
         msg = (
-            "(rule)s requires a scope of %(operation_scopes)s, request "
+            "%(rule)s requires a scope of %(operation_scopes)s, request "
             "was made with %(token_scope)s scope." % {
                 'rule': rule,
                 'operation_scopes': operation_scopes,
