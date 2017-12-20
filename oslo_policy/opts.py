@@ -25,6 +25,16 @@ from oslo_policy._i18n import _
 _option_group = 'oslo_policy'
 
 _options = [
+    cfg.BoolOpt('enforce_scope',
+                default=False,
+                help=_('This option controls whether or not to enforce scope '
+                       'when evaluating policies. If ``True``, the scope of '
+                       'the token used in the request is compared to the '
+                       '``scope_types`` of the policy being enforced. If the '
+                       'scopes do not match, an ``InvalidScope`` exception '
+                       'will be raised. If ``False``, a message will be '
+                       'logged informing operators that policies are being '
+                       'invoked with mismatching scope.')),
     cfg.StrOpt('policy_file',
                default='policy.json',
                help=_('The file that defines policies.'),

@@ -742,7 +742,7 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
         creds = {}
         exc = self.assertRaises(
             MyException, self.enforcer.enforce, 'rule', 'target', creds,
-            True, MyException, False, 'arg1', 'arg2', kw1='kwarg1',
+            True, MyException, 'arg1', 'arg2', kw1='kwarg1',
             kw2='kwarg2')
         self.assertEqual(('arg1', 'arg2'), exc.args)
         self.assertEqual(dict(kw1='kwarg1', kw2='kwarg2'), exc.kwargs)

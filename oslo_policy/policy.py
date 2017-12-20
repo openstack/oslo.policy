@@ -777,7 +777,7 @@ class Enforcer(object):
         raise cfg.ConfigFilesNotFoundError((path,))
 
     def enforce(self, rule, target, creds, do_raise=False, exc=None,
-                enforce_scope=True, *args, **kwargs):
+                *args, **kwargs):
         """Checks authorization of a rule against the target and credentials.
 
         :param rule: The rule to evaluate.
@@ -797,12 +797,6 @@ class Enforcer(object):
                     positional and keyword arguments) will be passed to
                     the exception class. If not specified,
                     :class:`PolicyNotAuthorized` will be used.
-        :param enforce_scope: A boolean value denoting if an exception should
-                              be raised in the event the operation requires a
-                              different scope from the one in the request (e.g.
-                              using a project-scope token to do something
-                              system-wide). If False, a warning will be logged
-                              with details of the scope failure.
 
         :return: ``False`` if the policy does not allow the action and `exc` is
                  not provided; otherwise, returns a value that evaluates to
@@ -850,7 +844,7 @@ class Enforcer(object):
                 registered_rule = self.registered_rules.get(rule)
                 if registered_rule and registered_rule.scope_types:
                     if token_scope not in registered_rule.scope_types:
-                        if enforce_scope:
+                        if self.conf.oslo_policy.enforce_scope:
                             raise InvalidScope(
                                 rule, registered_rule.scope_types, token_scope
                             )
