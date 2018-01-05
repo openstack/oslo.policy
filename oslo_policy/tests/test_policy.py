@@ -956,7 +956,7 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             enforcer.load_rules(True)
             mock_warn.assert_called_once_with(expected_msg)
 
-    def test_deprecate_a_policy_for_removal(self):
+    def test_deprecate_a_policy_for_removal_logs_warning_when_overridden(self):
         rule_list = [policy.DocumentedRuleDefault(
             name='foo:bar',
             check_str='role:baz',
@@ -981,6 +981,27 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
         with mock.patch('warnings.warn') as mock_warn:
             enforcer.load_rules()
             mock_warn.assert_called_once_with(expected_msg)
+
+    def test_deprecate_a_policy_for_removal_does_not_log_warning(self):
+        # We should only log a warning for operators if they are supplying an
+        # override for a policy that is deprecated for removal.
+        rule_list = [policy.DocumentedRuleDefault(
+            name='foo:bar',
+            check_str='role:baz',
+            description='Create a foo.',
+            operations=[{'path': '/v1/foos/', 'method': 'POST'}],
+            deprecated_for_removal=True,
+            deprecated_reason=(
+                '"foo:bar" is no longer a policy used by the service'
+            ),
+            deprecated_since='N'
+        )]
+        enforcer = policy.Enforcer(self.conf)
+        enforcer.register_defaults(rule_list)
+
+        with mock.patch('warnings.warn') as mock_warn:
+            enforcer.load_rules()
+            mock_warn.assert_not_called()
 
     def test_deprecated_policy_for_removal_must_include_deprecated_since(self):
         self.assertRaises(

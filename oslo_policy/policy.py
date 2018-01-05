@@ -608,7 +608,7 @@ class Enforcer(object):
                         )
                         warnings.warn(deprecated_msg)
                 if default.deprecated_for_removal and (
-                        default.name in self.rules):
+                        default.name in self.file_rules):
                     # If a policy is going to be removed altogether, then we
                     # need to make sure we let operators know so they can clean
                     # up their policy files, if they are overriding it.
