@@ -160,6 +160,47 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
 
         self.assertEqual(expected, stdout.getvalue())
 
+    def test_deprecated_policies_are_aliased_to_new_names(self):
+        deprecated_rule = policy.DeprecatedRule(
+            name='foo:post_bar',
+            check_str='role:fizz'
+        )
+        new_rule = policy.RuleDefault(
+            name='foo:create_bar',
+            check_str='role:fizz',
+            description='Create a bar.',
+            deprecated_rule=deprecated_rule,
+            deprecated_reason=(
+                'foo:post_bar is being removed in favor of foo:create_bar'
+            ),
+            deprecated_since='N'
+        )
+        opts = {'rules': [new_rule]}
+
+        extensions = []
+        for name, opts in opts.items():
+            ext = stevedore.extension.Extension(name=name, entry_point=None,
+                                                plugin=None, obj=opts)
+            extensions.append(ext)
+        test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
+            extensions=extensions, namespace=['rules'])
+
+        expected = '''# DEPRECATED
+# "foo:post_bar":"role:fizz" has been deprecated since N in favor of
+# "foo:create_bar":"role:fizz".
+"foo:post_bar": "rule:foo:create_bar"
+'''
+        stdout = self._capture_stdout()
+        with mock.patch('stevedore.named.NamedExtensionManager',
+                        return_value=test_mgr) as mock_ext_mgr:
+            generator._generate_sample(['rules'], output_file=None)
+            mock_ext_mgr.assert_called_once_with(
+                'oslo.policy.policies', names=['rules'],
+                on_load_failure_callback=generator.on_load_failure_callback,
+                invoke_on_load=True
+            )
+        self.assertEqual(expected, stdout.getvalue())
+
     def test_empty_line_formatting(self):
         rule = [policy.RuleDefault('admin', 'is_admin:True',
                                    description='Check Summary \n'

@@ -136,24 +136,31 @@ def _format_rule_default_yaml(default, include_help=True):
     if default.deprecated_for_removal:
         text = (
             '# DEPRECATED\n# "%(name)s" has been deprecated since '
-            '%(since)s.\n%(reason)s\n%(text)s'
+            '%(since)s.\n%(reason)s\n%(text)s\n'
+            '"%(name)s": "%(check_str)s"'
         ) % {'name': default.name,
+             'check_str': default.check_str,
              'since': default.deprecated_since,
              'reason': _format_help_text(default.deprecated_reason),
              'text': text}
     elif default.deprecated_rule:
-        text = (
-            '# DEPRECATED\n# "%(old_name)s":"%(old_check_str)s" has been '
+        # This issues a deprecation warning but aliases the old policy name
+        # with the new policy name for compatibility.
+        deprecated_text = (
+            'DEPRECATED\n"%(old_name)s":"%(old_check_str)s" has been '
             'deprecated since %(since)s in favor of '
-            '"%(name)s":"%(check_str)s".\n'
-            '%(reason)s\n%(text)s'
+            '"%(name)s":"%(check_str)s".'
         ) % {'old_name': default.deprecated_rule.name,
              'old_check_str': default.deprecated_rule.check_str,
              'since': default.deprecated_since,
              'name': default.name,
-             'check_str': default.check_str,
-             'reason': _format_help_text(default.deprecated_reason),
-             'text': text}
+             'check_str': default.check_str}
+
+        text = (
+            '%(deprecated_text)s\n"%(old_name)s": "rule:%(name)s"\n'
+        ) % {'deprecated_text': _format_help_text(deprecated_text),
+             'old_name': default.deprecated_rule.name,
+             'name': default.name}
 
     return text
 
