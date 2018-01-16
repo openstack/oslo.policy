@@ -16,10 +16,12 @@
 import codecs
 import os
 import os.path
+import sys
 
 import fixtures
 from oslo_config import fixture as config
 from oslotest import base as test_base
+from six import moves
 
 from oslo_policy import _checks
 from oslo_policy import policy
@@ -51,6 +53,10 @@ class PolicyBaseTestCase(test_base.BaseTestCase):
             os.makedirs(pardir)
         with codecs.open(path, 'w', encoding='utf-8') as f:
             f.write(contents)
+
+    def _capture_stdout(self):
+        self.useFixture(fixtures.MonkeyPatch('sys.stdout', moves.StringIO()))
+        return sys.stdout
 
 
 class FakeCheck(_checks.BaseCheck):
