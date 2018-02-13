@@ -2,15 +2,15 @@
 # of appearance. Changing the order has an impact on the overall integration
 # process, which may cause wedges in the gate later.
 hacking!=0.13.0,<0.14,>=0.12.0 # Apache-2.0
-oslotest>=1.10.0 # Apache-2.0
+oslotest>=3.2.0 # Apache-2.0
 requests-mock>=1.1.0 # Apache-2.0
 
 # computes code coverage percentages
 coverage!=4.4,>=4.0 # Apache-2.0
 
 # These are needed for docs generation
-openstackdocstheme>=1.17.0 # Apache-2.0
-sphinx>=1.6.2 # BSD
+openstackdocstheme>=1.18.1 # Apache-2.0
+sphinx!=1.6.6,>=1.6.2 # BSD
 
 reno>=2.5.0 # Apache-2.0
 
