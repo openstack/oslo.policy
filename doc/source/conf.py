@@ -12,11 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import sys
-
-sys.path.insert(0, os.path.abspath('../..'))
-# -- General configuration ----------------------------------------------------
+# -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
@@ -24,7 +20,6 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.extlinks',
     'sphinxcontrib.apidoc',
-    #'sphinx.ext.intersphinx',
     'openstackdocstheme',
     'oslo_config.sphinxext',
 ]
@@ -44,10 +39,6 @@ source_suffix = '.rst'
 # The master toctree document.
 master_doc = 'index'
 
-# List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
-exclude_patterns = ['api/oslo_policy.tests.*', 'api/setup.rst']
-
 # General information about the project.
 project = u'oslo.policy'
 copyright = u'2014, OpenStack Foundation'
@@ -66,36 +57,24 @@ pygments_style = 'sphinx'
 # A list of ignored prefixes for module index sorting.
 modindex_common_prefix = ['oslo_policy.']
 
-# -- Options for HTML output --------------------------------------------------
+
+# -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-# html_theme_path = ["."]
-# html_theme = '_theme'
-# html_static_path = ['static']
 html_theme = 'openstackdocs'
 
-# Output file base name for HTML help builder.
-htmlhelp_basename = '%sdoc' % project
 
-# Grouping the document tree into LaTeX files. List of tuples
-# (source start file, target name, title, author, documentclass
-# [howto/manual]).
-latex_documents = [
-    ('index',
-     '%s.tex' % project,
-     u'%s Documentation' % project,
-     u'OpenStack Foundation', 'manual'),
-]
+# -- sphinx.ext.extlinks configuration ---------------------------------------
 
-# Shortened external links.
 extlinks = {
     'example': (source_tree + '/oslo_policy/%s', ''),
 }
 
-# Example configuration for intersphinx: refer to the Python standard library.
-#intersphinx_mapping = {'http://docs.python.org/': None}
-
 # -- sphinxcontrib.apidoc configuration --------------------------------------
+
 apidoc_module_dir = '../../oslo_policy'
 apidoc_output_dir = 'reference/api'
+apidoc_excluded_paths = [
+    'tests',
+]
