@@ -50,3 +50,27 @@ class SingleSampleGenerationTest(base.BaseTestCase):
         sample.assert_called_once_with(args=[
             '--config-file', '/opt/nova/nova.conf',
             '--output-file', '/opt/nova/sample.policy.yaml'])
+
+    @mock.patch('os.path.isdir')
+    @mock.patch('os.path.isfile')
+    @mock.patch('oslo_policy.generator.generate_sample')
+    def test_sample_gen_with_multiple_config_files(self, sample, isfile,
+                                                   isdir):
+        # Tests the scenario that policy_generator_config_file is a list
+        # of two-item tuples of the config file name and policy basename.
+        isfile.side_effect = [False, True] * 2
+        isdir.return_value = True
+
+        config = mock.Mock(policy_generator_config_file=[
+            ('nova.conf', 'nova'),
+            ('placement.conf', 'placement')])
+        app = mock.Mock(srcdir='/opt/nova', config=config)
+        sphinxpolicygen.generate_sample(app)
+
+        sample.assert_has_calls([
+            mock.call(args=[
+                '--config-file', '/opt/nova/nova.conf',
+                '--output-file', '/opt/nova/nova.policy.yaml.sample']),
+            mock.call(args=[
+                '--config-file', '/opt/nova/placement.conf',
+                '--output-file', '/opt/nova/placement.policy.yaml.sample'])])

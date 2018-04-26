@@ -28,9 +28,19 @@ def generate_sample(app):
                  "skipping sample policy generation")
         return
 
-    _generate_sample(app,
-                     app.config.policy_generator_config_file,
-                     app.config.sample_policy_basename)
+    if isinstance(app.config.policy_generator_config_file, list):
+        for config_file, base_name in app.config.policy_generator_config_file:
+            if base_name is None:
+                base_name = _get_default_basename(config_file)
+            _generate_sample(app, config_file, base_name)
+    else:
+        _generate_sample(app,
+                         app.config.policy_generator_config_file,
+                         app.config.sample_policy_basename)
+
+
+def _get_default_basename(config_file):
+    return os.path.splitext(os.path.basename(config_file))[0]
 
 
 def _generate_sample(app, policy_file, base_name):

@@ -27,6 +27,11 @@ where:
   source directory (``app.srcdir``). If this option is not specified or is
   invalid then the sample policy file generation will be skipped.
 
+  To handle cases where multiple files need to be generated, this
+  value can be a list of two-part tuples containing the path to the
+  configuration file and the base name for the output file (in this
+  case, ``sample_policy_basename`` should not be set).
+
 ``sample_policy_basename``
   Base name of the output file. This name will be appended with a
   ``.policy.yaml.sample`` extension to generate the final output file and the
