@@ -12,11 +12,11 @@ Team and repository tags
 =============
 
 .. image:: https://img.shields.io/pypi/v/oslo.policy.svg
-    :target: https://pypi.python.org/pypi/oslo.policy/
+    :target: https://pypi.org/project/oslo.policy/
     :alt: Latest Version
 
 .. image:: https://img.shields.io/pypi/dm/oslo.policy.svg
-    :target: https://pypi.python.org/pypi/oslo.policy/
+    :target: https://pypi.org/project/oslo.policy/
     :alt: Downloads
 
 The Oslo Policy library provides support for RBAC policy enforcement across
