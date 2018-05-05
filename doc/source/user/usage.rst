@@ -14,6 +14,77 @@ Applications using the incubated version of the policy code from Oslo aside
 from changing the way the library is imported, may need to make some extra
 changes.
 
+Incorporating oslo.policy tooling
+---------------------------------
+
+The ``oslo.policy`` library offers a generator that projects can use to render
+sample policy files, check for redundant rules or policies, among other things.
+This is a useful tool not only for operators managing policies, but also
+developers looking to automate documentation describing the projects default
+policies.
+
+This part of the document describes how you can incorporate these features into
+your project. Let's assume we're working on an OpenStack-like project called
+``foo``. Policies for this service are registered in code in a common module of
+the project.
+
+First, you'll need to expose a couple of entry points in the project's
+``setup.cfg``::
+
+    [entry_points]
+    oslo.policy.policies =
+        foo = foo.common.policies:list_rules
+
+    oslo.policy.enforcer =
+        foo = foo.common.policy:get_enforcer
+
+The ``oslo.policy`` library uses the project namespace to call ``list_rules``,
+which should return a list of ``oslo.policy`` objects, either instances of
+``RuleDefault`` or ``DocumentedRuleDefault``.
+
+The second entry point allows ``oslo.policy`` to generate complete policy from
+overrides supplied by an existing policy file on disk. This is useful for
+operators looking to supply a policy file to Horizon or for security compliance
+complete with overrides important to that deployment. The ``get_enforcer``
+method should return an instance of ``oslo.policy.policy:Enforcer``. The
+information passed into the constructor of ``Enforcer`` should resolve any
+overrides on disk. An example for project ``foo`` might look like the
+following::
+
+    from oslo_config import cfg
+    from oslo_policy import policy
+
+    from foo.common import policies
+
+    CONF = cfg.CONF
+    _ENFORCER = None
+
+    def get_enforcer():
+        CONF([], project='foo')
+        global _ENFORCER
+        if not _ENFORCER:
+            _ENFORCER = policy.Enforcer(CONF)
+            _ENFORCER.register_defaults(policies.list_rules())
+        return _ENFORCER
+
+Please note that if you're incorporating this into a project that already uses
+``oslo.policy`` in some form or fashion, this might need to be changed to fit
+that project's structure accordingly.
+
+Next, you can create a configuration file for generating policies specifically
+for project ``foo``. This file could be called ``foo-policy-generator.conf``
+and it can be kept under version control within the project::
+
+    [DEFAULT]
+    output_file = etc/foo/policy.yaml.sample
+    namespace = foo
+
+If project ``foo`` uses tox, this makes it easier to create a specific tox
+environment for generating sample configuration files in ``tox.ini``::
+
+    [testenv:genpolicy]
+    commands = oslopolicy-sample-generator --config-file etc/foo/policy.yaml.sample
+
 Changes to Enforcer Initialization
 ----------------------------------
 
