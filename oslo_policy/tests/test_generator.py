@@ -191,6 +191,7 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
 # DEPRECATED
 # "foo:post_bar":"role:fizz" has been deprecated since N in favor of
 # "foo:create_bar":"role:fizz".
+# foo:post_bar is being removed in favor of foo:create_bar
 "foo:post_bar": "rule:foo:create_bar"
 '''
         stdout = self._capture_stdout()

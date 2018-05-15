@@ -149,12 +149,13 @@ def _format_rule_default_yaml(default, include_help=True):
         deprecated_text = (
             'DEPRECATED\n"%(old_name)s":"%(old_check_str)s" has been '
             'deprecated since %(since)s in favor of '
-            '"%(name)s":"%(check_str)s".'
+            '"%(name)s":"%(check_str)s".\n%(reason)s'
         ) % {'old_name': default.deprecated_rule.name,
              'old_check_str': default.deprecated_rule.check_str,
              'since': default.deprecated_since,
              'name': default.name,
-             'check_str': default.check_str}
+             'check_str': default.check_str,
+             'reason': default.deprecated_reason}
 
         text = (
             '%(text)s%(deprecated_text)s\n"%(old_name)s": "rule:%(name)s"\n'
