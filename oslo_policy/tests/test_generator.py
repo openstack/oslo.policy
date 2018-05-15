@@ -185,7 +185,10 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
             extensions=extensions, namespace=['rules'])
 
-        expected = '''# DEPRECATED
+        expected = '''# Create a bar.
+#"foo:create_bar": "role:fizz"
+
+# DEPRECATED
 # "foo:post_bar":"role:fizz" has been deprecated since N in favor of
 # "foo:create_bar":"role:fizz".
 "foo:post_bar": "rule:foo:create_bar"

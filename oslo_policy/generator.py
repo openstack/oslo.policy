@@ -157,8 +157,9 @@ def _format_rule_default_yaml(default, include_help=True):
              'check_str': default.check_str}
 
         text = (
-            '%(deprecated_text)s\n"%(old_name)s": "rule:%(name)s"\n'
-        ) % {'deprecated_text': _format_help_text(deprecated_text),
+            '%(text)s%(deprecated_text)s\n"%(old_name)s": "rule:%(name)s"\n'
+        ) % {'text': text,
+             'deprecated_text': _format_help_text(deprecated_text),
              'old_name': default.deprecated_rule.name,
              'name': default.name}
 
