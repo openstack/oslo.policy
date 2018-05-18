@@ -37,24 +37,24 @@ easier for most people to understand.
 In the policy language, each check is specified as a simple "a:b" pair that is
 matched to the correct class to perform that check:
 
- +--------------------------------+------------------------------------------+
- |            TYPE                |                SYNTAX                    |
- +================================+==========================================+
- |User's Role                     |              role:admin                  |
- +--------------------------------+------------------------------------------+
- |Rules already defined on policy |          rule:admin_required             |
- +--------------------------------+------------------------------------------+
- |Against URLs¹                   |         http://my-url.org/check          |
- +--------------------------------+------------------------------------------+
- |User attributes²                |    project_id:%(target.project.id)s      |
- +--------------------------------+------------------------------------------+
- |Strings                         |        - <variable>:'xpto2035abc'        |
- |                                |        - 'myproject':<variable>          |
- +--------------------------------+------------------------------------------+
- |                                |         - project_id:xpto2035abc         |
- |Literals                        |         - domain_id:20                   |
- |                                |         - True:%(user.enabled)s          |
- +--------------------------------+------------------------------------------+
++--------------------------------+------------------------------------------+
+|            TYPE                |                SYNTAX                    |
++================================+==========================================+
+|User's Role                     |              role:admin                  |
++--------------------------------+------------------------------------------+
+|Rules already defined on policy |          rule:admin_required             |
++--------------------------------+------------------------------------------+
+|Against URLs¹                   |         http://my-url.org/check          |
++--------------------------------+------------------------------------------+
+|User attributes²                |    project_id:%(target.project.id)s      |
++--------------------------------+------------------------------------------+
+|Strings                         |        - <variable>:'xpto2035abc'        |
+|                                |        - 'myproject':<variable>          |
++--------------------------------+------------------------------------------+
+|                                |         - project_id:xpto2035abc         |
+|Literals                        |         - domain_id:20                   |
+|                                |         - True:%(user.enabled)s          |
++--------------------------------+------------------------------------------+
 
 ¹URL checking must return ``True`` to be valid
 
@@ -72,17 +72,17 @@ policy rule::
 
 Operator precedence is below:
 
- +------------+-------------+-------------+
- | PRECEDENCE |     TYPE    | EXPRESSION  |
- +============+=============+=============+
- |      4     |  Grouping   |    (...)    |
- +------------+-------------+-------------+
- |      3     | Logical NOT |   not ...   |
- +------------+-------------+-------------+
- |      2     | Logical AND | ... and ... |
- +------------+-------------+-------------+
- |      1     | Logical OR  | ... or ...  |
- +------------+-------------+-------------+
++------------+-------------+-------------+
+| PRECEDENCE |     TYPE    | EXPRESSION  |
++============+=============+=============+
+|      4     |  Grouping   |    (...)    |
++------------+-------------+-------------+
+|      3     | Logical NOT |   not ...   |
++------------+-------------+-------------+
+|      2     | Logical AND | ... and ... |
++------------+-------------+-------------+
+|      1     | Logical OR  | ... or ...  |
++------------+-------------+-------------+
 
 Operator with larger precedence number precedes others with smaller numbers.
 
@@ -123,9 +123,9 @@ policy enforcement.
 Generic checks can be used to perform policy checks on the following user
 attributes obtained through a token:
 
-    - user_id
-    - domain_id or project_id (depending on the token scope)
-    - list of roles held for the given token scope
+- user_id
+- domain_id or project_id (depending on the token scope)
+- list of roles held for the given token scope
 
 .. note::
    Some resources which are exposed by the API do not support policy
