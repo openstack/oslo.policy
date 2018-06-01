@@ -2,6 +2,12 @@
 Command Line Interface
 ======================
 
+This document describes the various command line tools exposed by
+``oslo.policy`` to manage policies and policy files.
+
+oslopolicy-checker
+==================
+
 Run the command line ``oslopolicy-checker`` to check policy against the
 OpenStack Identity API access information.
 
