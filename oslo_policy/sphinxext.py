@@ -62,6 +62,11 @@ def _format_policy_rule(rule):
             yield _indent(_indent('- **{}** ``{}``'.format(
                 operation['method'], operation['path'])))
 
+    if hasattr(rule, 'scope_types') and rule.scope_types is not None:
+        yield _indent(':Scope Types:')
+        for scope_type in rule.scope_types:
+            yield _indent(_indent('- **{}**'.format(scope_type)))
+
     yield ''
 
     if rule.description:

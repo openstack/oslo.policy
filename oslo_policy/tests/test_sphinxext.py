@@ -71,3 +71,33 @@ class FormatPolicyTest(base.BaseTestCase):
 
             My sample rule
         """).lstrip(), results)
+
+    def test_with_scope_types(self):
+        operations = [
+            {'method': 'GET', 'path': '/foo'},
+            {'method': 'POST', 'path': '/some'}
+        ]
+        scope_types = ['bar']
+        rule = policy.DocumentedRuleDefault(
+            'rule_a', '@', 'My sample rule', operations,
+            scope_types=scope_types
+        )
+
+        results = '\n'.join(list(sphinxext._format_policy_section(
+            'foo', [rule]
+        )))
+
+        self.assertEqual(textwrap.dedent("""
+        foo
+        ===
+
+        ``rule_a``
+            :Default: ``@``
+            :Operations:
+                - **GET** ``/foo``
+                - **POST** ``/some``
+            :Scope Types:
+                - **bar**
+
+            My sample rule
+        """).lstrip(), results)
