@@ -136,8 +136,7 @@ def _format_rule_default_yaml(default, include_help=True):
     if default.deprecated_for_removal:
         text = (
             '# DEPRECATED\n# "%(name)s" has been deprecated since '
-            '%(since)s.\n%(reason)s\n%(text)s\n'
-            '"%(name)s": "%(check_str)s"'
+            '%(since)s.\n%(reason)s\n%(text)s'
         ) % {'name': default.name,
              'check_str': default.check_str,
              'since': default.deprecated_since,
