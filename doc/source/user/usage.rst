@@ -188,7 +188,56 @@ dedicated to the intended scope of the operation called `scope_types`. This
 attribute can only be set at rule definition and never overridden via a policy
 file. This variable is designed to save the scope at which a policy should
 operate. During enforcement, the information in `scope_types` is compared to
-the scope of the token used in the request.
+the scope of the token used in the request. It is designed to match the
+available token scopes available from keystone, which are `system`, `domain`,
+and `project`. The examples highlighted here will show the usage with system
+and project APIs. Setting `scope_types` to anything but these three values is
+unsupported.
+
+For example, a policy that is used to protect a resource tracked in a project
+should require a project-scoped token. This can be expressed with `scope_types`
+as follows::
+
+    policy.DocumentedRuleDefault(
+        name='service:create_foo',
+        check_str='role:admin',
+        scope_types=['project'],
+        description='Creates a foo resource',
+        operations=[
+            {
+                'path': '/v1/foos/',
+                'method': 'POST'
+            }
+        ]
+    )
+
+A policy that is used to protect system-level resources can follow the same
+pattern::
+
+    policy.DocumentedRuleDefault(
+        name='service:update_bar',
+        check_str='role:admin',
+        scope_types=['system'],
+        description='Updates a bar resource',
+        operations=[
+            {
+                'path': '/v1/bars/{bar_id}',
+                'method': 'PATCH'
+            }
+        ]
+    )
+
+The `scope_types` attribute makes sure the token used to make the request is
+scoped properly and passes the `check_str`. This is powerful because it allows
+roles to be reused across different authorization levels without compromising
+APIs. For example, the `admin` role in the above example is used at the
+project-level and the system-level to protect two different resources. If we
+only checked that the token contained the `admin` role, it would be possible
+for a user with a project-scoped token to access a system-level API.
+
+Developers incorporating `scope_types` into OpenStack services should be
+mindful of the relationship between the API they are protecting with a policy
+and if it operates on system-level resources or project-level resources.
 
 Sample file generation
 ----------------------
