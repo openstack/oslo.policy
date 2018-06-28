@@ -19,6 +19,7 @@ import os
 
 import mock
 from oslo_config import cfg
+from oslo_context import context
 from oslo_serialization import jsonutils
 from oslotest import base as test_base
 import six
@@ -645,6 +646,89 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertRaises(policy.PolicyNotRegistered,
                           self.enforcer.authorize, 'test', {},
                           {'roles': ['test']})
+
+    def test_enforcer_accepts_context_objects(self):
+        rule = policy.RuleDefault(name='fake_rule', check_str='role:test')
+        self.enforcer.register_default(rule)
+
+        request_context = context.RequestContext()
+        target_dict = {}
+        self.enforcer.enforce('fake_rule', target_dict, request_context)
+
+    def test_enforcer_accepts_subclassed_context_objects(self):
+        rule = policy.RuleDefault(name='fake_rule', check_str='role:test')
+        self.enforcer.register_default(rule)
+
+        class SpecializedContext(context.RequestContext):
+            pass
+
+        request_context = SpecializedContext()
+        target_dict = {}
+        self.enforcer.enforce('fake_rule', target_dict, request_context)
+
+    def test_enforcer_rejects_non_context_objects(self):
+        rule = policy.RuleDefault(name='fake_rule', check_str='role:test')
+        self.enforcer.register_default(rule)
+
+        class InvalidContext(object):
+            pass
+
+        request_context = InvalidContext()
+        target_dict = {}
+        self.assertRaises(
+            policy.InvalidContextObject, self.enforcer.enforce, 'fake_rule',
+            target_dict, request_context
+        )
+
+    @mock.patch.object(policy.Enforcer, '_map_context_attributes_into_creds')
+    def test_enforcer_call_map_context_attributes(self, map_mock):
+        rule = policy.RuleDefault(name='fake_rule', check_str='role:test')
+        self.enforcer.register_default(rule)
+
+        request_context = context.RequestContext()
+        target_dict = {}
+        self.enforcer.enforce('fake_rule', target_dict, request_context)
+        map_mock.assert_called_once_with(request_context)
+
+    def test_enforcer_consolidates_context_attributes_with_creds(self):
+        request_context = context.RequestContext()
+        expected_creds = request_context.to_policy_values()
+
+        creds = self.enforcer._map_context_attributes_into_creds(
+            request_context
+        )
+
+        # We don't use self.assertDictEqual here because to_policy_values
+        # actaully returns a non-dict object that just behaves like a
+        # dictionary, but does some special handling when people access
+        # deprecated policy values.
+        for k, v in expected_creds.items():
+            self.assertEqual(expected_creds[k], creds[k])
+
+    def test_map_context_attributes_populated_system(self):
+        request_context = context.RequestContext(system_scope='all')
+        expected_creds = request_context.to_policy_values()
+        expected_creds['system'] = 'all'
+
+        creds = self.enforcer._map_context_attributes_into_creds(
+            request_context
+        )
+
+        # We don't use self.assertDictEqual here because to_policy_values
+        # actaully returns a non-dict object that just behaves like a
+        # dictionary, but does some special handling when people access
+        # deprecated policy values.
+        for k, v in expected_creds.items():
+            self.assertEqual(expected_creds[k], creds[k])
+
+    def test_enforcer_accepts_policy_values_from_context(self):
+        rule = policy.RuleDefault(name='fake_rule', check_str='role:test')
+        self.enforcer.register_default(rule)
+
+        request_context = context.RequestContext()
+        policy_values = request_context.to_policy_values()
+        target_dict = {}
+        self.enforcer.enforce('fake_rule', target_dict, policy_values)
 
 
 class EnforcerNoPolicyFileTest(base.PolicyBaseTestCase):
