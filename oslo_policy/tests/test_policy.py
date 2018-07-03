@@ -697,15 +697,17 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
 
     def test_check_explicit(self):
         rule = base.FakeCheck()
-        result = self.enforcer.enforce(rule, 'target', 'creds')
-        self.assertEqual(('target', 'creds', self.enforcer), result)
+        creds = {}
+        result = self.enforcer.enforce(rule, 'target', creds)
+        self.assertEqual(('target', creds, self.enforcer), result)
 
     def test_check_no_rules(self):
         # Clear the policy.json file created in setUp()
         self.create_config_file('policy.json', "{}")
         self.enforcer.default_rule = None
         self.enforcer.load_rules()
-        result = self.enforcer.enforce('rule', 'target', 'creds')
+        creds = {}
+        result = self.enforcer.enforce('rule', 'target', creds)
         self.assertFalse(result)
 
     def test_check_with_rule(self):
@@ -722,7 +724,8 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
         self.create_config_file('policy.json', jsonutils.dumps({"a_rule": []}))
         self.enforcer.default_rule = None
         self.enforcer.load_rules()
-        result = self.enforcer.enforce('rule', 'target', 'creds')
+        creds = {}
+        result = self.enforcer.enforce('rule', 'target', creds)
         self.assertFalse(result)
 
     def test_check_raise_default(self):
