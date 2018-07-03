@@ -16,6 +16,7 @@ ChangeLog
 openstack/versioninfo
 *.egg*
 .testrepository/
+.stestr/
 .project
 .pydevproject
 *.mo
