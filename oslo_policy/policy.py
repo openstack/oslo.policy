@@ -496,6 +496,7 @@ class Enforcer(object):
 
         self.policy_file = policy_file or self.conf.oslo_policy.policy_file
         self.use_conf = use_conf
+        self._need_check_rule = True
         self.overwrite = overwrite
         self._loaded_files = []
         self._policy_dir_mtimes = {}
@@ -515,6 +516,7 @@ class Enforcer(object):
             raise TypeError(_('Rules must be an instance of dict or Rules, '
                             'got %s instead') % type(rules))
         self.use_conf = use_conf
+        self._need_check_rule = True
         if overwrite:
             self.rules = Rules(rules, self.default_rule)
         else:
@@ -636,7 +638,9 @@ class Enforcer(object):
                     self.rules[default.name] = default.check
 
             # Detect and log obvious incorrect rule definitions
-            self.check_rules()
+            if self._need_check_rule:
+                self.check_rules()
+                self._need_check_rule = False
 
     def check_rules(self, raise_on_violation=False):
         """Look for rule definitions that are obviously incorrect."""
