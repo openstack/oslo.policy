@@ -10,13 +10,10 @@
 #    under the License.
 
 import operator
-import sys
 import warnings
 
-import fixtures
 import mock
 from oslo_config import cfg
-from six import moves
 import stevedore
 import testtools
 
@@ -49,10 +46,6 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
     def setUp(self):
         super(GenerateSampleYAMLTestCase, self).setUp()
         self.enforcer = policy.Enforcer(self.conf, policy_file='policy.yaml')
-
-    def _capture_stdout(self):
-        self.useFixture(fixtures.MonkeyPatch('sys.stdout', moves.StringIO()))
-        return sys.stdout
 
     def test_generate_loadable_yaml(self):
         extensions = []
@@ -343,10 +336,6 @@ class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
         super(GenerateSampleJSONTestCase, self).setUp()
         self.enforcer = policy.Enforcer(self.conf, policy_file='policy.json')
 
-    def _capture_stdout(self):
-        self.useFixture(fixtures.MonkeyPatch('sys.stdout', moves.StringIO()))
-        return sys.stdout
-
     def test_generate_loadable_json(self):
         extensions = []
         for name, opts in OPTS.items():
@@ -529,10 +518,6 @@ class GeneratePolicyTestCase(base.PolicyBaseTestCase):
 class ListRedundantTestCase(base.PolicyBaseTestCase):
     def setUp(self):
         super(ListRedundantTestCase, self).setUp()
-
-    def _capture_stdout(self):
-        self.useFixture(fixtures.MonkeyPatch('sys.stdout', moves.StringIO()))
-        return sys.stdout
 
     def test_matched_rules(self):
         extensions = []
