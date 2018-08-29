@@ -155,8 +155,7 @@ Syntax
 ~~~~~~
 
 A ``policy.yaml`` file consists of policies and aliases of the form
-``target:rule`` or ``alias:definition``, separated by commas and
-enclosed in curly braces:
+``target:rule`` or ``alias:definition``:
 
 .. code-block:: yaml
 
