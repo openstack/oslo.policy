@@ -334,3 +334,153 @@ where policy-redundant.conf looks like::
     namespace = nova
 
 Output will go to stdout.
+
+Testing default policies
+========================
+
+Developers need to reliably unit test policies used to protect APIs. Having
+robust unit test coverage increases confidence that changes won't negatively
+affect user experience. This document is intended to help you understand
+historical context behind testing practices you may find in your service. More
+importantly, it's going to describe testing patterns you can use to increase
+confidence in policy testing and coverage.
+
+History
+-------
+
+Before the ability to register policies in code, developers maintained policies
+in a policy file, which included all policies used by the service. Developers
+maintained policy files within the project source code, which contained the
+default policies for the service.
+
+Once it became possible to register policies in code, policy files became
+irrelevant because you could generate them. Generating policy files from code
+made maintaining documentation for policies easier and allowed for a single
+source of truth. Registering policies in code also meant testing no longer
+required a policy file, since the default policies were in the service itself.
+
+At this point, it is important to note that policy enforcement requires an
+authorization context based on the user making the request (e.g., is the user
+allowed to do the operation they're asking to do). Within OpenStack, this
+authorization context it relayed to services by the token used to call an API,
+which comes from an OpenStack identity service. In its purest form, you can
+think of authorization context as the roles a user has on a project, domain, or
+system. Services can feed the authorization context into policy enforcement,
+which determines if a user is allowed to do something.
+
+The coupling between the authorization context, ultimately the token, and the
+policy enforcement mechanism raises the bar for effectively testing policies
+and APIs. Service developers want to ensure the functionality specific to their
+service works, and not dwell on the implementation details of an authorization
+system. Additionally, they want to keep unit tests lightweight, as opposed to
+requiring a separate system to issue tokens for authorization, crossing the
+boundary of unit testing to integration testing.
+
+Because of this, you typically see one of two approaches taken concerning
+policies and test code across OpenStack services.
+
+One approach is to supply a policy file specifically for testing that overrides
+the sample policy file or default policies in code. This file contains mostly
+policies without proper check strings, which relaxes the authorization enforced
+by the service using oslo.policy. Without proper check strings, it's possible
+to access APIs without building context objects or using tokens from an
+identity service.
+
+The other approach is to mock policy enforcement to succeed unconditionally.
+Since developers are bypassing the code within the policy engine, supplying a
+proper authorization context doesn't have an impact on the APIs used in the
+test case.
+
+Both methods let developers focus on validating the domain-specific
+functionality of their service without needing to understand the intricacies of
+policy enforcement. Unfortunately, bypassing API authorization testing comes at
+the expense of introducing gaps where the default policies may break
+unexpectedly with new changes. If the tests don't assert the default behavior,
+it's likely that seemly simple changes negatively impact users or operators,
+regardless of that being the intent of the developer.
+
+Testing policies
+----------------
+
+Fortunately, you can test policies without needing to deal with tokens by using
+context objects directly, specifically a RequestContext object. Chances are
+your service is already using these to represent information from middleware
+that sits in front of the API. Using context for authorization strikes a
+perfect balance between integration testing and exercising just enough
+authorization to ensure policies sufficiently protect APIs. The oslo.policy
+library also accepts context objects and automatically translates properties to
+values used when evaluating policy, which makes using them even more natural.
+
+To use RequestContext objects effectively, you need to understand the policy
+under test. Then, you can model a context object appropriately for the test
+case. The idea is to build a context object to use in the request that either
+fails or passes policy enforcement. For example, assume you're testing a
+default policy like the following:
+
+::
+
+    from oslo_config import cfg
+
+    CONF = cfg.CONF
+    enforcer = policy.Enforcer(CONF, policy_file=_POLICY_PATH)
+
+    enforcer.register_default(
+        policy.RuleDefault('identity:create_region', 'role:admin')
+    )
+
+Enforcement here is straightforward in that a user with a role called admin may
+access this API. You can model this in a request context by setting these
+attributes explicitly:
+
+::
+
+    from oslo_context import context
+
+    context = context.RequestContext()
+    context.roles = ['admin']
+
+Depending on how your service deploys the API in unit tests, you can either
+provide a fake context as you supply the request, or mock the return value of
+the context to return the one you've built.
+
+You can also supply scope information for policies with complex check strings
+or the use of scope types. For example, consider the following default policy:
+
+::
+
+    from oslo_config import cfg
+
+    CONF = cfg.CONF
+    enforcer = policy.Enforcer(CONF, policy_file=_POLICY_PATH)
+
+    enforcer.register_default(
+        policy.RuleDefault('identity:create_region', 'role:admin',
+        scope_types=['system'])
+    )
+
+We can model it using the following request context object, which includes
+scope:
+
+::
+
+    from oslo_context import context
+
+    context = context.RequestContext()
+    context.roles = ['admin']
+    context.system_scope = 'all'
+
+Note that ``all`` is a unique system scope target that signifies the user is
+authorized to operate on the deployment system. Conversely, the following is an
+example of a context modeling a project-scoped token:
+
+::
+
+    import uuid
+    from oslo_context import context
+
+    context = context.RequestContext()
+    context.roles = ['admin']
+    context.project_id = uuid.uuid4().hex
+
+The significance here is the difference between administrator authorization on
+the deployment system and administrator authorization on a project.
