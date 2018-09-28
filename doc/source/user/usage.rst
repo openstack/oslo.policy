@@ -180,6 +180,110 @@ interact with the resource the policy protects. The `method` should be the HTTP
 verb corresponding to the `path`. The list of `operations` can be supplied with
 multiple dictionaries if the policy is used to protect multiple paths.
 
+Naming policies
+---------------
+
+Policy names are an integral piece of information in understanding how
+OpenStack's policy engine works. Developers protect APIs using policy names.
+Operators use policy names to override policies in their deployment. Having
+consistent policy names across OpenStack services is essential to providing a
+pleasant user experience. The following rules are guidelines to help you, as a
+developer, build unique and descriptive policy names.
+
+Service types
+~~~~~~~~~~~~~
+
+Policy names should be specific about the service that uses them. The service
+type should also follow a known standard, which is the `service-types authority
+<https://service-types.openstack.org/service-types.json>`_.  Using an existing
+standard avoids confusing users by reusing an established reference. For
+example, instead of using `keystone` as the service in a policy name, you
+should use `identity`, since it is not specific to one implementation. It's
+also more specific about the functionality provided by the service instead of
+having readers maintain a mental mapping between service code name and
+functionality it provides.
+
+Resources and subresources
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Users may interact with resources exposed by a service's API. You should
+include the name of a resource in the policy name, and it should be singular.
+For example, policies that protect the user API should use `identity:user`,
+instead of `identity:users`.
+
+Some services might have subresources. For example, a fixed IP address could be
+considered a subresource of an IP address. You should separate open-form
+compound words with a hyphen and not an underscore. This spacing convention
+maintains consistency with spacing used in the service types authority. For
+example, use `ip-address` instead of `ip_address`. Having more than one way to
+separate compound words within a single convention is confusing and prone to
+accidentally introducing inconsistencies.
+
+Resource names should be minimalist and contain only characters needed to
+describe the resource. Extra information should be omitted from the resource
+altogether. Use `agent` instead of `os-agents`, even if the URL path of the
+resource uses `/os-agents`.
+
+Actions and subactions
+~~~~~~~~~~~~~~~~~~~~~~
+
+Actions are specific things that users can do to resources. Typical actions are
+`create`, `get`, `list`, `update`, and `delete`. These action definitions are
+independent of the HTTP method used to implement their underlying API, which is
+intentional. This independence is important because two different services may
+implement the same action using two different HTTP methods. For example, use
+`compute:server:list` as a policy name for listing servers instead of
+`compute:server:get_all` or `compute:server:get-all`. Using `all` in the policy
+name itself implies returning every possible entity when the actual response
+may be filtered based on the user's authority. In other words, list servers for
+a domain administrator managing many different projects within that domain
+could be very different from a member of a project listing servers owned by a
+single project.
+
+Some services have the ability to list resources with greater detail. Depending
+on the context, those additional details might be sensitive in nature and
+require more strict RBAC permissions than `list`. In this case, use
+`compute:server:list-detail` as opposed to `compute:server:detail`. By using a
+compound word, we're being more descriptive about what the `detail` actually
+means.
+
+Subactions are optionally available for you to add clarity about resource
+actions. For example, `compute:server:resize:confirm` is an example of how you
+can compound an action (resize) with a subaction (confirm) to explicitly name a
+policy.
+
+Actions that are open form compound words should use hyphens instead of
+underscores for spacing. This spacing is consistent with the service types
+authority and resource names for open form compound words. For example, use
+`compute:server:resize-state` instead of `compute:server:resize_state`.
+
+Resource Attributes
+~~~~~~~~~~~~~~~~~~~
+
+Resource attributes may be used in policy names, and are entirely optional. If
+you need to include the attribute of a resource in the name, you should place
+it after the resource or subresource portion. For example, use
+`compute:flavor:private:list` to name a policy for listing all private flavors.
+
+Putting it all together
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Now that you know what services types, resources, attributes, and actions are
+within the context of policy names, let establish the order you should use
+them. Policy names should increase in detail as you read it. This results in
+the following syntax::
+
+  <service-type>:<resource>[:<subresource>][:<attribute>]:<action>[:<subaction>]
+
+You should delimit each segment of the name with a colon (:). The following are
+examples for existing OpenStack APIs::
+
+  identity:user:list
+  block-storage:volume:extend
+  compute:server:resize:confirm
+  compute:flavor:private:list
+  network:ip-address:fixed-ip-address:create
+
 Setting scope
 -------------
 
