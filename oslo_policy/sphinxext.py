@@ -21,6 +21,7 @@ from docutils.parsers import rst
 from docutils.parsers.rst import directives
 from docutils import statemachine
 from oslo_config import cfg
+from sphinx.util import logging
 from sphinx.util.nodes import nested_parse_with_titles
 
 from oslo_policy import generator
@@ -40,7 +41,7 @@ def _indent(text):
 def _format_policy_rule(rule):
     """Output a definition list-style rule.
 
-    For example:
+    For example::
 
         ``os_compute_api:servers:create``
             :Default: ``rule:admin_or_owner``
@@ -70,10 +71,8 @@ def _format_policy_rule(rule):
     yield ''
 
     if rule.description:
-        for line in statemachine.string2lines(
-                rule.description, tab_width=4, convert_whitespace=True):
-            if line:
-                yield _indent(line)
+        for line in rule.description.strip().splitlines():
+            yield _indent(line.rstrip())
     else:
         yield _indent('(no description provided)')
 
@@ -151,7 +150,15 @@ class ShowPolicyDirective(rst.Directive):
 
         node = nodes.section()
         node.document = self.state.document
-        nested_parse_with_titles(self.state, result, node)
+
+        # With the resolution for bug #1788183, we now parse the
+        # 'DocumentedRuleDefault.description' attribute as rST. Unfortunately,
+        # there are a lot of broken option descriptions out there and we don't
+        # want to break peoples' builds suddenly. As a result, we disable
+        # 'warning-is-error' temporarily. Users will still see the warnings but
+        # the build will continue.
+        with logging.skip_warningiserror():
+            nested_parse_with_titles(self.state, result, node)
 
         return node.children
 
