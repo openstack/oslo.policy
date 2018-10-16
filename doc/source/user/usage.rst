@@ -466,7 +466,7 @@ required a policy file, since the default policies were in the service itself.
 At this point, it is important to note that policy enforcement requires an
 authorization context based on the user making the request (e.g., is the user
 allowed to do the operation they're asking to do). Within OpenStack, this
-authorization context it relayed to services by the token used to call an API,
+authorization context is relayed to services by the token used to call an API,
 which comes from an OpenStack identity service. In its purest form, you can
 think of authorization context as the roles a user has on a project, domain, or
 system. Services can feed the authorization context into policy enforcement,
@@ -500,7 +500,7 @@ functionality of their service without needing to understand the intricacies of
 policy enforcement. Unfortunately, bypassing API authorization testing comes at
 the expense of introducing gaps where the default policies may break
 unexpectedly with new changes. If the tests don't assert the default behavior,
-it's likely that seemly simple changes negatively impact users or operators,
+it's likely that seemingly simple changes negatively impact users or operators,
 regardless of that being the intent of the developer.
 
 Testing policies
@@ -532,8 +532,8 @@ default policy like the following:
         policy.RuleDefault('identity:create_region', 'role:admin')
     )
 
-Enforcement here is straightforward in that a user with a role called admin may
-access this API. You can model this in a request context by setting these
+Enforcement here is straightforward in that a user with a role called ``admin``
+may access this API. You can model this in a request context by setting these
 attributes explicitly:
 
 ::
