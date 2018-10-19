@@ -17,15 +17,19 @@
 
 import os
 
+from sphinx.util import logging
+
 from oslo_policy import generator
+
+LOG = logging.getLogger(__name__)
 
 
 def generate_sample(app):
     """Generate a sample policy file."""
 
     if not app.config.policy_generator_config_file:
-        app.warn("No policy_generator_config_file is specified, "
-                 "skipping sample policy generation")
+        LOG.warning("No policy_generator_config_file is specified, "
+                    "skipping sample policy generation")
         return
 
     if isinstance(app.config.policy_generator_config_file, list):
@@ -46,7 +50,7 @@ def _get_default_basename(config_file):
 def _generate_sample(app, policy_file, base_name):
 
     def info(msg):
-        app.info('[%s] %s' % (__name__, msg))
+        LOG.info('[%s] %s' % (__name__, msg))
 
     # If we are given a file that isn't an absolute path, look for it
     # in the source directory if it doesn't exist.
