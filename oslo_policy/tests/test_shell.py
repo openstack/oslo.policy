@@ -62,6 +62,39 @@ class CheckerTestCase(base.PolicyBaseTestCase):
 '''
         self.assertEqual(expected, stdout.getvalue())
 
+    @mock.patch("oslo_policy._checks.TrueCheck.__call__")
+    def test_pass_rule_parameters_with_custom_target(self, call_mock):
+        apply_rule = None
+        is_admin = False
+        access_data = token_fixture.SCOPED_TOKEN_FIXTURE["token"]
+        access_data['roles'] = [
+            role['name'] for role in access_data['roles']]
+        access_data['project_id'] = access_data['project']['id']
+        access_data['is_admin'] = is_admin
+
+        sample_target = {
+            "project_id": access_data["project"]["id"],
+            "domain_id": access_data["project"]["domain"]["id"]
+        }
+        self.create_config_file(
+            "target.json",
+            jsonutils.dumps(sample_target))
+
+        policy_file = open(self.get_config_file_fullname('policy.yaml'), 'r')
+        access_file = open(self.get_config_file_fullname('access.json'), 'r')
+        target_file = open(self.get_config_file_fullname('target.json'), 'r')
+        stdout = self._capture_stdout()
+
+        shell.tool(policy_file, access_file, apply_rule, is_admin,
+                   target_file)
+        call_mock.assert_called_once_with(
+            sample_target, access_data, mock.ANY,
+            current_rule="sampleservice:sample_rule")
+
+        expected = '''passed: sampleservice:sample_rule
+'''
+        self.assertEqual(expected, stdout.getvalue())
+
     def test_all_nonadmin(self):
 
         policy_file = open(self.get_config_file_fullname('policy.yaml'), 'r')
@@ -75,3 +108,30 @@ class CheckerTestCase(base.PolicyBaseTestCase):
         expected = '''passed: sampleservice:sample_rule
 '''
         self.assertEqual(expected, stdout.getvalue())
+
+    def test_flatten_from_dict(self):
+        target = {
+            "target": {
+                "secret": {
+                    "project_id": "1234"
+                }
+            }
+        }
+        result = shell.flatten(target)
+        self.assertEqual(result, {"target.secret.project_id": "1234"})
+
+    def test_flatten_from_file(self):
+        target = {
+            "target": {
+                "secret": {
+                    "project_id": "1234"
+                }
+            }
+        }
+        self.create_config_file(
+            "target.json",
+            jsonutils.dumps(target))
+        target_file = open(self.get_config_file_fullname('target.json'), 'r')
+        target_from_file = target_file.read()
+        result = shell.flatten(jsonutils.loads(target_from_file))
+        self.assertEqual(result, {"target.secret.project_id": "1234"})
