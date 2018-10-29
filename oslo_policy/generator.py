@@ -14,8 +14,10 @@ import logging
 import sys
 import textwrap
 import warnings
+import yaml
 
 from oslo_config import cfg
+from oslo_serialization import jsonutils
 import stevedore
 
 from oslo_policy import policy
@@ -43,6 +45,12 @@ ENFORCER_OPTS = [
                required=True,
                help='Option namespace under "oslo.policy.enforcer" in '
                     'which to look for a policy.Enforcer.'),
+]
+
+UPGRADE_OPTS = [
+    cfg.StrOpt('policy',
+               required=True,
+               help='Path to the policy file which need to be updated.')
 ]
 
 
@@ -328,6 +336,48 @@ def generate_policy(args=None):
     conf.register_opts(GENERATOR_OPTS + ENFORCER_OPTS)
     conf(args)
     _generate_policy(conf.namespace, conf.output_file)
+
+
+def _upgrade_policies(policies, default_policies):
+    old_policies_keys = list(policies.keys())
+    for section in sorted(default_policies.keys()):
+        rule_defaults = default_policies[section]
+        for rule_default in rule_defaults:
+            if (rule_default.deprecated_rule and
+                    rule_default.deprecated_rule.name in old_policies_keys):
+                policies[rule_default.name] = policies.pop(
+                    rule_default.deprecated_rule.name)
+                LOG.info('The name of policy %(old_name)s has been upgraded to'
+                         '%(new_name)',
+                         {'old_name': rule_default.deprecated_rule.name,
+                          'new_name': rule_default.name})
+
+
+def upgrade_policy(args=None):
+    logging.basicConfig(level=logging.WARN)
+    conf = cfg.ConfigOpts()
+    conf.register_cli_opts(GENERATOR_OPTS + RULE_OPTS + UPGRADE_OPTS)
+    conf.register_opts(GENERATOR_OPTS + RULE_OPTS + UPGRADE_OPTS)
+    conf(args)
+    with open(conf.policy, 'r') as input_data:
+        policies = policy.parse_file_contents(input_data.read())
+    default_policies = get_policies_dict(conf.namespace)
+
+    _upgrade_policies(policies, default_policies)
+
+    if conf.output_file:
+        if conf.format == 'yaml':
+            yaml.safe_dump(policies, open(conf.output_file, 'w'),
+                           default_flow_style=False)
+        elif conf.format == 'json':
+            jsonutils.dump(policies, open(conf.output_file, 'w'),
+                           indent=4)
+    else:
+        if conf.format == 'yaml':
+            sys.stdout.write(yaml.safe_dump(policies,
+                                            default_flow_style=False))
+        elif conf.format == 'json':
+            sys.stdout.write(jsonutils.dumps(policies, indent=4))
 
 
 def list_redundant(args=None):
