@@ -23,7 +23,7 @@ from oslo_policy import policy
 
 def _try_rule(key, rule, target, access_data, o):
     try:
-        result = rule(target, access_data, o)
+        result = rule(target, access_data, o, current_rule=key)
         if result:
             print("passed: %s" % key)
         else:

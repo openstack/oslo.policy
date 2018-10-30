@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import mock
 from oslo_serialization import jsonutils
 
 from oslo_policy import shell
@@ -33,6 +34,33 @@ class CheckerTestCase(base.PolicyBaseTestCase):
         self.create_config_file(
             "access.json",
             jsonutils.dumps(token_fixture.SCOPED_TOKEN_FIXTURE))
+
+    @mock.patch("oslo_policy._checks.TrueCheck.__call__")
+    def test_pass_rule_parameters(self, call_mock):
+
+        policy_file = open(self.get_config_file_fullname('policy.yaml'), 'r')
+        access_file = open(self.get_config_file_fullname('access.json'), 'r')
+        apply_rule = None
+        is_admin = False
+        stdout = self._capture_stdout()
+
+        access_data = token_fixture.SCOPED_TOKEN_FIXTURE["token"]
+        target = {
+            "project_id": access_data['project']['id']
+        }
+        access_data['roles'] = [
+            role['name'] for role in access_data['roles']]
+        access_data['project_id'] = access_data['project']['id']
+        access_data['is_admin'] = is_admin
+
+        shell.tool(policy_file, access_file, apply_rule, is_admin)
+        call_mock.assert_called_once_with(
+            target, access_data, mock.ANY,
+            current_rule="sampleservice:sample_rule")
+
+        expected = '''passed: sampleservice:sample_rule
+'''
+        self.assertEqual(expected, stdout.getvalue())
 
     def test_all_nonadmin(self):
 
