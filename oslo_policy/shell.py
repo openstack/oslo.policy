@@ -19,7 +19,22 @@ import sys
 from oslo_serialization import jsonutils
 
 from oslo_config import cfg
+from oslo_policy import opts
 from oslo_policy import policy
+
+
+class FakeEnforcer(object):
+    def __init__(self, rules, config):
+        self.rules = rules
+        self.conf = None
+
+        if config:
+            self.conf = cfg.ConfigOpts()
+
+            for group, options in opts.list_opts():
+                self.conf.register_opts(options, group)
+
+            self.conf(["--config-file={}".format(config)])
 
 
 def _try_rule(key, rule, target, access_data, o):
@@ -52,7 +67,8 @@ def flatten(d, parent_key=''):
 
 
 def tool(policy_file, access_file, apply_rule, is_admin=False,
-         target_file=None):
+         target_file=None, enforcer_config=None):
+
     with open(access_file, "rb", 0) as a:
         access = a.read()
 
@@ -66,10 +82,7 @@ def tool(policy_file, access_file, apply_rule, is_admin=False,
 
     rules = policy.Rules.load(policy_data, "default")
 
-    class Object(object):
-        pass
-    o = Object()
-    o.rules = rules
+    enforcer = FakeEnforcer(rules, enforcer_config)
 
     if target_file:
         with open(target_file, "rb", 0) as t:
@@ -82,11 +95,12 @@ def tool(policy_file, access_file, apply_rule, is_admin=False,
     if apply_rule:
         key = apply_rule
         rule = rules[apply_rule]
-        _try_rule(key, rule, target_data, access_data, o)
+        _try_rule(key, rule, target_data, access_data, enforcer)
         return
+
     for key, rule in sorted(rules.items()):
         if ":" in key:
-            _try_rule(key, rule, target_data, access_data, o)
+            _try_rule(key, rule, target_data, access_data, enforcer)
 
 
 def main():
@@ -117,9 +131,14 @@ def main():
         help='set is_admin=True on the credentials used for the evaluation.',
         default=False))
 
+    conf.register_cli_opt(cfg.StrOpt(
+        'enforcer_config',
+        help='configuration file for the oslopolicy-checker enforcer'))
+
     conf()
 
-    tool(conf.policy, conf.access, conf.rule, conf.is_admin, conf.target)
+    tool(conf.policy, conf.access, conf.rule, conf.is_admin,
+         conf.target, conf.enforcer_config)
 
 
 if __name__ == "__main__":
