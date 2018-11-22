@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
 import mock
 from oslo_serialization import jsonutils
 
@@ -44,7 +45,8 @@ class CheckerTestCase(base.PolicyBaseTestCase):
         is_admin = False
         stdout = self._capture_stdout()
 
-        access_data = token_fixture.SCOPED_TOKEN_FIXTURE["token"]
+        access_data = copy.deepcopy(
+            token_fixture.SCOPED_TOKEN_FIXTURE["token"])
         target = {
             "project_id": access_data['project']['id']
         }
@@ -66,7 +68,8 @@ class CheckerTestCase(base.PolicyBaseTestCase):
     def test_pass_rule_parameters_with_custom_target(self, call_mock):
         apply_rule = None
         is_admin = False
-        access_data = token_fixture.SCOPED_TOKEN_FIXTURE["token"]
+        access_data = copy.deepcopy(
+            token_fixture.SCOPED_TOKEN_FIXTURE["token"])
         access_data['roles'] = [
             role['name'] for role in access_data['roles']]
         access_data['project_id'] = access_data['project']['id']
