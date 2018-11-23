@@ -29,6 +29,13 @@ class CheckerTestCase(base.PolicyBaseTestCase):
 "sampleservice:sample_rule": ""
 '''
 
+    SAMPLE_POLICY_UNSORTED = '''---
+"sample_rule": "role:service"
+"sampleservice:sample_rule2": ""
+"sampleservice:sample_rule0": ""
+"sampleservice:sample_rule1": ""
+'''
+
     def setUp(self):
         super(CheckerTestCase, self).setUp()
         self.create_config_file("policy.yaml", self.SAMPLE_POLICY)
@@ -61,6 +68,30 @@ class CheckerTestCase(base.PolicyBaseTestCase):
             current_rule="sampleservice:sample_rule")
 
         expected = '''passed: sampleservice:sample_rule
+'''
+        self.assertEqual(expected, stdout.getvalue())
+
+    def test_pass_rule_parameters_sorted(self):
+        self.create_config_file("policy.yaml", self.SAMPLE_POLICY_UNSORTED)
+
+        policy_file = open(self.get_config_file_fullname('policy.yaml'), 'r')
+        access_file = open(self.get_config_file_fullname('access.json'), 'r')
+        apply_rule = None
+        is_admin = False
+        stdout = self._capture_stdout()
+
+        access_data = copy.deepcopy(
+            token_fixture.SCOPED_TOKEN_FIXTURE["token"])
+        access_data['roles'] = [
+            role['name'] for role in access_data['roles']]
+        access_data['project_id'] = access_data['project']['id']
+        access_data['is_admin'] = is_admin
+
+        shell.tool(policy_file, access_file, apply_rule, is_admin)
+
+        expected = '''passed: sampleservice:sample_rule0
+passed: sampleservice:sample_rule1
+passed: sampleservice:sample_rule2
 '''
         self.assertEqual(expected, stdout.getvalue())
 
