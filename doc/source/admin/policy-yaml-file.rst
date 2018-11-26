@@ -186,10 +186,10 @@ Rules can be:
 
 Special checks are:
 
--  ``<role>:<role name>``, a test whether the API credentials contain
+-  ``role:<role name>``, a test whether the API credentials contain
    this role.
 
--  ``<rule>:<rule name>``, the definition of an alias.
+-  ``rule:<rule name>``, the definition of an alias.
 
 -  ``http:<target URL>``, which delegates the check to a remote server.
    The API is authorized when the server returns True.
