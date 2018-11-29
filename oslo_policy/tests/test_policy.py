@@ -121,14 +121,45 @@ class RulesTestCase(test_base.BaseTestCase):
 
     @mock.patch.object(_parser, 'parse_rule', lambda x: x)
     def test_load_json_invalid_exc(self):
-        # When the JSON isn't valid, ValueError is raised on load_json.
-        # Note the trailing , in the exemplar is invalid JSON.
+        # When the JSON isn't valid, ValueError is raised on load.
         exemplar = """{
     "admin_or_owner": [["role:admin"], ["project_id:%(project_id)s"]],
     "default": [
 }"""
         self.assertRaises(ValueError, policy.Rules.load, exemplar,
                           'default')
+
+        # However, since change I43782d245d7652ba69613b26fe598ac79ec19929,
+        # policy.Rules.load() first tries loading with the really fast
+        # jsonutils.loads(), and if that fails, it tries loading with
+        # yaml.safe_load().  Since YAML is a superset of JSON, some strictly
+        # invalid JSON can be parsed correctly by policy.Rules.load() without
+        # raising an exception.  But that means that since 1.17.0, we've been
+        # accepting (strictly speaking) illegal JSON policy files, and for
+        # backward compatibility, we should continue to do so.  Thus the
+        # following are here to prevent regressions:
+
+        # JSON requires double quotes, but the YAML parser doesn't care
+        bad_but_acceptable = """{
+    'admin_or_owner': [["role:admin"], ["project_id:%(project_id)s"]],
+    'default': []
+}"""
+        self.assertTrue(policy.Rules.load(bad_but_acceptable, 'default'))
+
+        # JSON does not allow bare keys, but the YAML parser doesn't care
+        bad_but_acceptable = """{
+    admin_or_owner: [["role:admin"], ["project_id:%(project_id)s"]],
+    default: []
+}"""
+        self.assertTrue(policy.Rules.load(bad_but_acceptable, 'default'))
+
+        # JSON is picky about commas, but the YAML parser is more forgiving
+        # (Note the trailing , in the exemplar is invalid JSON.)
+        bad_but_acceptable = """{
+    admin_or_owner: [["role:admin"], ["project_id:%(project_id)s"]],
+    default: [],
+}"""
+        self.assertTrue(policy.Rules.load(bad_but_acceptable, 'default'))
 
     @mock.patch.object(_parser, 'parse_rule', lambda x: x)
     def test_load_empty_data(self):
@@ -155,8 +186,8 @@ default: []
 
     @mock.patch.object(_parser, 'parse_rule', lambda x: x)
     def test_load_yaml_invalid_exc(self):
-        # When the JSON isn't valid, ValueError is raised on load().
-        # Note the trailing , in the exemplar is invalid JSON.
+        # When the JSON is seriously invalid, ValueError is raised on load().
+        # (See test_load_json_invalid_exc for what 'seriously invalid' means.)
         exemplar = """{
 # Define a custom rule.
 admin_or_owner: role:admin or project_id:%(project_id)s
