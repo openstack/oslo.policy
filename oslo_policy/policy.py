@@ -230,6 +230,7 @@ import warnings
 from oslo_config import cfg
 from oslo_context import context
 from oslo_serialization import jsonutils
+from oslo_utils import strutils
 import six
 import yaml
 
@@ -837,6 +838,37 @@ class Enforcer(object):
                 'got %(creds_type)s instead' % {'creds_type': type(creds)}
             )
             raise InvalidContextObject(msg)
+
+        if LOG.isEnabledFor(logging.DEBUG):
+            try:
+                # NOTE(jdennis) Although a MutableMapping behaves like
+                # a dict oslo.strutils.mask_dict_password() requires a
+                # dict. Bug #1804528 was opened to fix this, once that
+                # bug is fixed the conversion to dict can be removed.
+                if isinstance(creds, dict):
+                    creds_dict = creds
+                elif isinstance(creds, collections.MutableMapping):
+                    creds_dict = dict(creds)
+                else:
+                    raise TypeError('unexpected type %(creds_type)s' %
+                                    {'creds_type': type(creds)})
+                creds_dict = strutils.mask_dict_password(creds_dict)
+                creds_msg = jsonutils.dumps(creds_dict,
+                                            skipkeys=True, sort_keys=True)
+            except Exception as e:
+                creds_msg = ('cannot format data, exception: %(exp)s' %
+                             {'exp': e})
+
+            try:
+                target_msg = jsonutils.dumps(target,
+                                             skipkeys=True, sort_keys=True)
+            except Exception as e:
+                target_msg = ('cannot format data, exception: %(exp)s' %
+                              {'exp': e})
+
+            LOG.debug('enforce: rule=%s creds=%s target=%s',
+                      rule.__class__ if isinstance(rule, _checks.BaseCheck)
+                      else '"%s"' % rule, creds_msg, target_msg)
 
         # Allow the rule to be a Check tree
         if isinstance(rule, _checks.BaseCheck):

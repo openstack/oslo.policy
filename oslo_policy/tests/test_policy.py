@@ -773,6 +773,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
 
     @mock.patch.object(policy.Enforcer, '_map_context_attributes_into_creds')
     def test_enforcer_call_map_context_attributes(self, map_mock):
+        map_mock.return_value = {}
         rule = policy.RuleDefault(name='fake_rule', check_str='role:test')
         self.enforcer.register_default(rule)
 
