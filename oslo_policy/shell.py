@@ -77,7 +77,7 @@ def tool(policy_file, access_file, apply_rule, is_admin=False,
         rule = rules[apply_rule]
         _try_rule(key, rule, target_data, access_data, o)
         return
-    for key, rule in rules.items():
+    for key, rule in sorted(rules.items()):
         if ":" in key:
             _try_rule(key, rule, target_data, access_data, o)
 
