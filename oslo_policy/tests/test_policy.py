@@ -1235,6 +1235,124 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             deprecated_since='N'
         )
 
+    def test_override_deprecated_policy_with_old_name(self):
+        # Simulate an operator overriding a policy
+        rules = jsonutils.dumps({'foo:bar': 'role:bazz'})
+        self.create_config_file('policy.json', rules)
+
+        # Deprecate the policy name and check string in favor of something
+        # better.
+        deprecated_rule = policy.DeprecatedRule(
+            name='foo:bar',
+            check_str='role:fizz'
+        )
+        rule_list = [policy.DocumentedRuleDefault(
+            name='foo:create_bar',
+            check_str='role:bang',
+            description='Create a bar.',
+            operations=[{'path': '/v1/bars', 'method': 'POST'}],
+            deprecated_rule=deprecated_rule,
+            deprecated_reason='"role:bang" is a better default',
+            deprecated_since='N'
+        )]
+        self.enforcer.register_defaults(rule_list)
+
+        # Make sure the override supplied by the operator using the old policy
+        # name is used in favor of the old or new default.
+        self.assertFalse(
+            self.enforcer.enforce('foo:create_bar', {}, {'roles': ['fizz']})
+        )
+        self.assertFalse(
+            self.enforcer.enforce('foo:create_bar', {}, {'roles': ['bang']})
+        )
+        self.assertTrue(
+            self.enforcer.enforce('foo:create_bar', {}, {'roles': ['bazz']})
+        )
+
+    def test_override_deprecated_policy_with_new_name(self):
+        # Simulate an operator overriding a policy using the new policy name
+        rules = jsonutils.dumps({'foo:create_bar': 'role:bazz'})
+        self.create_config_file('policy.json', rules)
+
+        # Deprecate the policy name and check string in favor of something
+        # better.
+        deprecated_rule = policy.DeprecatedRule(
+            name='foo:bar',
+            check_str='role:fizz'
+        )
+        rule_list = [policy.DocumentedRuleDefault(
+            name='foo:create_bar',
+            check_str='role:bang',
+            description='Create a bar.',
+            operations=[{'path': '/v1/bars', 'method': 'POST'}],
+            deprecated_rule=deprecated_rule,
+            deprecated_reason='"role:bang" is a better default',
+            deprecated_since='N'
+        )]
+        self.enforcer.register_defaults(rule_list)
+
+        # Make sure the override supplied by the operator is being used in
+        # place of either default value.
+        self.assertFalse(
+            self.enforcer.enforce('foo:create_bar', {}, {'roles': ['fizz']})
+        )
+        self.assertFalse(
+            self.enforcer.enforce('foo:create_bar', {}, {'roles': ['bang']})
+        )
+        self.assertTrue(
+            self.enforcer.enforce('foo:create_bar', {}, {'roles': ['bazz']})
+        )
+
+    def test_override_both_new_and_old_policy(self):
+        # Simulate an operator overriding a policy using both the the new and
+        # old policy names. The following doesn't make a whole lot of sense
+        # because the overrides are conflicting, but we want to make sure that
+        # oslo.policy uses foo:create_bar instead of foo:bar.
+        rules_dict = {
+            'foo:create_bar': 'role:bazz',
+            'foo:bar': 'role:wee'
+        }
+        rules = jsonutils.dumps(rules_dict)
+        self.create_config_file('policy.json', rules)
+
+        # Deprecate the policy name and check string in favor of something
+        # better.
+        deprecated_rule = policy.DeprecatedRule(
+            name='foo:bar',
+            check_str='role:fizz'
+        )
+        rule_list = [policy.DocumentedRuleDefault(
+            name='foo:create_bar',
+            check_str='role:bang',
+            description='Create a bar.',
+            operations=[{'path': '/v1/bars', 'method': 'POST'}],
+            deprecated_rule=deprecated_rule,
+            deprecated_reason='"role:bang" is a better default',
+            deprecated_since='N'
+        )]
+        self.enforcer.register_defaults(rule_list)
+
+        # The default check string for the old policy name foo:bar should fail
+        self.assertFalse(
+            self.enforcer.enforce('foo:create_bar', {}, {'roles': ['fizz']})
+        )
+
+        # The default check string for the new policy name foo:create_bar
+        # should fail
+        self.assertFalse(
+            self.enforcer.enforce('foo:create_bar', {}, {'roles': ['bang']})
+        )
+
+        # The override for the old policy name foo:bar should fail
+        self.assertFalse(
+            self.enforcer.enforce('foo:create_bar', {}, {'roles': ['wee']})
+        )
+
+        # The override for foo:create_bar should pass
+        self.assertTrue(
+            self.enforcer.enforce('foo:create_bar', {}, {'roles': ['bazz']})
+        )
+
 
 class DocumentedRuleDefaultTestCase(base.PolicyBaseTestCase):
 
