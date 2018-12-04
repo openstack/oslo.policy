@@ -822,6 +822,105 @@ class EnforcerTest(base.PolicyBaseTestCase):
         target_dict = {}
         self.enforcer.enforce('fake_rule', target_dict, policy_values)
 
+    def test_enforcer_understands_system_scope(self):
+        self.conf.set_override('enforce_scope', True, group='oslo_policy')
+        rule = policy.RuleDefault(
+            name='fake_rule', check_str='role:test', scope_types=['system']
+        )
+        self.enforcer.register_default(rule)
+
+        ctx = context.RequestContext(system_scope='all')
+        target_dict = {}
+        self.enforcer.enforce('fake_rule', target_dict, ctx)
+
+    def test_enforcer_raises_invalid_scope_with_system_scope_type(self):
+        self.conf.set_override('enforce_scope', True, group='oslo_policy')
+        rule = policy.RuleDefault(
+            name='fake_rule', check_str='role:test', scope_types=['system']
+        )
+        self.enforcer.register_default(rule)
+
+        # model a domain-scoped token, which should fail enforcement
+        ctx = context.RequestContext(domain_id='fake')
+        target_dict = {}
+        self.assertRaises(
+            policy.InvalidScope, self.enforcer.enforce, 'fake_rule',
+            target_dict, ctx
+        )
+
+        # model a project-scoped token, which should fail enforcement
+        ctx = context.RequestContext(project_id='fake')
+        self.assertRaises(
+            policy.InvalidScope, self.enforcer.enforce, 'fake_rule',
+            target_dict, ctx
+        )
+
+    def test_enforcer_understands_domain_scope(self):
+        self.conf.set_override('enforce_scope', True, group='oslo_policy')
+        rule = policy.RuleDefault(
+            name='fake_rule', check_str='role:test', scope_types=['domain']
+        )
+        self.enforcer.register_default(rule)
+
+        ctx = context.RequestContext(domain_id='fake')
+        target_dict = {}
+        self.enforcer.enforce('fake_rule', target_dict, ctx)
+
+    def test_enforcer_raises_invalid_scope_with_domain_scope_type(self):
+        self.conf.set_override('enforce_scope', True, group='oslo_policy')
+        rule = policy.RuleDefault(
+            name='fake_rule', check_str='role:test', scope_types=['domain']
+        )
+        self.enforcer.register_default(rule)
+
+        # model a system-scoped token, which should fail enforcement
+        ctx = context.RequestContext(system_scope='all')
+        target_dict = {}
+        self.assertRaises(
+            policy.InvalidScope, self.enforcer.enforce, 'fake_rule',
+            target_dict, ctx
+        )
+
+        # model a project-scoped token, which should fail enforcement
+        ctx = context.RequestContext(project_id='fake')
+        self.assertRaises(
+            policy.InvalidScope, self.enforcer.enforce, 'fake_rule',
+            target_dict, ctx
+        )
+
+    def test_enforcer_understands_project_scope(self):
+        self.conf.set_override('enforce_scope', True, group='oslo_policy')
+        rule = policy.RuleDefault(
+            name='fake_rule', check_str='role:test', scope_types=['project']
+        )
+        self.enforcer.register_default(rule)
+
+        ctx = context.RequestContext(project_id='fake')
+        target_dict = {}
+        self.enforcer.enforce('fake_rule', target_dict, ctx)
+
+    def test_enforcer_raises_invalid_scope_with_project_scope_type(self):
+        self.conf.set_override('enforce_scope', True, group='oslo_policy')
+        rule = policy.RuleDefault(
+            name='fake_rule', check_str='role:test', scope_types=['project']
+        )
+        self.enforcer.register_default(rule)
+
+        # model a system-scoped token, which should fail enforcement
+        ctx = context.RequestContext(system_scope='all')
+        target_dict = {}
+        self.assertRaises(
+            policy.InvalidScope, self.enforcer.enforce, 'fake_rule',
+            target_dict, ctx
+        )
+
+        # model a domain-scoped token, which should fail enforcement
+        ctx = context.RequestContext(domain_id='fake')
+        self.assertRaises(
+            policy.InvalidScope, self.enforcer.enforce, 'fake_rule',
+            target_dict, ctx
+        )
+
 
 class EnforcerNoPolicyFileTest(base.PolicyBaseTestCase):
     def setUp(self):
@@ -1045,10 +1144,10 @@ class RuleDefaultTestCase(base.PolicyBaseTestCase):
         opt = policy.RuleDefault(
             name='foo',
             check_str='role:bar',
-            scope_types=['project', 'system']
+            scope_types=['project', 'domain', 'system']
         )
 
-        self.assertEqual(opt.scope_types, ['project', 'system'])
+        self.assertEqual(opt.scope_types, ['project', 'domain', 'system'])
 
     def test_ensure_scope_types_are_unique(self):
         self.assertRaises(

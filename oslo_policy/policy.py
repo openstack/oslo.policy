@@ -922,12 +922,11 @@ class Enforcer(object):
                 # attributes provided in `creds`.
                 if creds.get('system'):
                     token_scope = 'system'
+                elif creds.get('domain_id'):
+                    token_scope = 'domain'
                 else:
-                    # If the token isn't system-scoped then we're dealing with
-                    # either a domain-scoped token or a project-scoped token.
-                    # From a policy perspective, both are "project" operations.
-                    # Whether or not the project is a domain depends on where
-                    # it sits in the hierarchy.
+                    # If the token isn't system-scoped or domain-scoped then
+                    # we're dealing with a project-scoped token.
                     token_scope = 'project'
 
                 registered_rule = self.registered_rules.get(rule)
