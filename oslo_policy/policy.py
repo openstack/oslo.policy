@@ -878,7 +878,9 @@ class Enforcer(object):
                 else:
                     raise TypeError('unexpected type %(creds_type)s' %
                                     {'creds_type': type(creds)})
-                creds_dict = strutils.mask_dict_password(creds_dict)
+                creds_dict = strutils.mask_dict_password(
+                    copy.deepcopy(creds_dict)
+                )
                 creds_msg = jsonutils.dumps(creds_dict,
                                             skipkeys=True, sort_keys=True)
             except Exception as e:
@@ -886,7 +888,10 @@ class Enforcer(object):
                              {'exp': e})
 
             try:
-                target_msg = jsonutils.dumps(target,
+                target_dict = strutils.mask_dict_password(
+                    copy.deepcopy(target)
+                )
+                target_msg = jsonutils.dumps(target_dict,
                                              skipkeys=True, sort_keys=True)
             except Exception as e:
                 target_msg = ('cannot format data, exception: %(exp)s' %
