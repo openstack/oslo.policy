@@ -120,4 +120,4 @@ def set_defaults(conf, policy_file=None):
     _register(conf)
 
     if policy_file is not None:
-        conf.set_default('policy_file', policy_file, group=_option_group)
+        cfg.set_defaults(_options, policy_file=policy_file)

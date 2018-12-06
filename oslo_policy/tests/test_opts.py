@@ -10,7 +10,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo_config import fixture as config
+import copy
+
+from oslo_config import cfg
 from oslotest import base as test_base
 
 from oslo_policy import opts
@@ -20,7 +22,13 @@ class OptsTestCase(test_base.BaseTestCase):
 
     def setUp(self):
         super(OptsTestCase, self).setUp()
-        self.conf = self.useFixture(config.Config()).conf
+        self.conf = cfg.ConfigOpts()
+        self.original_opts = opts._options
+        opts._options = copy.deepcopy(opts._options)
+
+        def reset():
+            opts._options = self.original_opts
+        self.addCleanup(reset)
 
     def test_set_defaults_policy_file(self):
         opts._register(self.conf)
