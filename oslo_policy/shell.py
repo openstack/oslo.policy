@@ -13,12 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import argparse
 import collections
 import sys
 
 from oslo_serialization import jsonutils
 
+from oslo_config import cfg
 from oslo_policy import policy
 
 
@@ -83,37 +83,41 @@ def tool(policy_file, access_file, apply_rule, is_admin=False,
 
 
 def main():
-    parser = argparse.ArgumentParser(sys.argv[0])
-    parser.add_argument(
-        '--policy',
-        required=True,
-        type=argparse.FileType('rb', 0),
-        help='path to a policy file')
-    parser.add_argument(
-        '--access',
-        required=True,
-        type=argparse.FileType('rb', 0),
-        help='path to a file containing OpenStack Identity API' +
-        ' access info in JSON format')
-    parser.add_argument(
-        '--target',
-        type=argparse.FileType('rb', 0),
-        help='path to a file containing custom target info in' +
-        ' JSON format. This will be used to evaluate the policy with.')
-    parser.add_argument(
-        '--rule',
-        help='rule to test')
+    conf = cfg.ConfigOpts()
 
-    parser.add_argument(
-        '--is_admin',
-        help='set is_admin=True on the credentials used for the evaluation')
+    conf.register_cli_opt(cfg.StrOpt(
+        'policy',
+        required=True,
+        help='path to a policy file'))
 
-    args = parser.parse_args()
-    try:
-        is_admin = args.is_admin.lower() == "true"
-    except Exception:
-        is_admin = False
-    tool(args.policy, args.access, args.rule, is_admin, args.target)
+    conf.register_cli_opt(cfg.StrOpt(
+        'access',
+        required=True,
+        help='path to a file containing OpenStack Identity API '
+             'access info in JSON format'))
+
+    conf.register_cli_opt(cfg.StrOpt(
+        'target',
+        help='path to a file containing custom target info in '
+             'JSON format. This will be used to evaluate the policy with.'))
+
+    conf.register_cli_opt(cfg.StrOpt(
+        'rule',
+        help='rule to test'))
+
+    conf.register_cli_opt(cfg.StrOpt(
+        'is_admin',
+        help='set is_admin=True on the credentials used for the evaluation',
+        default=""))
+
+    conf()
+
+    policy = open(conf.policy, "rb", 0)
+    access = open(conf.access, "rb", 0)
+    target = open(conf.target, "rb", 0) if conf.target else None
+    is_admin = conf.is_admin.lower() == "true"
+
+    tool(policy, access, conf.rule, is_admin, target)
 
 
 if __name__ == "__main__":
