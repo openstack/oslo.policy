@@ -10,17 +10,16 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-__all__ = [
-    'list_opts',
-    'set_defaults',
-]
-
 import copy
 
 from oslo_config import cfg
 
 from oslo_policy._i18n import _
 
+__all__ = [
+    'list_opts',
+    'set_defaults',
+]
 
 _option_group = 'oslo_policy'
 
