@@ -95,13 +95,13 @@ def main():
     conf.register_cli_opt(cfg.StrOpt(
         'policy',
         required=True,
-        help='path to a policy file'))
+        help='path to a policy file.'))
 
     conf.register_cli_opt(cfg.StrOpt(
         'access',
         required=True,
         help='path to a file containing OpenStack Identity API '
-             'access info in JSON format'))
+             'access info in JSON format.'))
 
     conf.register_cli_opt(cfg.StrOpt(
         'target',
@@ -110,18 +110,16 @@ def main():
 
     conf.register_cli_opt(cfg.StrOpt(
         'rule',
-        help='rule to test'))
+        help='rule to test.'))
 
-    conf.register_cli_opt(cfg.StrOpt(
+    conf.register_cli_opt(cfg.BoolOpt(
         'is_admin',
-        help='set is_admin=True on the credentials used for the evaluation',
-        default=""))
+        help='set is_admin=True on the credentials used for the evaluation.',
+        default=False))
 
     conf()
 
-    is_admin = conf.is_admin.lower() == "true"
-
-    tool(conf.policy, conf.access, conf.rule, is_admin, conf.target)
+    tool(conf.policy, conf.access, conf.rule, conf.is_admin, conf.target)
 
 
 if __name__ == "__main__":
