@@ -53,12 +53,17 @@ def flatten(d, parent_key=''):
 
 def tool(policy_file, access_file, apply_rule, is_admin=False,
          target_file=None):
-    access = access_file.read()
+    with open(access_file, "rb", 0) as a:
+        access = a.read()
+
     access_data = jsonutils.loads(access)['token']
     access_data['roles'] = [role['name'] for role in access_data['roles']]
     access_data['project_id'] = access_data['project']['id']
     access_data['is_admin'] = is_admin
-    policy_data = policy_file.read()
+
+    with open(policy_file, "rb", 0) as p:
+        policy_data = p.read()
+
     rules = policy.Rules.load(policy_data, "default")
 
     class Object(object):
@@ -67,7 +72,9 @@ def tool(policy_file, access_file, apply_rule, is_admin=False,
     o.rules = rules
 
     if target_file:
-        target = target_file.read()
+        with open(target_file, "rb", 0) as t:
+            target = t.read()
+
         target_data = flatten(jsonutils.loads(target))
     else:
         target_data = {"project_id": access_data['project_id']}
@@ -112,12 +119,9 @@ def main():
 
     conf()
 
-    policy = open(conf.policy, "rb", 0)
-    access = open(conf.access, "rb", 0)
-    target = open(conf.target, "rb", 0) if conf.target else None
     is_admin = conf.is_admin.lower() == "true"
 
-    tool(policy, access, conf.rule, is_admin, target)
+    tool(conf.policy, conf.access, conf.rule, is_admin, conf.target)
 
 
 if __name__ == "__main__":

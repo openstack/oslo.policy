@@ -46,8 +46,8 @@ class CheckerTestCase(base.PolicyBaseTestCase):
     @mock.patch("oslo_policy._checks.TrueCheck.__call__")
     def test_pass_rule_parameters(self, call_mock):
 
-        policy_file = open(self.get_config_file_fullname('policy.yaml'), 'r')
-        access_file = open(self.get_config_file_fullname('access.json'), 'r')
+        policy_file = self.get_config_file_fullname('policy.yaml')
+        access_file = self.get_config_file_fullname('access.json')
         apply_rule = None
         is_admin = False
         stdout = self._capture_stdout()
@@ -74,8 +74,8 @@ class CheckerTestCase(base.PolicyBaseTestCase):
     def test_pass_rule_parameters_sorted(self):
         self.create_config_file("policy.yaml", self.SAMPLE_POLICY_UNSORTED)
 
-        policy_file = open(self.get_config_file_fullname('policy.yaml'), 'r')
-        access_file = open(self.get_config_file_fullname('access.json'), 'r')
+        policy_file = self.get_config_file_fullname('policy.yaml')
+        access_file = self.get_config_file_fullname('access.json')
         apply_rule = None
         is_admin = False
         stdout = self._capture_stdout()
@@ -114,9 +114,9 @@ passed: sampleservice:sample_rule2
             "target.json",
             jsonutils.dumps(sample_target))
 
-        policy_file = open(self.get_config_file_fullname('policy.yaml'), 'r')
-        access_file = open(self.get_config_file_fullname('access.json'), 'r')
-        target_file = open(self.get_config_file_fullname('target.json'), 'r')
+        policy_file = self.get_config_file_fullname('policy.yaml')
+        access_file = self.get_config_file_fullname('access.json')
+        target_file = self.get_config_file_fullname('target.json')
         stdout = self._capture_stdout()
 
         shell.tool(policy_file, access_file, apply_rule, is_admin,
@@ -131,8 +131,8 @@ passed: sampleservice:sample_rule2
 
     def test_all_nonadmin(self):
 
-        policy_file = open(self.get_config_file_fullname('policy.yaml'), 'r')
-        access_file = open(self.get_config_file_fullname('access.json'), 'r')
+        policy_file = self.get_config_file_fullname('policy.yaml')
+        access_file = self.get_config_file_fullname('access.json')
         apply_rule = None
         is_admin = False
         stdout = self._capture_stdout()
