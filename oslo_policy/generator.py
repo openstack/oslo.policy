@@ -84,6 +84,8 @@ def _get_enforcer(namespace):
         names=[namespace],
         on_load_failure_callback=on_load_failure_callback,
         invoke_on_load=True)
+    if namespace not in mgr:
+        raise KeyError('Namespace "%s" not found.' % namespace)
     enforcer = mgr[namespace].obj
 
     return enforcer

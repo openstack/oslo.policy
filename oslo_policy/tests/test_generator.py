@@ -675,3 +675,21 @@ class UpgradePolicyTestCase(base.PolicyBaseTestCase):
                 expected = '''new_policy_name: rule:admin
 '''
                 self.assertEqual(expected, stdout.getvalue())
+
+
+@mock.patch('stevedore.named.NamedExtensionManager')
+class GetEnforcerTestCase(base.PolicyBaseTestCase):
+    def test_get_enforcer(self, mock_manager):
+        mock_instance = mock.MagicMock()
+        mock_instance.__contains__.return_value = True
+        mock_manager.return_value = mock_instance
+        mock_item = mock.Mock()
+        mock_item.obj = 'test'
+        mock_instance.__getitem__.return_value = mock_item
+        self.assertEqual('test', generator._get_enforcer('foo'))
+
+    def test_get_enforcer_missing(self, mock_manager):
+        mock_instance = mock.MagicMock()
+        mock_instance.__contains__.return_value = False
+        mock_manager.return_value = mock_instance
+        self.assertRaises(KeyError, generator._get_enforcer, 'nonexistent')
