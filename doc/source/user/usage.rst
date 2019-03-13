@@ -83,7 +83,7 @@ If project ``foo`` uses tox, this makes it easier to create a specific tox
 environment for generating sample configuration files in ``tox.ini``::
 
     [testenv:genpolicy]
-    commands = oslopolicy-sample-generator --config-file etc/foo/policy.yaml.sample
+    commands = oslopolicy-sample-generator --config-file etc/foo/foo-policy-generator.conf
 
 Changes to Enforcer Initialization
 ----------------------------------
