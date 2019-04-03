@@ -36,7 +36,10 @@ _options = [
                        'invoked with mismatching scope.')),
     cfg.StrOpt('policy_file',
                default='policy.json',
-               help=_('The file that defines policies.'),
+               help=_('The relative or absolute path of a file that maps '
+                      'roles to permissions for a given service. Relative '
+                      'paths must be specified in relation to the '
+                      'configuration file setting this option.'),
                deprecated_group='DEFAULT'),
     cfg.StrOpt('policy_default_rule',
                default='default',
