@@ -51,7 +51,7 @@ exclude_patterns = ['api/oslo_policy.tests.*', 'api/setup.rst']
 # General information about the project.
 project = u'oslo.policy'
 copyright = u'2014, OpenStack Foundation'
-source_tree = 'https://git.openstack.org/cgit/openstack/oslo.policy/tree'
+source_tree = 'https://opendev.org/openstack/oslo.policy/src/branch/master'
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = True
