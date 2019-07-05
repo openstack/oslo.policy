@@ -23,6 +23,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.extlinks',
+    'sphinxcontrib.apidoc',
     #'sphinx.ext.intersphinx',
     'openstackdocstheme',
     'oslo_config.sphinxext',
@@ -95,3 +96,7 @@ extlinks = {
 
 # Example configuration for intersphinx: refer to the Python standard library.
 #intersphinx_mapping = {'http://docs.python.org/': None}
+
+# -- sphinxcontrib.apidoc configuration --------------------------------------
+apidoc_module_dir = '../../oslo_policy'
+apidoc_output_dir = 'reference/api'

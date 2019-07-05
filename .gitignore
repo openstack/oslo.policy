@@ -31,3 +31,5 @@ doc/build
 
 # reno build
 releasenotes/build
+releasenotes/notes/reno.cache
+RELEASENOTES.rst
