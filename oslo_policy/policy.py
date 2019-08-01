@@ -503,6 +503,8 @@ class Enforcer(object):
         self._policy_dir_mtimes = {}
         self._file_cache = {}
         self._informed_no_policy_file = False
+        # FOR TESTING ONLY
+        self.suppress_deprecation_warnings = False
 
     def set_rules(self, rules, overwrite=True, use_conf=False):
         """Create a new :class:`Rules` based on the provided dict of rules.
@@ -538,6 +540,7 @@ class Enforcer(object):
         self.registered_rules = {}
         self.file_rules = {}
         self._informed_no_policy_file = False
+        self.suppress_deprecation_warnings = False
 
     def load_rules(self, force_reload=False):
         """Loads policy_path's rules.
@@ -618,7 +621,8 @@ class Enforcer(object):
         # know that the policy is going to be silently ignored in the future
         # and they can remove it from their overrides since it isn't being
         # replaced by another policy.
-        if default.name in self.file_rules:
+        if not self.suppress_deprecation_warnings and \
+                default.name in self.file_rules:
             warnings.warn(
                 'Policy "%(policy)s":"%(check_str)s" was deprecated for '
                 'removal in %(release)s. Reason: %(reason)s. Its value may be '
@@ -662,7 +666,8 @@ class Enforcer(object):
         if deprecated_rule.name != default.name and (
                 deprecated_rule.name in self.file_rules):
 
-            warnings.warn(deprecated_msg)
+            if not self.suppress_deprecation_warnings:
+                warnings.warn(deprecated_msg)
 
             # If the deprecated policy is being overridden and doesn't match
             # the default deprecated policy, override the new policy's default
@@ -692,7 +697,8 @@ class Enforcer(object):
                 default.check_str + ' or ' +
                 deprecated_rule.check_str
             )
-            warnings.warn(deprecated_msg)
+            if not self.suppress_deprecation_warnings:
+                warnings.warn(deprecated_msg)
 
     def _undefined_check(self, check):
         '''Check if a RuleCheck references an undefined rule.'''
