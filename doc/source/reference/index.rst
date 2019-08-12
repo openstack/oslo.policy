@@ -4,5 +4,5 @@
 
 .. toctree::
 
-   api/autoindex
+   api/modules
 
