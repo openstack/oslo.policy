@@ -1452,6 +1452,39 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             self.enforcer.enforce('foo:create_bar', {}, {'roles': ['bazz']})
         )
 
+    def test_override_deprecated_policy_with_new_rule(self):
+        # Simulate an operator overriding a deprecated policy with a reference
+        # to the new policy, as done by the sample policy generator.
+        rules = jsonutils.dumps({'old_rule': 'rule:new_rule'})
+        self.create_config_file('policy.json', rules)
+
+        # Deprecate the policy name in favor of something better.
+        deprecated_rule = policy.DeprecatedRule(
+            name='old_rule',
+            check_str='role:bang'
+        )
+        rule_list = [policy.DocumentedRuleDefault(
+            name='new_rule',
+            check_str='role:bang',
+            description='Replacement for old_rule.',
+            operations=[{'path': '/v1/bars', 'method': 'POST'}],
+            deprecated_rule=deprecated_rule,
+            deprecated_reason='"old_rule" is a bad name',
+            deprecated_since='N'
+        )]
+        self.enforcer.register_defaults(rule_list)
+
+        # Make sure the override supplied by the operator using the old policy
+        # name is used in favor of the old or new default.
+        self.assertFalse(
+            self.enforcer.enforce('new_rule', {}, {'roles': ['fizz']})
+        )
+        self.assertTrue(
+            self.enforcer.enforce('new_rule', {}, {'roles': ['bang']})
+        )
+        # Verify that we didn't overwrite the new rule.
+        self.assertEqual('bang', self.enforcer.rules['new_rule'].match)
+
 
 class DocumentedRuleDefaultTestCase(base.PolicyBaseTestCase):
 
