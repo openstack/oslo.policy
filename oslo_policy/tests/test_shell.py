@@ -36,12 +36,21 @@ class CheckerTestCase(base.PolicyBaseTestCase):
 "sampleservice:sample_rule1": ""
 '''
 
+    SAMPLE_POLICY_SCOPED = '''---
+"sampleservice:sample_rule": "role:role1"
+"sampleservice:scoped_rule": "role:role1 and system_scope:all"
+'''
+
+    SAMPLE_POLICY_OWNER = '''---
+"sampleservice:owner_rule": "user_id:%(user_id)s"
+'''
+
     def setUp(self):
         super(CheckerTestCase, self).setUp()
         self.create_config_file("policy.yaml", self.SAMPLE_POLICY)
         self.create_config_file(
             "access.json",
-            jsonutils.dumps(token_fixture.SCOPED_TOKEN_FIXTURE))
+            jsonutils.dumps(token_fixture.PROJECT_SCOPED_TOKEN_FIXTURE))
 
     @mock.patch("oslo_policy._checks.TrueCheck.__call__")
     def test_pass_rule_parameters(self, call_mock):
@@ -53,12 +62,14 @@ class CheckerTestCase(base.PolicyBaseTestCase):
         stdout = self._capture_stdout()
 
         access_data = copy.deepcopy(
-            token_fixture.SCOPED_TOKEN_FIXTURE["token"])
+            token_fixture.PROJECT_SCOPED_TOKEN_FIXTURE["token"])
         target = {
-            "project_id": access_data['project']['id']
+            'user_id': access_data['user']['id'],
+            'project_id': access_data['project']['id']
         }
         access_data['roles'] = [
             role['name'] for role in access_data['roles']]
+        access_data['user_id'] = access_data['user']['id']
         access_data['project_id'] = access_data['project']['id']
         access_data['is_admin'] = is_admin
 
@@ -68,6 +79,56 @@ class CheckerTestCase(base.PolicyBaseTestCase):
             current_rule="sampleservice:sample_rule")
 
         expected = '''passed: sampleservice:sample_rule
+'''
+        self.assertEqual(expected, stdout.getvalue())
+
+    def test_pass_rule_parameters_with_scope(self):
+        self.create_config_file("policy.yaml", self.SAMPLE_POLICY_SCOPED)
+        self.create_config_file(
+            "access.json",
+            jsonutils.dumps(token_fixture.SYSTEM_SCOPED_TOKEN_FIXTURE))
+        policy_file = self.get_config_file_fullname('policy.yaml')
+        access_file = self.get_config_file_fullname('access.json')
+        apply_rule = None
+        is_admin = False
+        stdout = self._capture_stdout()
+
+        access_data = copy.deepcopy(
+            token_fixture.SYSTEM_SCOPED_TOKEN_FIXTURE["token"])
+        access_data['roles'] = [
+            role['name'] for role in access_data['roles']]
+        access_data['user_id'] = access_data['user']['id']
+        access_data['is_admin'] = is_admin
+
+        shell.tool(policy_file, access_file, apply_rule, is_admin)
+
+        expected = '''passed: sampleservice:sample_rule
+passed: sampleservice:scoped_rule
+'''
+        self.assertEqual(expected, stdout.getvalue())
+
+    def test_pass_rule_parameters_with_owner(self):
+        self.create_config_file("policy.yaml", self.SAMPLE_POLICY_OWNER)
+        self.create_config_file(
+            "access.json",
+            jsonutils.dumps(token_fixture.PROJECT_SCOPED_TOKEN_FIXTURE))
+        policy_file = self.get_config_file_fullname('policy.yaml')
+        access_file = self.get_config_file_fullname('access.json')
+        apply_rule = None
+        is_admin = False
+        stdout = self._capture_stdout()
+
+        access_data = copy.deepcopy(
+            token_fixture.PROJECT_SCOPED_TOKEN_FIXTURE["token"])
+        access_data['roles'] = [
+            role['name'] for role in access_data['roles']]
+        access_data['user_id'] = access_data['user']['id']
+        access_data['project_id'] = access_data['project']['id']
+        access_data['is_admin'] = is_admin
+
+        shell.tool(policy_file, access_file, apply_rule, is_admin)
+
+        expected = '''passed: sampleservice:owner_rule
 '''
         self.assertEqual(expected, stdout.getvalue())
 
@@ -81,9 +142,10 @@ class CheckerTestCase(base.PolicyBaseTestCase):
         stdout = self._capture_stdout()
 
         access_data = copy.deepcopy(
-            token_fixture.SCOPED_TOKEN_FIXTURE["token"])
+            token_fixture.PROJECT_SCOPED_TOKEN_FIXTURE["token"])
         access_data['roles'] = [
             role['name'] for role in access_data['roles']]
+        access_data['user_id'] = access_data['user']['id']
         access_data['project_id'] = access_data['project']['id']
         access_data['is_admin'] = is_admin
 
@@ -100,9 +162,10 @@ passed: sampleservice:sample_rule2
         apply_rule = None
         is_admin = False
         access_data = copy.deepcopy(
-            token_fixture.SCOPED_TOKEN_FIXTURE["token"])
+            token_fixture.PROJECT_SCOPED_TOKEN_FIXTURE["token"])
         access_data['roles'] = [
             role['name'] for role in access_data['roles']]
+        access_data['user_id'] = access_data['user']['id']
         access_data['project_id'] = access_data['project']['id']
         access_data['is_admin'] = is_admin
 
