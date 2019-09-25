@@ -668,8 +668,14 @@ class Enforcer(object):
             # the default deprecated policy, override the new policy's default
             # with the old check string. This should prevents unwanted exposure
             # to APIs on upgrade.
+            # There's one exception to this: When we generate a sample policy,
+            # we set the deprecated rule name to reference the new rule. If we
+            # see that the deprecated override rule is just the new rule, then
+            # we shouldn't mess with it.
             if (self.file_rules[deprecated_rule.name].check
-                    != _parser.parse_rule(deprecated_rule.check_str)):
+                    != _parser.parse_rule(deprecated_rule.check_str) and
+                    str(self.file_rules[deprecated_rule.name].check)
+                    != 'rule:%s' % default.name):
                 if default.name not in self.file_rules.keys():
                     self.rules[default.name] = self.file_rules[
                         deprecated_rule.name
