@@ -33,7 +33,6 @@ extensions = [
 repository_name = 'openstack/oslo.policy'
 bug_project = 'oslo.policy'
 bug_tag = ''
-html_last_updated_fmt = '%Y-%m-%d %H:%M'
 
 # autodoc generation is a bit aggressive and a nuisance when doing heavy
 # text edit cycles.
