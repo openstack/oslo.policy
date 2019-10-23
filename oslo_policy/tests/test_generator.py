@@ -500,8 +500,9 @@ class GeneratorRaiseErrorTestCase(testtools.TestCase):
     def test_generator_call_with_no_arguments_raises_error(self):
         testargs = ['oslopolicy-sample-generator']
         with mock.patch('sys.argv', testargs):
+            local_conf = cfg.ConfigOpts()
             self.assertRaises(cfg.RequiredOptError, generator.generate_sample,
-                              [])
+                              [], local_conf)
 
 
 class GeneratePolicyTestCase(base.PolicyBaseTestCase):
@@ -655,6 +656,8 @@ class UpgradePolicyTestCase(base.PolicyBaseTestCase):
                                             plugin=None,
                                             obj=[self.new_policy])
         self.extensions.append(ext)
+        # Just used for cli opt parsing
+        self.local_conf = cfg.ConfigOpts()
 
     def test_upgrade_policy_json_file(self):
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
@@ -669,7 +672,7 @@ class UpgradePolicyTestCase(base.PolicyBaseTestCase):
                         self.get_config_file_fullname('new_policy.json'),
                         '--format', 'json']
             with mock.patch('sys.argv', testargs):
-                generator.upgrade_policy()
+                generator.upgrade_policy(conf=self.local_conf)
                 new_file = self.get_config_file_fullname('new_policy.json')
                 new_policy = jsonutils.loads(open(new_file, 'r').read())
                 self.assertIsNotNone(new_policy.get('new_policy_name'))
@@ -688,7 +691,7 @@ class UpgradePolicyTestCase(base.PolicyBaseTestCase):
                         self.get_config_file_fullname('new_policy.yaml'),
                         '--format', 'yaml']
             with mock.patch('sys.argv', testargs):
-                generator.upgrade_policy()
+                generator.upgrade_policy(conf=self.local_conf)
                 new_file = self.get_config_file_fullname('new_policy.yaml')
                 new_policy = yaml.safe_load(open(new_file, 'r'))
                 self.assertIsNotNone(new_policy.get('new_policy_name'))
@@ -706,7 +709,7 @@ class UpgradePolicyTestCase(base.PolicyBaseTestCase):
                         '--namespace', 'test_upgrade',
                         '--format', 'json']
             with mock.patch('sys.argv', testargs):
-                generator.upgrade_policy()
+                generator.upgrade_policy(conf=self.local_conf)
                 expected = '''{
     "new_policy_name": "rule:admin"
 }'''
@@ -724,7 +727,7 @@ class UpgradePolicyTestCase(base.PolicyBaseTestCase):
                         '--namespace', 'test_upgrade',
                         '--format', 'yaml']
             with mock.patch('sys.argv', testargs):
-                generator.upgrade_policy()
+                generator.upgrade_policy(conf=self.local_conf)
                 expected = '''new_policy_name: rule:admin
 '''
                 self.assertEqual(expected, stdout.getvalue())
