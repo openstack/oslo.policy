@@ -185,19 +185,19 @@ class GenericCheckTestCase(base.PolicyBaseTestCase):
         check = _checks.GenericCheck(
             'token.catalog.endpoints.id',
             token_fixture.REGION_ONE_PUBLIC_KEYSTONE_ENDPOINT_ID)
-        credentials = token_fixture.SCOPED_TOKEN_FIXTURE
+        credentials = token_fixture.PROJECT_SCOPED_TOKEN_FIXTURE
         self.assertTrue(check({}, credentials, self.enforcer))
 
     def test_generic_role_check_matches(self):
         check = _checks.GenericCheck(
             'token.roles.name', 'role1')
-        credentials = token_fixture.SCOPED_TOKEN_FIXTURE
+        credentials = token_fixture.PROJECT_SCOPED_TOKEN_FIXTURE
         self.assertTrue(check({}, credentials, self.enforcer))
 
     def test_generic_missing_role_does_not_matches(self):
         check = _checks.GenericCheck(
             'token.roles.name', 'missing')
-        credentials = token_fixture.SCOPED_TOKEN_FIXTURE
+        credentials = token_fixture.PROJECT_SCOPED_TOKEN_FIXTURE
         self.assertFalse(check({}, credentials, self.enforcer))
 
     def test_multiple_nested_lists_accepted(self):

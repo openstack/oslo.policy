@@ -74,7 +74,11 @@ def tool(policy_file, access_file, apply_rule, is_admin=False,
 
     access_data = jsonutils.loads(access)['token']
     access_data['roles'] = [role['name'] for role in access_data['roles']]
-    access_data['project_id'] = access_data['project']['id']
+    access_data['user_id'] = access_data['user']['id']
+    if access_data.get('project'):
+        access_data['project_id'] = access_data['project']['id']
+    if access_data.get('system'):
+        access_data['system_scope'] = 'all'
     access_data['is_admin'] = is_admin
 
     with open(policy_file, "rb", 0) as p:
@@ -90,7 +94,9 @@ def tool(policy_file, access_file, apply_rule, is_admin=False,
 
         target_data = flatten(jsonutils.loads(target))
     else:
-        target_data = {"project_id": access_data['project_id']}
+        target_data = {'user_id': access_data['user']['id']}
+        if access_data.get('project_id'):
+            target_data['project_id'] = access_data['project_id']
 
     if apply_rule:
         key = apply_rule
