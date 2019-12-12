@@ -699,10 +699,9 @@ class Enforcer(object):
         if (deprecated_rule.check_str != default.check_str
                 and default.name not in self.file_rules):
 
-            default.check = _parser.parse_rule(
-                default.check_str + ' or ' +
-                deprecated_rule.check_str
-            )
+            default.check = OrCheck([_parser.parse_rule(cs) for cs in
+                                     [default.check_str,
+                                      deprecated_rule.check_str]])
             if not self.suppress_deprecation_warnings:
                 warnings.warn(deprecated_msg)
 

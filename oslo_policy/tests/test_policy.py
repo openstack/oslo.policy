@@ -1190,6 +1190,70 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             enforcer.load_rules()
             mock_warn.assert_called_once_with(expected_msg)
 
+        self.assertTrue(
+            enforcer.enforce('foo:create_bar', {}, {'roles': ['bang']})
+        )
+        self.assertTrue(
+            enforcer.enforce('foo:create_bar', {}, {'roles': ['fizz']})
+        )
+        self.assertFalse(
+            enforcer.enforce('foo:create_bar', {}, {'roles': ['baz']})
+        )
+
+    def test_deprecate_an_empty_policy_check_string(self):
+        deprecated_rule = policy.DeprecatedRule(
+            name='foo:create_bar',
+            check_str=''
+        )
+
+        rule_list = [policy.DocumentedRuleDefault(
+            name='foo:create_bar',
+            check_str='role:bang',
+            description='Create a bar.',
+            operations=[{'path': '/v1/bars', 'method': 'POST'}],
+            deprecated_rule=deprecated_rule,
+            deprecated_reason='because of reasons',
+            deprecated_since='N'
+        )]
+        enforcer = policy.Enforcer(self.conf)
+        enforcer.register_defaults(rule_list)
+
+        with mock.patch('warnings.warn') as mock_warn:
+            enforcer.load_rules()
+            mock_warn.assert_called_once()
+
+        enforcer.enforce('foo:create_bar', {}, {'roles': ['bang']},
+                         do_raise=True)
+        enforcer.enforce('foo:create_bar', {}, {'roles': ['fizz']},
+                         do_raise=True)
+
+    def test_deprecate_replace_with_empty_policy_check_string(self):
+        deprecated_rule = policy.DeprecatedRule(
+            name='foo:create_bar',
+            check_str='role:fizz'
+        )
+
+        rule_list = [policy.DocumentedRuleDefault(
+            name='foo:create_bar',
+            check_str='',
+            description='Create a bar.',
+            operations=[{'path': '/v1/bars', 'method': 'POST'}],
+            deprecated_rule=deprecated_rule,
+            deprecated_reason='because of reasons',
+            deprecated_since='N'
+        )]
+        enforcer = policy.Enforcer(self.conf)
+        enforcer.register_defaults(rule_list)
+
+        with mock.patch('warnings.warn') as mock_warn:
+            enforcer.load_rules()
+            mock_warn.assert_called_once()
+
+        enforcer.enforce('foo:create_bar', {}, {'roles': ['fizz']},
+                         do_raise=True)
+        enforcer.enforce('foo:create_bar', {}, {'roles': ['bang']},
+                         do_raise=True)
+
     def test_deprecate_a_policy_name(self):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:bar',
