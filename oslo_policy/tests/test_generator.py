@@ -564,7 +564,8 @@ class ListRedundantTestCase(base.PolicyBaseTestCase):
     def setUp(self):
         super(ListRedundantTestCase, self).setUp()
 
-    def test_matched_rules(self):
+    @mock.patch('warnings.warn')
+    def test_matched_rules(self, mock_warn):
         extensions = []
         for name, opts in OPTS.items():
             ext = stevedore.extension.Extension(name=name, entry_point=None,
@@ -587,7 +588,13 @@ class ListRedundantTestCase(base.PolicyBaseTestCase):
         enforcer.register_default(
             policy.RuleDefault('owner', 'project_id:%(project_id)s'))
         # register a new opt
-        enforcer.register_default(policy.RuleDefault('foo', 'role:foo'))
+        deprecated_rule = policy.DeprecatedRule('old_foo', 'role:bar')
+        enforcer.register_default(
+            policy.RuleDefault('foo', 'role:foo',
+                               deprecated_rule=deprecated_rule,
+                               deprecated_reason='reason',
+                               deprecated_since='T')
+            )
 
         # Mock out stevedore to return the configured enforcer
         ext = stevedore.extension.Extension(name='testing', entry_point=None,
@@ -617,6 +624,9 @@ class ListRedundantTestCase(base.PolicyBaseTestCase):
         opt1 = matches[1]
         self.assertEqual('"owner"', opt1[0])
         self.assertEqual('"project_id:%(project_id)s"', opt1[1])
+
+        self.assertFalse(mock_warn.called,
+                         'Deprecation warnings not suppressed.')
 
 
 class UpgradePolicyTestCase(base.PolicyBaseTestCase):

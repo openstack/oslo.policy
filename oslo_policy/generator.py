@@ -315,6 +315,11 @@ def _list_redundant(namespace):
     in a policy file and operators should consider removing them.
     """
     enforcer = _get_enforcer(namespace)
+    # NOTE(bnemec): We don't want to see policy deprecation warnings in the
+    # output of this tool. They tend to overwhelm the output that the user
+    # actually cares about, and checking for deprecations isn't the purpose of
+    # this tool.
+    enforcer.suppress_deprecation_warnings = True
     # Ensure that files have been parsed
     enforcer.load_rules()
 

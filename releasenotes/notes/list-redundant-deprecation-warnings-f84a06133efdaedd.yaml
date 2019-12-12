@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Deprecated policy warnings are now suppressed in the
+    ``oslopolicy-list-redundant`` tool so that they don't overwhelm the
+    relevant output.
