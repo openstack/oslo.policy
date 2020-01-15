@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    A new tool, ``oslopolicy-validator``, has been added. It allows deployers
+    to easily run basic sanity checks against their policy files. See the
+    documentation for full details.

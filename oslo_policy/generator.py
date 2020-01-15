@@ -328,10 +328,68 @@ def _list_redundant(namespace):
     enforcer.load_rules()
 
     for name, file_rule in enforcer.file_rules.items():
-        reg_rule = enforcer.registered_rules.get(name, None)
+        reg_rule = enforcer.registered_rules.get(name)
         if reg_rule:
             if file_rule == reg_rule:
                 print(reg_rule)
+
+
+def _validate_policy(namespace):
+    """Perform basic sanity checks on a policy file
+
+    Checks for the following errors in the configured policy file:
+
+    * A missing policy file
+    * Rules which have invalid syntax
+    * Rules which reference non-existent other rules
+    * Rules which form a cyclical reference with another rule
+    * Rules which do not exist in the specified namespace
+
+    :param namespace: The name under which the oslo.policy enforcer is
+                      registered.
+    :returns: 0 if all policies validated correctly, 1 if not.
+    """
+    return_code = 0
+    enforcer = _get_enforcer(namespace)
+    # NOTE(bnemec): We don't want to see policy deprecation warnings in the
+    # output of this tool. They tend to overwhelm the output that the user
+    # actually cares about. If we check for deprecated rules in this tool,
+    # we need to do it another way.
+    enforcer.suppress_deprecation_warnings = True
+    # Disable logging from the parser code. We'll be printing any errors we
+    # find below.
+    logging.disable(logging.ERROR)
+    # Ensure that files have been parsed
+    enforcer.load_rules()
+
+    if enforcer._informed_no_policy_file:
+        print('Configured policy file "%s" not found' % enforcer.policy_file)
+        # If the policy file is completely missing then the rest of our checks
+        # don't make sense.
+        return 1
+
+    # Re-enable logging so we get messages for things like cyclical references
+    logging.disable(logging.NOTSET)
+    result = enforcer.check_rules()
+    if not result:
+        print('Invalid rules found')
+        return_code = 1
+
+    # TODO(bnemec): Allow this to handle policy_dir
+    with open(cfg.CONF.oslo_policy.policy_file) as f:
+        unparsed_policies = yaml.safe_load(f.read())
+    for name, file_rule in enforcer.file_rules.items():
+        reg_rule = enforcer.registered_rules.get(name)
+        if reg_rule is None:
+            print('Unknown rule found in policy file:', name)
+            return_code = 1
+        # If a rule has invalid syntax it will be forced to '!'. If the literal
+        # rule from the policy file isn't '!' then this means there was an
+        # error parsing it.
+        if str(enforcer.rules[name]) == '!' and unparsed_policies[name] != '!':
+            print('Failed to parse rule:', unparsed_policies[name])
+            return_code = 1
+    return return_code
 
 
 def on_load_failure_callback(*args, **kwargs):
@@ -423,3 +481,12 @@ def list_redundant(args=None):
     conf(args)
     _check_for_namespace_opt(conf)
     _list_redundant(conf.namespace)
+
+
+def validate_policy(args=None):
+    logging.basicConfig(level=logging.WARN)
+    conf = cfg.CONF
+    conf.register_cli_opts(ENFORCER_OPTS)
+    conf.register_opts(ENFORCER_OPTS)
+    conf(args)
+    sys.exit(_validate_policy(conf.namespace))
