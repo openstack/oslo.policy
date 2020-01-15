@@ -1,6 +1,6 @@
-==========================
-Writing custom check rules
-==========================
+========================
+Writing HTTP check rules
+========================
 
 oslo.policy has supported the following syntax for a while::
 
