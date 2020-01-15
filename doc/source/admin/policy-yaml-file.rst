@@ -71,6 +71,10 @@ administrators can create new users in the Identity database:
 
     "identity:create_user" : "role:admin"
 
+.. note:: ``admin`` is a built-in default role in Keystone. For more
+          details and other roles that may be available, see the
+          `Keystone documentation on default roles. <https://docs.openstack.org/keystone/latest/admin/service-api-protection.html>`_
+
 You can limit APIs to any role. For example, the Orchestration service
 defines a role named ``heat_stack_user``. Whoever has this role is not
 allowed to create stacks:
