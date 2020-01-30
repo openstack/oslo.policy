@@ -334,9 +334,11 @@ def on_load_failure_callback(*args, **kwargs):
     raise
 
 
-def generate_sample(args=None):
+def generate_sample(args=None, conf=None):
     logging.basicConfig(level=logging.WARN)
-    conf = cfg.ConfigOpts()
+    # Allow the caller to pass in a local conf object for unit testing
+    if conf is None:
+        conf = cfg.CONF
     conf.register_cli_opts(GENERATOR_OPTS + RULE_OPTS)
     conf.register_opts(GENERATOR_OPTS + RULE_OPTS)
     conf(args)
@@ -345,7 +347,7 @@ def generate_sample(args=None):
 
 def generate_policy(args=None):
     logging.basicConfig(level=logging.WARN)
-    conf = cfg.ConfigOpts()
+    conf = cfg.CONF
     conf.register_cli_opts(GENERATOR_OPTS + ENFORCER_OPTS)
     conf.register_opts(GENERATOR_OPTS + ENFORCER_OPTS)
     conf(args)
@@ -367,9 +369,11 @@ def _upgrade_policies(policies, default_policies):
                           'new_name': rule_default.name})
 
 
-def upgrade_policy(args=None):
+def upgrade_policy(args=None, conf=None):
     logging.basicConfig(level=logging.WARN)
-    conf = cfg.ConfigOpts()
+    # Allow the caller to pass in a local conf object for unit testing
+    if conf is None:
+        conf = cfg.CONF
     conf.register_cli_opts(GENERATOR_OPTS + RULE_OPTS + UPGRADE_OPTS)
     conf.register_opts(GENERATOR_OPTS + RULE_OPTS + UPGRADE_OPTS)
     conf(args)
@@ -396,7 +400,7 @@ def upgrade_policy(args=None):
 
 def list_redundant(args=None):
     logging.basicConfig(level=logging.WARN)
-    conf = cfg.ConfigOpts()
+    conf = cfg.CONF
     conf.register_cli_opts(ENFORCER_OPTS)
     conf.register_opts(ENFORCER_OPTS)
     conf(args)
