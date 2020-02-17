@@ -31,7 +31,6 @@ GENERATOR_OPTS = [
 
 RULE_OPTS = [
     cfg.MultiStrOpt('namespace',
-                    required=True,
                     help='Option namespace(s) under "oslo.policy.policies" in '
                          'which to query for options.'),
     cfg.StrOpt('format',
@@ -42,7 +41,6 @@ RULE_OPTS = [
 
 ENFORCER_OPTS = [
     cfg.StrOpt('namespace',
-               required=True,
                help='Option namespace under "oslo.policy.enforcer" in '
                     'which to look for a policy.Enforcer.'),
 ]
@@ -334,6 +332,17 @@ def on_load_failure_callback(*args, **kwargs):
     raise
 
 
+def _check_for_namespace_opt(conf):
+    # NOTE(bnemec): This opt is required, but due to lp#1849518 we need to
+    # make it optional while our consumers migrate to the new method of
+    # parsing cli args. Making the arg itself optional and explicitly checking
+    # for it in the tools will allow us to migrate projects without breaking
+    # anything. Once everyone has migrated, we can make the arg required again
+    # and remove this check.
+    if conf.namespace is None:
+        raise cfg.RequiredOptError('namespace', 'DEFAULT')
+
+
 def generate_sample(args=None, conf=None):
     logging.basicConfig(level=logging.WARN)
     # Allow the caller to pass in a local conf object for unit testing
@@ -342,6 +351,7 @@ def generate_sample(args=None, conf=None):
     conf.register_cli_opts(GENERATOR_OPTS + RULE_OPTS)
     conf.register_opts(GENERATOR_OPTS + RULE_OPTS)
     conf(args)
+    _check_for_namespace_opt(conf)
     _generate_sample(conf.namespace, conf.output_file, conf.format)
 
 
@@ -351,6 +361,7 @@ def generate_policy(args=None):
     conf.register_cli_opts(GENERATOR_OPTS + ENFORCER_OPTS)
     conf.register_opts(GENERATOR_OPTS + ENFORCER_OPTS)
     conf(args)
+    _check_for_namespace_opt(conf)
     _generate_policy(conf.namespace, conf.output_file)
 
 
@@ -377,6 +388,7 @@ def upgrade_policy(args=None, conf=None):
     conf.register_cli_opts(GENERATOR_OPTS + RULE_OPTS + UPGRADE_OPTS)
     conf.register_opts(GENERATOR_OPTS + RULE_OPTS + UPGRADE_OPTS)
     conf(args)
+    _check_for_namespace_opt(conf)
     with open(conf.policy, 'r') as input_data:
         policies = policy.parse_file_contents(input_data.read())
     default_policies = get_policies_dict(conf.namespace)
@@ -404,4 +416,5 @@ def list_redundant(args=None):
     conf.register_cli_opts(ENFORCER_OPTS)
     conf.register_opts(ENFORCER_OPTS)
     conf(args)
+    _check_for_namespace_opt(conf)
     _list_redundant(conf.namespace)
