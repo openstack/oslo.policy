@@ -32,7 +32,8 @@ class SingleSampleGenerationTest(base.BaseTestCase):
 
         sample.assert_called_once_with(args=[
             '--config-file', '/opt/nova/nova.conf',
-            '--output-file', '/opt/nova/nova.policy.yaml.sample'])
+            '--output-file', '/opt/nova/nova.policy.yaml.sample'],
+            conf=mock.ANY)
 
     @mock.patch('os.path.isdir')
     @mock.patch('os.path.isfile')
@@ -49,7 +50,8 @@ class SingleSampleGenerationTest(base.BaseTestCase):
 
         sample.assert_called_once_with(args=[
             '--config-file', '/opt/nova/nova.conf',
-            '--output-file', '/opt/nova/sample.policy.yaml'])
+            '--output-file', '/opt/nova/sample.policy.yaml'],
+            conf=mock.ANY)
 
     @mock.patch('os.path.isdir')
     @mock.patch('os.path.isfile')
@@ -70,7 +72,9 @@ class SingleSampleGenerationTest(base.BaseTestCase):
         sample.assert_has_calls([
             mock.call(args=[
                 '--config-file', '/opt/nova/nova.conf',
-                '--output-file', '/opt/nova/nova.policy.yaml.sample']),
+                '--output-file', '/opt/nova/nova.policy.yaml.sample'],
+                      conf=mock.ANY),
             mock.call(args=[
                 '--config-file', '/opt/nova/placement.conf',
-                '--output-file', '/opt/nova/placement.policy.yaml.sample'])])
+                '--output-file', '/opt/nova/placement.policy.yaml.sample'],
+                      conf=mock.ANY)])

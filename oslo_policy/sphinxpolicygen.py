@@ -17,6 +17,7 @@
 
 import os
 
+from oslo_config import cfg
 from sphinx.util import logging
 
 from oslo_policy import generator
@@ -77,8 +78,14 @@ def _generate_sample(app, policy_file, base_name):
         out_file = os.path.join(app.srcdir, file_name)
 
     info('writing sample policy to %s' % out_file)
+    # NOTE(bnemec): We don't want to do cli parsing on the global object here
+    # because that can break consumers who do cli arg registration on import
+    # in their documented modules. It's not allowed to register a cli arg after
+    # the args have been parsed once.
+    conf = cfg.ConfigOpts()
     generator.generate_sample(args=['--config-file', config_path,
-                                    '--output-file', out_file])
+                                    '--output-file', out_file],
+                              conf=conf)
 
 
 def setup(app):
