@@ -595,7 +595,7 @@ class ListRedundantTestCase(base.PolicyBaseTestCase):
                                deprecated_rule=deprecated_rule,
                                deprecated_reason='reason',
                                deprecated_since='T')
-            )
+        )
 
         # Mock out stevedore to return the configured enforcer
         ext = stevedore.extension.Extension(name='testing', entry_point=None,

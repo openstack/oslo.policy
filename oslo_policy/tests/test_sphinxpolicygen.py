@@ -73,8 +73,8 @@ class SingleSampleGenerationTest(base.BaseTestCase):
             mock.call(args=[
                 '--config-file', '/opt/nova/nova.conf',
                 '--output-file', '/opt/nova/nova.policy.yaml.sample'],
-                      conf=mock.ANY),
+                conf=mock.ANY),
             mock.call(args=[
                 '--config-file', '/opt/nova/placement.conf',
                 '--output-file', '/opt/nova/placement.policy.yaml.sample'],
-                      conf=mock.ANY)])
+                conf=mock.ANY)])
