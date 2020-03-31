@@ -10,9 +10,9 @@
 #    under the License.
 
 import operator
+from unittest import mock
 import warnings
 
-import mock
 from oslo_config import cfg
 import stevedore
 import testtools

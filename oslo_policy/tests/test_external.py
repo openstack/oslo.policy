@@ -14,7 +14,8 @@
 #    under the License.
 
 import json
-import mock
+from unittest import mock
+
 from oslo_serialization import jsonutils
 from requests_mock.contrib import fixture as rm_fixture
 import six.moves.urllib.parse as urlparse
