@@ -878,20 +878,7 @@ class Enforcer(object):
 
         if LOG.isEnabledFor(logging.DEBUG):
             try:
-                # NOTE(jdennis) Although a MutableMapping behaves like
-                # a dict oslo.strutils.mask_dict_password() requires a
-                # dict. Bug #1804528 was opened to fix this, once that
-                # bug is fixed the conversion to dict can be removed.
-                if isinstance(creds, dict):
-                    creds_dict = creds
-                elif isinstance(creds, collections.MutableMapping):
-                    creds_dict = dict(creds)
-                else:
-                    raise TypeError('unexpected type %(creds_type)s' %
-                                    {'creds_type': type(creds)})
-                creds_dict = strutils.mask_dict_password(
-                    copy.deepcopy(creds_dict)
-                )
+                creds_dict = strutils.mask_dict_password(copy.deepcopy(creds))
                 creds_msg = jsonutils.dumps(creds_dict,
                                             skipkeys=True, sort_keys=True)
             except Exception as e:
