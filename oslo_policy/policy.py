@@ -503,6 +503,12 @@ class Enforcer(object):
         self._policy_dir_mtimes = {}
         self._file_cache = {}
         self._informed_no_policy_file = False
+        # NOTE(gmann): This flag will suppress the warning for
+        # policies changing their default check_str that have
+        # not been overridden by operators. This does not affect the
+        # warning for policy changed their name or deprecated
+        # for removal.
+        self.suppress_default_change_warnings = False
         # FOR TESTING ONLY
         self.suppress_deprecation_warnings = False
 
@@ -540,6 +546,7 @@ class Enforcer(object):
         self.registered_rules = {}
         self.file_rules = {}
         self._informed_no_policy_file = False
+        self.suppress_default_change_warnings = False
         self.suppress_deprecation_warnings = False
 
     def load_rules(self, force_reload=False):
@@ -702,7 +709,8 @@ class Enforcer(object):
             default.check = OrCheck([_parser.parse_rule(cs) for cs in
                                      [default.check_str,
                                       deprecated_rule.check_str]])
-            if not self.suppress_deprecation_warnings:
+            if not (self.suppress_deprecation_warnings
+                    or self.suppress_default_change_warnings):
                 warnings.warn(deprecated_msg)
 
     def _undefined_check(self, check):

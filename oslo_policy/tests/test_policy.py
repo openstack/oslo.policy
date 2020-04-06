@@ -1415,6 +1415,28 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             enforcer.load_rules()
             mock_warn.assert_not_called()
 
+    def test_suppress_default_change_warnings_flag_not_log_warning(self):
+        deprecated_rule = policy.DeprecatedRule(
+            name='foo:create_bar',
+            check_str='role:fizz'
+        )
+
+        rule_list = [policy.DocumentedRuleDefault(
+            name='foo:create_bar',
+            check_str='role:bang',
+            description='Create a bar.',
+            operations=[{'path': '/v1/bars', 'method': 'POST'}],
+            deprecated_rule=deprecated_rule,
+            deprecated_reason='"role:bang" is a better default',
+            deprecated_since='N'
+        )]
+        enforcer = policy.Enforcer(self.conf)
+        enforcer.suppress_default_change_warnings = True
+        enforcer.register_defaults(rule_list)
+        with mock.patch('warnings.warn') as mock_warn:
+            enforcer.load_rules()
+            mock_warn.assert_not_called()
+
     def test_deprecated_policy_for_removal_must_include_deprecated_since(self):
         self.assertRaises(
             ValueError,
