@@ -34,16 +34,20 @@ class ParseCheckTestCase(test_base.BaseTestCase):
 
         self.assertIsInstance(result, _checks.TrueCheck)
 
-    def test_bad_rule(self):
+    @mock.patch.object(_parser, 'LOG')
+    def test_bad_rule(self, mock_log):
         result = _parser._parse_check('foobar')
 
         self.assertIsInstance(result, _checks.FalseCheck)
+        mock_log.exception.assert_called_once()
 
     @mock.patch.object(_checks, 'registered_checks', {})
-    def test_no_handler(self):
+    @mock.patch.object(_parser, 'LOG')
+    def test_no_handler(self, mock_log):
         result = _parser._parse_check('no:handler')
 
         self.assertIsInstance(result, _checks.FalseCheck)
+        mock_log.error.assert_called()
 
     @mock.patch.object(_checks, 'registered_checks', {
         'spam': mock.Mock(return_value='spam_check'),
@@ -375,6 +379,7 @@ class ParseTextRuleTestCase(test_base.BaseTestCase):
         mock_shift.assert_has_calls(
             [mock.call('tok1', 'val1'), mock.call('tok2', 'val2')])
 
+    @mock.patch.object(_parser, 'LOG', new=mock.Mock())
     @mock.patch.object(_parser, '_parse_tokenize', return_value=[])
     def test_fail(self, mock_parse_tokenize):
         result = _parser._parse_text_rule('test rule')

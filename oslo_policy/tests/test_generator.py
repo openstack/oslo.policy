@@ -674,7 +674,8 @@ class UpgradePolicyTestCase(base.PolicyBaseTestCase):
             with mock.patch('sys.argv', testargs):
                 generator.upgrade_policy(conf=self.local_conf)
                 new_file = self.get_config_file_fullname('new_policy.json')
-                new_policy = jsonutils.loads(open(new_file, 'r').read())
+                with open(new_file, 'r') as fh:
+                    new_policy = jsonutils.loads(fh.read())
                 self.assertIsNotNone(new_policy.get('new_policy_name'))
                 self.assertIsNone(new_policy.get('deprecated_name'))
 
@@ -693,7 +694,8 @@ class UpgradePolicyTestCase(base.PolicyBaseTestCase):
             with mock.patch('sys.argv', testargs):
                 generator.upgrade_policy(conf=self.local_conf)
                 new_file = self.get_config_file_fullname('new_policy.yaml')
-                new_policy = yaml.safe_load(open(new_file, 'r'))
+                with open(new_file, 'r') as fh:
+                    new_policy = yaml.safe_load(fh)
                 self.assertIsNotNone(new_policy.get('new_policy_name'))
                 self.assertIsNone(new_policy.get('deprecated_name'))
 

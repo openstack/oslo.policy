@@ -277,6 +277,9 @@ def _generate_sample(namespaces, output_file=None, output_format='yaml',
             ',\n    '.join(sections_text),
             '\n}\n'))
 
+    if output_file != sys.stdout:
+        output_file.close()
+
 
 def _generate_policy(namespace, output_file=None):
     """Generate a policy file showing what will be used.
@@ -303,6 +306,9 @@ def _generate_policy(namespace, output_file=None):
 
     for section in _sort_and_format_by_section(policies, include_help=False):
         output_file.write(section)
+
+    if output_file != sys.stdout:
+        output_file.close()
 
 
 def _list_redundant(namespace):
@@ -396,12 +402,11 @@ def upgrade_policy(args=None, conf=None):
     _upgrade_policies(policies, default_policies)
 
     if conf.output_file:
-        if conf.format == 'yaml':
-            yaml.safe_dump(policies, open(conf.output_file, 'w'),
-                           default_flow_style=False)
-        elif conf.format == 'json':
-            jsonutils.dump(policies, open(conf.output_file, 'w'),
-                           indent=4)
+        with open(conf.output_file, 'w') as fh:
+            if conf.format == 'yaml':
+                yaml.safe_dump(policies, fh, default_flow_style=False)
+            elif conf.format == 'json':
+                jsonutils.dump(policies, fh, indent=4)
     else:
         if conf.format == 'yaml':
             sys.stdout.write(yaml.safe_dump(policies,
