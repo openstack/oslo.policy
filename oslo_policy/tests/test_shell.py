@@ -229,7 +229,7 @@ passed: sampleservice:sample_rule2
         self.create_config_file(
             "target.json",
             jsonutils.dumps(target))
-        target_file = open(self.get_config_file_fullname('target.json'), 'r')
-        target_from_file = target_file.read()
+        with open(self.get_config_file_fullname('target.json'), 'r') as fh:
+            target_from_file = fh.read()
         result = shell.flatten(jsonutils.loads(target_from_file))
         self.assertEqual(result, {"target.secret.project_id": "1234"})

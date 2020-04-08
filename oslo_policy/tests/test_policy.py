@@ -797,6 +797,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         for k, v in expected_creds.items():
             self.assertEqual(expected_creds[k], creds[k])
 
+    @mock.patch('warnings.warn', new=mock.Mock())
     def test_map_context_attributes_populated_system(self):
         request_context = context.RequestContext(system_scope='all')
         expected_creds = request_context.to_policy_values()
@@ -1161,6 +1162,7 @@ class RuleDefaultTestCase(base.PolicyBaseTestCase):
 
 class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
 
+    @mock.patch('warnings.warn', new=mock.Mock())
     def test_deprecate_a_policy_check_string(self):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:create_bar',
@@ -1200,6 +1202,7 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             enforcer.enforce('foo:create_bar', {}, {'roles': ['baz']})
         )
 
+    @mock.patch('warnings.warn', new=mock.Mock())
     def test_deprecate_an_empty_policy_check_string(self):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:create_bar',
@@ -1227,6 +1230,7 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
         enforcer.enforce('foo:create_bar', {}, {'roles': ['fizz']},
                          do_raise=True)
 
+    @mock.patch('warnings.warn', new=mock.Mock())
     def test_deprecate_replace_with_empty_policy_check_string(self):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:create_bar',
@@ -1468,6 +1472,7 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             deprecated_since='N'
         )
 
+    @mock.patch('warnings.warn', new=mock.Mock())
     def test_override_deprecated_policy_with_old_name(self):
         # Simulate an operator overriding a policy
         rules = jsonutils.dumps({'foo:bar': 'role:bazz'})
@@ -1536,6 +1541,7 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             self.enforcer.enforce('foo:create_bar', {}, {'roles': ['bazz']})
         )
 
+    @mock.patch('warnings.warn', new=mock.Mock())
     def test_override_both_new_and_old_policy(self):
         # Simulate an operator overriding a policy using both the the new and
         # old policy names. The following doesn't make a whole lot of sense
@@ -1586,6 +1592,7 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             self.enforcer.enforce('foo:create_bar', {}, {'roles': ['bazz']})
         )
 
+    @mock.patch('warnings.warn', new=mock.Mock())
     def test_override_deprecated_policy_with_new_rule(self):
         # Simulate an operator overriding a deprecated policy with a reference
         # to the new policy, as done by the sample policy generator.
@@ -1712,37 +1719,46 @@ class EnforcerCheckRulesTest(base.PolicyBaseTestCase):
         self.enforcer.load_rules(True)
         self.assertTrue(self.enforcer.check_rules(raise_on_violation=True))
 
-    def test_undefined_rule(self):
+    @mock.patch.object(policy, 'LOG')
+    def test_undefined_rule(self, mock_log):
         rules = jsonutils.dumps({'foo': 'rule:bar'})
         self.create_config_file('policy.json', rules)
         self.enforcer.load_rules(True)
 
         self.assertFalse(self.enforcer.check_rules())
+        mock_log.warning.assert_called()
 
-    def test_undefined_rule_raises(self):
+    @mock.patch.object(policy, 'LOG')
+    def test_undefined_rule_raises(self, mock_log):
         rules = jsonutils.dumps({'foo': 'rule:bar'})
         self.create_config_file('policy.json', rules)
         self.enforcer.load_rules(True)
 
         self.assertRaises(policy.InvalidDefinitionError,
                           self.enforcer.check_rules, raise_on_violation=True)
+        mock_log.warning.assert_called()
 
-    def test_cyclical_rules(self):
+    @mock.patch.object(policy, 'LOG')
+    def test_cyclical_rules(self, mock_log):
         rules = jsonutils.dumps({'foo': 'rule:bar', 'bar': 'rule:foo'})
         self.create_config_file('policy.json', rules)
         self.enforcer.load_rules(True)
 
         self.assertFalse(self.enforcer.check_rules())
+        mock_log.warning.assert_called()
 
-    def test_cyclical_rules_raises(self):
+    @mock.patch.object(policy, 'LOG')
+    def test_cyclical_rules_raises(self, mock_log):
         rules = jsonutils.dumps({'foo': 'rule:bar', 'bar': 'rule:foo'})
         self.create_config_file('policy.json', rules)
         self.enforcer.load_rules(True)
 
         self.assertRaises(policy.InvalidDefinitionError,
                           self.enforcer.check_rules, raise_on_violation=True)
+        mock_log.warning.assert_called()
 
-    def test_complex_cyclical_rules_false(self):
+    @mock.patch.object(policy, 'LOG')
+    def test_complex_cyclical_rules_false(self, mock_log):
         rules = jsonutils.dumps({'foo': 'rule:bar',
                                  'bar': 'rule:baz and role:admin',
                                  'baz': 'rule:foo or role:user'})
@@ -1750,6 +1766,7 @@ class EnforcerCheckRulesTest(base.PolicyBaseTestCase):
         self.enforcer.load_rules(True)
 
         self.assertFalse(self.enforcer.check_rules())
+        mock_log.warning.assert_called()
 
     def test_complex_cyclical_rules_true(self):
         rules = jsonutils.dumps({'foo': 'rule:bar or rule:baz',
