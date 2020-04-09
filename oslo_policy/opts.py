@@ -39,12 +39,12 @@ _options = [
                 help=_('This option controls whether or not to use old '
                        'deprecated defaults when evaluating policies. If '
                        '``True``, the old deprecated defaults are not going '
-                       'to be evaluated which mean if any existing token '
-                       'allowed for old defaults but disallowed for new '
-                       'defaults will be disallowed. It is encouraged to '
-                       'enable this flag along with ``enforce_scope`` flag '
-                       'so that you can get benefits of new defaults and '
-                       '``scope_type`` together')),
+                       'to be evaluated. This means if any existing token is '
+                       'allowed for old defaults but is disallowed for new '
+                       'defaults, it will be disallowed. It is encouraged to '
+                       'enable this flag along with the ``enforce_scope`` '
+                       'flag so that you can get the benefits of new defaults '
+                       'and ``scope_type`` together')),
     cfg.StrOpt('policy_file',
                default='policy.json',
                help=_('The relative or absolute path of a file that maps '

@@ -703,8 +703,8 @@ class Enforcer(object):
         # messages telling them stuff is going to change if they don't maintain
         # the policy manually or add infrastructure to their deployment to
         # support the new policy.
-        # If flag enforce_new_defaults is true then do not add OrCheck
-        # the old check_str and enforce only new defaults.
+        # If the enforce_new_defaults flag is True, do not add OrCheck to the
+        # old check_str and enforce only the new defaults.
         if (not self.conf.oslo_policy.enforce_new_defaults
                 and deprecated_rule.check_str != default.check_str
                 and default.name not in self.file_rules):
