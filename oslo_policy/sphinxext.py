@@ -165,3 +165,7 @@ class ShowPolicyDirective(rst.Directive):
 
 def setup(app):
     app.add_directive('show-policy', ShowPolicyDirective)
+    return {
+        'parallel_read_safe': True,
+        'parallel_write_safe': True,
+    }

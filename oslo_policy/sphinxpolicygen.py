@@ -92,3 +92,7 @@ def setup(app):
     app.add_config_value('policy_generator_config_file', None, 'env')
     app.add_config_value('sample_policy_basename', None, 'env')
     app.connect('builder-inited', generate_sample)
+    return {
+        'parallel_read_safe': True,
+        'parallel_write_safe': True,
+    }
