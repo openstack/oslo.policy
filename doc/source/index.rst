@@ -5,6 +5,9 @@
 An OpenStack library providing support for RBAC policy enforcement across all
 OpenStack services.
 
+Contents
+========
+
 .. toctree::
    :maxdepth: 2
 
@@ -16,7 +19,15 @@ OpenStack services.
    reference/index
    contributor/index
 
-.. rubric:: Indices and tables
+Release Notes
+=============
+
+Read also the `oslo.policy Release Notes
+<https://docs.openstack.org/releasenotes/oslo.policy/>`_.
+
+
+Indices and tables
+==================
 
 * :ref:`genindex`
 * :ref:`modindex`
