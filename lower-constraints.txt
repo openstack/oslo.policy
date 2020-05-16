@@ -23,7 +23,6 @@ mox3==0.20.0
 msgpack-python==0.4.0
 netaddr==0.7.18
 netifaces==0.10.4
-openstackdocstheme==1.20.0
 os-client-config==1.28.0
 oslo.config==5.2.0
 oslo.context==2.22.0
@@ -40,7 +39,6 @@ python-mimeparse==1.6.0
 python-subunit==1.0.0
 pytz==2013.6
 PyYAML==3.12
-reno==2.5.0
 requests==2.14.2
 requests-mock==1.2.0
 requestsexceptions==1.2.0
@@ -49,8 +47,6 @@ six==1.10.0
 stestr==2.0.0
 smmap==0.9.0
 snowballstemmer==1.2.1
-Sphinx==1.8.0
-sphinxcontrib-websupport==1.0.1
 stevedore==1.20.0
 testrepository==0.0.18
 testtools==2.2.0

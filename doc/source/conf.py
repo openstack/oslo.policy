@@ -25,9 +25,9 @@ extensions = [
 ]
 
 # openstackdocstheme options
-repository_name = 'openstack/oslo.policy'
-bug_project = 'oslo.policy'
-bug_tag = ''
+openstackdocs_repo_name = 'openstack/oslo.policy'
+openstackdocs_bug_project = 'oslo.policy'
+openstackdocs_bug_tag = ''
 
 # autodoc generation is a bit aggressive and a nuisance when doing heavy
 # text edit cycles.
@@ -40,7 +40,6 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'oslo.policy'
 copyright = u'2014, OpenStack Foundation'
 source_tree = 'https://opendev.org/openstack/oslo.policy/src/branch/master'
 
