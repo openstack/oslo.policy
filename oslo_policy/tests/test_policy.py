@@ -264,6 +264,48 @@ class EnforcerTest(base.PolicyBaseTestCase):
             os.path.join('policy.d', 'b.conf'),
         ])
 
+    def test_load_directory_after_file_update(self):
+        self.create_config_file(
+            os.path.join('policy.d', 'a.conf'), POLICY_A_CONTENTS)
+        self.enforcer.load_rules(True)
+        self.assertIsNotNone(self.enforcer.rules)
+        loaded_rules = jsonutils.loads(str(self.enforcer.rules))
+        self.assertEqual('role:fakeA', loaded_rules['default'])
+        self.assertEqual('is_admin:True', loaded_rules['admin'])
+        self.check_loaded_files([
+            'policy.json',
+            os.path.join('policy.d', 'a.conf'),
+        ])
+        new_policy_json_contents = jsonutils.dumps({
+            "default": "rule:admin",
+            "admin": "is_admin:True",
+            "foo": "rule:bar",
+        })
+        # Modify the policy.json file and then validate that the rules
+        # from the policy directory are re-applied on top of the
+        # new rules from the file.
+        self.create_config_file('policy.json', new_policy_json_contents)
+        policy_file_path = self.get_config_file_fullname('policy.json')
+        # Force the mtime change since the unit test may write to this file
+        # too fast for mtime to actually change.
+        stinfo = os.stat(policy_file_path)
+        os.utime(policy_file_path, (stinfo.st_atime + 42,
+                                    stinfo.st_mtime + 42))
+
+        self.enforcer.load_rules()
+
+        self.assertIsNotNone(self.enforcer.rules)
+        loaded_rules = jsonutils.loads(str(self.enforcer.rules))
+        self.assertEqual('role:fakeA', loaded_rules['default'])
+        self.assertEqual('is_admin:True', loaded_rules['admin'])
+        self.assertEqual('rule:bar', loaded_rules['foo'])
+        self.check_loaded_files([
+            'policy.json',
+            os.path.join('policy.d', 'a.conf'),
+            'policy.json',
+            os.path.join('policy.d', 'a.conf'),
+        ])
+
     def test_load_directory_opts_registered(self):
         self._test_scenario_with_opts_registered(self.test_load_directory)
 
@@ -389,6 +431,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
                                [os.path.join('policy.d', 'a.conf')],
                                group='oslo_policy')
         self.assertRaises(ValueError, self.enforcer.load_rules, True)
+        self.assertRaises(ValueError, self.enforcer.load_rules, False)
 
     @mock.patch('oslo_policy.policy.Enforcer.check_rules')
     def test_load_rules_twice(self, mock_check_rules):
