@@ -549,6 +549,8 @@ class Enforcer(object):
         if force_reload:
             self.use_conf = force_reload
 
+        policy_file_rules_changed = False
+
         if self.use_conf:
             if not self.policy_path:
                 try:
@@ -560,18 +562,30 @@ class Enforcer(object):
                         self._informed_no_policy_file = True
 
             if self.policy_path:
-                self._load_policy_file(self.policy_path, force_reload,
-                                       overwrite=self.overwrite)
+                # If the policy file rules have changed any policy.d rules
+                # also need to be reapplied on top of that change.
+                policy_file_rules_changed = self._load_policy_file(
+                    self.policy_path,
+                    force_reload,
+                    overwrite=self.overwrite
+                )
+
+            force_reload_policy_dir = force_reload
+            if policy_file_rules_changed:
+                force_reload_policy_dir = True
+
             for path in self.conf.oslo_policy.policy_dirs:
                 try:
                     path = self._get_policy_path(path)
                 except cfg.ConfigFilesNotFoundError:
                     continue
-                if (force_reload or self._is_directory_updated(
-                        self._policy_dir_mtimes, path)):
-                    self._walk_through_policy_directory(path,
-                                                        self._load_policy_file,
-                                                        force_reload, False)
+                if (self._is_directory_updated(self._policy_dir_mtimes, path)
+                        or force_reload_policy_dir):
+                    self._walk_through_policy_directory(
+                        path,
+                        self._load_policy_file,
+                        force_reload_policy_dir, False
+                    )
 
             for default in self.registered_rules.values():
                 if default.deprecated_rule:
@@ -722,6 +736,8 @@ class Enforcer(object):
         # is in the cache
         mtime = 0
         if os.path.exists(path):
+            if not os.path.isdir(path):
+                raise ValueError('{} is not a directory'.format(path))
             # Make a list of all the files
             files = [path] + [os.path.join(path, file) for file in
                               os.listdir(path)]
@@ -760,14 +776,25 @@ class Enforcer(object):
             self.file_rules[name] = RuleDefault(name, check_str)
 
     def _load_policy_file(self, path, force_reload, overwrite=True):
+        """Load policy rules from the specified policy file.
+
+        :param str path: A path of the policy file to load rules from.
+        :param bool force_reload: Forcefully reload the policy file content.
+        :param bool overwrite: Replace policy rules instead of updating them.
+        :return: A bool indicating whether rules have been changed or not.
+        :rtype: bool
+        """
+        rules_changed = False
         reloaded, data = _cache_handler.read_cached_file(
             self._file_cache, path, force_reload=force_reload)
         if reloaded or not self.rules:
             rules = Rules.load(data, self.default_rule)
             self.set_rules(rules, overwrite=overwrite, use_conf=True)
+            rules_changed = True
             self._record_file_rules(data, overwrite)
             self._loaded_files.append(path)
             LOG.debug('Reloaded policy file: %(path)s', {'path': path})
+        return rules_changed
 
     def _get_policy_path(self, path):
         """Locate the policy YAML/JSON data file/path.
@@ -863,14 +890,14 @@ class Enforcer(object):
                 # Check the scope of the operation against the possible scope
                 # attributes provided in `creds`.
                 if creds.get('system'):
-                    token_scope = 'system'
+                    token_scope = 'system'  # nosec
                 else:
                     # If the token isn't system-scoped then we're dealing with
                     # either a domain-scoped token or a project-scoped token.
                     # From a policy perspective, both are "project" operations.
                     # Whether or not the project is a domain depends on where
                     # it sits in the hierarchy.
-                    token_scope = 'project'
+                    token_scope = 'project'  # nosec
 
                 registered_rule = self.registered_rules.get(rule)
                 if registered_rule and registered_rule.scope_types:
