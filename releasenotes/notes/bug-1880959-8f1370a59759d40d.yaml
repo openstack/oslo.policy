@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    [`bug 1880959 <https://bugs.launchpad.net/keystone/+bug/1880959>`_]
+    The behavior of policy file reloading from policy directories was fixed.
+    Previously the rules from policy files located in the directories
+    specified in the ``policy_dirs`` option were not reapplied after the rules
+    from the primary policy file have been reapplied due to a change.
