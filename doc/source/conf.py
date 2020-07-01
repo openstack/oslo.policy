@@ -40,7 +40,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-copyright = u'2014, OpenStack Foundation'
+copyright = '2014-2020, OpenStack Foundation'
 source_tree = 'https://opendev.org/openstack/oslo.policy/src/branch/master'
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
@@ -61,6 +61,37 @@ modindex_common_prefix = ['oslo_policy.']
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
 html_theme = 'openstackdocs'
+
+# -- Options for man page output ---------------------------------------------
+
+# Grouping the document tree for man pages.
+# List of tuples 'sourcefile', 'target', u'title', u'Authors name', 'manual'
+
+_man_pages = [
+    (
+        'oslopolicy-checker',
+        'Check policy against the OpenStack Identity API access information.',
+    ),
+    (
+        'oslopolicy-list-redundant',
+        'Detect policies that are specified in policy files that are the same '
+        'as the defaults provided by the service',
+    ),
+    (
+        'oslopolicy-policy-generator',
+        'Generate a policy file that shows the effective policy in use',
+    ),
+    (
+        'oslopolicy-sample-generator',
+        'Generate a sample policy file based on the default policies in a '
+        'given namespace',
+    ),
+]
+
+man_pages = [
+    (f'cli/{name}', name, description, 'OpenStack Community', 1)
+    for name, description in _man_pages
+]
 
 # -- sphinx.ext.extlinks configuration ---------------------------------------
 
