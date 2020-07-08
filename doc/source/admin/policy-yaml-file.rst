@@ -63,6 +63,23 @@ You can also decline permission to use an API:
 The exclamation mark stands for "never" or "nobody", which effectively
 disables the Compute API "shelve an instance".
 
+A simple comparison can be done using a literal value:
+
+.. code-block:: yaml
+
+    "copy_image": "'shared':%(visibility)s"
+
+This check compares the literal ``shared`` with the value of the key
+``visibility`` from the object. It will pass if and only if
+``object['visibility'] == 'shared'``. It is necessary to include the
+single quotes around the literal value when writing the rule so oslo.policy
+knows not to interpret it as an API attribute.
+
+To determine the fields available on the object passed to the policy check,
+it is necessary to enable debug logging for oslo.policy. This can be done
+by enabling debug logging for the service in question, and also removing
+``oslo_policy`` from the default_log_levels option.
+
 Many APIs can only be called by administrators. This can be expressed by
 the rule ``"role:admin"``. The following policy ensures that only
 administrators can create new users in the Identity database:
