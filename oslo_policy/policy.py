@@ -875,8 +875,7 @@ class Enforcer(object):
                             operated on as possible. The target
                             argument should be a dict instance or an
                             instance of a class that fully supports
-                            the Mapping abstract base class and deep
-                            copying.
+                            the Mapping abstract base class.
         :param dict creds: As much information about the user performing the
                            action as possible. This parameter can also be an
                            instance of ``oslo_context.context.RequestContext``.
@@ -916,7 +915,7 @@ class Enforcer(object):
 
         if LOG.isEnabledFor(logging.DEBUG):
             try:
-                creds_dict = strutils.mask_dict_password(copy.deepcopy(creds))
+                creds_dict = strutils.mask_dict_password(creds)
                 creds_msg = jsonutils.dumps(creds_dict,
                                             skipkeys=True, sort_keys=True)
             except Exception as e:
@@ -924,9 +923,7 @@ class Enforcer(object):
                              {'exp': e})
 
             try:
-                target_dict = strutils.mask_dict_password(
-                    copy.deepcopy(target)
-                )
+                target_dict = strutils.mask_dict_password(target)
                 target_msg = jsonutils.dumps(target_dict,
                                              skipkeys=True, sort_keys=True)
             except Exception as e:
