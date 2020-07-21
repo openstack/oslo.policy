@@ -492,8 +492,8 @@ class GeneratorRaiseErrorTestCase(testtools.TestCase):
                 raise FakeException()
 
         fake_ep = FakeEP()
-        fake_eps = mock.Mock(return_value=[fake_ep])
-        with mock.patch('pkg_resources.iter_entry_points', fake_eps):
+        with mock.patch('stevedore.named.NamedExtensionManager',
+                        side_effect=FakeException()):
             self.assertRaises(FakeException, generator._generate_sample,
                               fake_ep.name)
 
