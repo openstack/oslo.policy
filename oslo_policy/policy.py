@@ -956,16 +956,20 @@ class Enforcer(object):
                 # If the rule doesn't exist, fail closed
                 result = False
             else:
+                # NOTE(moguimar): suppressing [B105:hardcoded_password_string]
+                #                 as token_scope is not actually a hardcoded
+                #                 token.
+
                 # Check the scope of the operation against the possible scope
                 # attributes provided in `creds`.
                 if creds.get('system'):
-                    token_scope = 'system'
+                    token_scope = 'system'  # nosec
                 elif creds.get('domain_id'):
-                    token_scope = 'domain'
+                    token_scope = 'domain'  # nosec
                 else:
                     # If the token isn't system-scoped or domain-scoped then
                     # we're dealing with a project-scoped token.
-                    token_scope = 'project'
+                    token_scope = 'project'  # nosec
 
                 registered_rule = self.registered_rules.get(rule)
                 if registered_rule and registered_rule.scope_types:
