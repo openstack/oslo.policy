@@ -19,7 +19,9 @@ Description
 -----------
 
 The ``oslopolicy-policy-generator`` command can be used to check policy against
-the OpenStack Identity API access information.
+the OpenStack Identity API access information. The access information is a
+keystone token response from keystone's `authentication API
+<https://docs.openstack.org/api-ref/identity/v3/#password-authentication-with-scoped-authorization>`_.
 
 Options
 -------
@@ -28,8 +30,8 @@ Options
 
 .. option:: --access ACCESS
 
-    Path to a file containing OpenStack Identity API access info in JSON
-    format.
+    Path to a file containing an OpenStack Identity API token response body in
+    JSON format.
 
 .. option:: --enforcer_config ENFORCER_CONFIG
 
