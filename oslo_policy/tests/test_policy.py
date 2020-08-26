@@ -17,6 +17,7 @@
 
 import os
 from unittest import mock
+import yaml
 
 from oslo_config import cfg
 from oslo_context import context
@@ -420,6 +421,26 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.load_rules(True)
 
         mock_log.warning.assert_any_call(policy.WARN_JSON)
+
+    @mock.patch.object(policy, 'LOG')
+    def test_warning_on_redundant_file_rules(self, mock_log):
+        rules = yaml.dump({'admin': 'is_admin:True'})
+        self.create_config_file('policy.yaml', rules)
+        path = self.get_config_file_fullname('policy.yaml')
+        enforcer = policy.Enforcer(self.conf, policy_file=path)
+        # register same rule in default as present in file.
+        enforcer.register_default(policy.RuleDefault(name='admin',
+                                  check_str='is_admin:True'))
+
+        enforcer.load_rules(True)
+        warn_msg = ("Policy Rules %(names)s specified in policy files "
+                    "are the same as the defaults provided by the service. "
+                    "You can remove these rules from policy files which "
+                    "will make maintenance easier. You can detect these "
+                    "redundant rules by ``oslopolicy-list-redundant`` tool "
+                    "also.")
+
+        mock_log.warning.assert_any_call(warn_msg, {'names': ['admin']})
 
     def test_load_multiple_directories(self):
         self.create_config_file(

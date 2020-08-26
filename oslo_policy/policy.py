@@ -833,8 +833,23 @@ class Enforcer(object):
         if overwrite:
             self.file_rules = {}
         parsed_file = parse_file_contents(data)
+        redundant_file_rules = []
         for name, check_str in parsed_file.items():
-            self.file_rules[name] = RuleDefault(name, check_str)
+            file_rule = RuleDefault(name, check_str)
+            self.file_rules[name] = file_rule
+            reg_rule = self.registered_rules.get(name)
+            if (reg_rule and (file_rule == reg_rule)):
+                redundant_file_rules.append(name)
+        if redundant_file_rules:
+            # NOTE(gmann): Log warning for redundant file rules which
+            # can be detected via 'oslopolicy-list-redundant' tool too.
+            LOG.warning("Policy Rules %(names)s specified in policy files "
+                        "are the same as the defaults provided by the "
+                        "service. You can remove these rules from policy "
+                        "files which will make maintenance easier. You can "
+                        "detect these redundant rules by "
+                        "``oslopolicy-list-redundant`` tool also.",
+                        {'names': redundant_file_rules})
 
     def _load_policy_file(self, path, force_reload, overwrite=True):
         """Load policy rules from the specified policy file.
