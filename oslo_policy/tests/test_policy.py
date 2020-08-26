@@ -413,6 +413,14 @@ class EnforcerTest(base.PolicyBaseTestCase):
             'test_load_directory_caching_with_files_same_but_overwrite_false')  # NOQA
         self._test_scenario_with_opts_registered(test)
 
+    @mock.patch.object(policy, 'LOG')
+    def test_load_json_file_log_warning(self, mock_log):
+        rules = jsonutils.dumps({'foo': 'rule:bar'})
+        self.create_config_file('policy.json', rules)
+        self.enforcer.load_rules(True)
+
+        mock_log.warning.assert_any_call(policy.WARN_JSON)
+
     def test_load_multiple_directories(self):
         self.create_config_file(
             os.path.join('policy.d', 'a.conf'), POLICY_A_CONTENTS)

@@ -1,0 +1,12 @@
+---
+deprecations:
+  - |
+    ``policy_file`` support for JSON formatted file is deprecated. Use
+    YAML formatted file which will be default in future.
+    Use `oslopolicy-convert-json-to-yaml <https://docs.openstack.org/oslo.policy/latest/cli/oslopolicy-convert-json-to-yaml.html>`_
+    tool to convert the existing JSON to YAML formatted policy file in
+    backward compatible way.
+
+    JSON format support and ``--format`` option in ``oslopolicy-sample-generator``
+    and ``oslopolicy-policy-upgrade`` tools are also deprecated. In future
+    release, ``--format`` option will be removed.

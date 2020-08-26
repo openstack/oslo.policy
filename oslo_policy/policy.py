@@ -296,6 +296,15 @@ RuleCheck = _checks.RuleCheck
 """Recursively checks credentials based on the defined rules."""
 
 
+WARN_JSON = ("JSON formatted policy_file support is deprecated since "
+             "Victoria release. You need to use YAML format which "
+             "will be default in future. You can use "
+             "``oslopolicy-convert-json-to-yaml`` tool to convert existing "
+             "JSON-formatted policy file to YAML-formatted in backward "
+             "compatible way: https://docs.openstack.org/oslo.policy/"
+             "latest/cli/oslopolicy-convert-json-to-yaml.html.")
+
+
 class PolicyNotAuthorized(Exception):
     """Default exception raised for policy enforcement failure."""
 
@@ -369,6 +378,9 @@ def parse_file_contents(data):
         # by jsonutils.loads() first. In case of failure yaml.safe_load()
         # will be used instead.
         parsed = jsonutils.loads(data)
+        # NOTE(gmann): If policy file is loaded in JSON format means
+        # policy_file is JSON formatted so log warning.
+        LOG.warning(WARN_JSON)
     except ValueError:
         try:
             parsed = yaml.safe_load(data)

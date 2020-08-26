@@ -34,6 +34,13 @@ RULE_OPTS = [
                     help='Option namespace(s) under "oslo.policy.policies" in '
                          'which to query for options.'),
     cfg.StrOpt('format',
+               deprecated_for_removal=True,
+               deprecated_since='Victoria',
+               deprecated_reason="""
+``policy_file`` support for JSON formatted file is deprecated.
+So these tools also deprecate the support of generating or
+upgrading policy file in JSON format.
+""",
                help='Desired format for the output.',
                default='yaml',
                choices=['json', 'yaml']),
@@ -258,6 +265,7 @@ def _sort_and_format_by_section(policies, output_format='yaml',
                 yield _format_rule_default_yaml(rule_default,
                                                 include_help=include_help)
             elif output_format == 'json':
+                LOG.warning(policy.WARN_JSON)
                 yield _format_rule_default_json(rule_default)
 
 
@@ -290,6 +298,7 @@ def _generate_sample(namespaces, output_file=None, output_format='yaml',
     if output_format == 'yaml':
         output_file.writelines(sections_text)
     elif output_format == 'json':
+        LOG.warning(policy.WARN_JSON)
         output_file.writelines((
             '{\n    ',
             ',\n    '.join(sections_text),
@@ -551,12 +560,14 @@ def upgrade_policy(args=None, conf=None):
             if conf.format == 'yaml':
                 yaml.safe_dump(policies, fh, default_flow_style=False)
             elif conf.format == 'json':
+                LOG.warning(policy.WARN_JSON)
                 jsonutils.dump(policies, fh, indent=4)
     else:
         if conf.format == 'yaml':
             sys.stdout.write(yaml.safe_dump(policies,
                                             default_flow_style=False))
         elif conf.format == 'json':
+            LOG.warning(policy.WARN_JSON)
             sys.stdout.write(jsonutils.dumps(policies, indent=4))
 
 
