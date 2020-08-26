@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Add ``oslopolicy-convert-json-to-yaml`` tool to convert the json formatted
+    policy file to yaml format in compatible way. Refer to `this document <https://docs.openstack.org/oslo.policy/latest/cli/oslopolicy-convert-json-to-yaml.html>`_ for details.

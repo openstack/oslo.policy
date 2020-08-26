@@ -13,3 +13,4 @@ This document describes the various command line tools exposed by
    oslopolicy-list-redundant
    oslopolicy-policy-generator
    oslopolicy-sample-generator
+   oslopolicy-convert-json-to-yaml
