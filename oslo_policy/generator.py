@@ -186,12 +186,13 @@ def _format_rule_default_yaml(default, include_help=True, comment_rule=True,
                 '# Intended scope(s): ' + ', '.join(default.scope_types) + '\n'
             )
         comment = '#' if comment_rule else ''
-        text = ('%(help)s\n%(op)s%(scope)s%(comment)s%(text)s\n' %
-                {'help': _format_help_text(default.description),
-                 'op': op,
+        text = ('%(op)s%(scope)s%(comment)s%(text)s\n' %
+                {'op': op,
                  'scope': intended_scope,
                  'comment': comment,
                  'text': text})
+        if default.description:
+            text = _format_help_text(default.description) + '\n' + text
 
     if add_deprecated_rules and default.deprecated_for_removal:
         text = (
@@ -206,29 +207,24 @@ def _format_rule_default_yaml(default, include_help=True, comment_rule=True,
         # This issues a deprecation warning but aliases the old policy name
         # with the new policy name for compatibility.
         deprecated_text = (
-            'DEPRECATED\n"%(old_name)s":"%(old_check_str)s" has been '
-            'deprecated since %(since)s in favor of '
-            '"%(name)s":"%(check_str)s".\n%(reason)s'
+            '"%(old_name)s":"%(old_check_str)s" has been deprecated '
+            'since %(since)s in favor of "%(name)s":"%(check_str)s".'
         ) % {'old_name': default.deprecated_rule.name,
              'old_check_str': default.deprecated_rule.check_str,
              'since': default.deprecated_since,
              'name': default.name,
              'check_str': default.check_str,
-             'reason': default.deprecated_reason}
+             }
+        text = ('%(text)s# DEPRECATED\n%(deprecated_text)s\n%(reason)s\n' %
+                {'text': text,
+                 'reason': _format_help_text(default.deprecated_reason),
+                 'deprecated_text': _format_help_text(deprecated_text)})
 
         if default.name != default.deprecated_rule.name:
-            text = (
-                '%(text)s%(deprecated_text)s\n"%(old_name)s": "rule:%(name)s"'
-                '\n'
-            ) % {'text': text,
-                 'deprecated_text': _format_help_text(deprecated_text),
-                 'old_name': default.deprecated_rule.name,
-                 'name': default.name}
-        else:
-            text = (
-                '%(text)s%(deprecated_text)s\n'
-            ) % {'text': text,
-                 'deprecated_text': _format_help_text(deprecated_text)}
+            text += ('"%(old_name)s": "rule:%(name)s"\n' %
+                     {'old_name': default.deprecated_rule.name,
+                      'name': default.name})
+        text += '\n'
 
     return text
 

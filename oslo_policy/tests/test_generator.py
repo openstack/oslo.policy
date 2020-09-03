@@ -98,10 +98,8 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
 # POST  /test/
 #"owner": "project_id:%(project_id)s"
 
-#
 #"shared": "field:networks:shared=True"
 
-#
 #"admin_or_owner": "rule:admin or rule:owner"
 
 '''
@@ -137,10 +135,8 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
 # POST  /test/
 #"owner": "project_id:%(project_id)s"
 
-#
 #"shared": "field:networks:shared=True"
 
-#
 #"admin_or_owner": "rule:admin or rule:owner"
 
 '''
@@ -223,10 +219,12 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
         expected = '''# Create a bar.
 #"foo:create_bar": "role:fizz"
 
-# DEPRECATED "foo:post_bar":"role:fizz" has been deprecated since N in
-# favor of "foo:create_bar":"role:fizz". foo:post_bar is being removed
-# in favor of foo:create_bar
+# DEPRECATED
+# "foo:post_bar":"role:fizz" has been deprecated since N in favor of
+# "foo:create_bar":"role:fizz".
+# foo:post_bar is being removed in favor of foo:create_bar
 "foo:post_bar": "rule:foo:create_bar"
+
 '''
         stdout = self._capture_stdout()
         with mock.patch('stevedore.named.NamedExtensionManager',
@@ -267,9 +265,11 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
         expected = '''# Create a bar.
 #"foo:create_bar": "role:fizz"
 
-# DEPRECATED "foo:create_bar":"role:old" has been deprecated since N
-# in favor of "foo:create_bar":"role:fizz". role:fizz is a more sane
-# default for foo:create_bar
+# DEPRECATED
+# "foo:create_bar":"role:old" has been deprecated since N in favor of
+# "foo:create_bar":"role:fizz".
+# role:fizz is a more sane default for foo:create_bar
+
 '''
         stdout = self._capture_stdout()
         with mock.patch('stevedore.named.NamedExtensionManager',
