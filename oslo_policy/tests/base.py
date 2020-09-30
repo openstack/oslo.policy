@@ -14,6 +14,7 @@
 #    under the License.
 
 import codecs
+import io
 import os
 import os.path
 import sys
@@ -21,7 +22,6 @@ import sys
 import fixtures
 from oslo_config import fixture as config
 from oslotest import base as test_base
-from six import moves
 
 from oslo_policy import _checks
 from oslo_policy import policy
@@ -55,7 +55,7 @@ class PolicyBaseTestCase(test_base.BaseTestCase):
             f.write(contents)
 
     def _capture_stdout(self):
-        self.useFixture(fixtures.MonkeyPatch('sys.stdout', moves.StringIO()))
+        self.useFixture(fixtures.MonkeyPatch('sys.stdout', io.StringIO()))
         return sys.stdout
 
 

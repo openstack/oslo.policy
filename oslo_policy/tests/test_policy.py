@@ -23,7 +23,6 @@ from oslo_config import cfg
 from oslo_context import context
 from oslo_serialization import jsonutils
 from oslotest import base as test_base
-import six
 
 from oslo_policy import _cache_handler
 from oslo_policy import _checks
@@ -349,8 +348,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.load_rules(False)
         self.assertIsNotNone(self.enforcer.rules)
 
-        old = six.next(six.itervalues(
-            self.enforcer._policy_dir_mtimes))
+        old = next(iter(self.enforcer._policy_dir_mtimes))
         self.assertEqual(1, len(self.enforcer._policy_dir_mtimes))
 
         # Touch the file
@@ -361,8 +359,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
 
         self.enforcer.load_rules(False)
         self.assertEqual(1, len(self.enforcer._policy_dir_mtimes))
-        self.assertEqual(old, six.next(six.itervalues(
-            self.enforcer._policy_dir_mtimes)))
+        self.assertEqual(old, next(iter(self.enforcer._policy_dir_mtimes)))
 
         loaded_rules = jsonutils.loads(str(self.enforcer.rules))
         self.assertEqual('is_admin:True', loaded_rules['admin'])
@@ -385,14 +382,12 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.load_rules(False)
         self.assertIsNotNone(self.enforcer.rules)
 
-        old = six.next(six.itervalues(
-            self.enforcer._policy_dir_mtimes))
+        old = next(iter(self.enforcer._policy_dir_mtimes))
         self.assertEqual(1, len(self.enforcer._policy_dir_mtimes))
 
         self.enforcer.load_rules(False)
         self.assertEqual(1, len(self.enforcer._policy_dir_mtimes))
-        self.assertEqual(old, six.next(six.itervalues(
-            self.enforcer._policy_dir_mtimes)))
+        self.assertEqual(old, next(iter(self.enforcer._policy_dir_mtimes)))
 
         loaded_rules = jsonutils.loads(str(self.enforcer.rules))
         self.assertEqual('is_admin:True', loaded_rules['admin'])

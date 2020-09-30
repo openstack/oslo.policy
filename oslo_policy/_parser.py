@@ -18,8 +18,6 @@
 import logging
 import re
 
-import six
-
 from oslo_policy import _checks
 
 
@@ -72,8 +70,7 @@ class ParseStateMeta(type):
         return super(ParseStateMeta, mcs).__new__(mcs, name, bases, cls_dict)
 
 
-@six.add_metaclass(ParseStateMeta)
-class ParseState(object):
+class ParseState(metaclass=ParseStateMeta):
     """Implement the core of parsing the policy language.
 
     Uses a greedy reduction algorithm to reduce a sequence of tokens into
@@ -246,7 +243,7 @@ def _parse_list_rule(rule):
             continue
 
         # Handle bare strings
-        if isinstance(inner_rule, six.string_types):
+        if isinstance(inner_rule, str):
             inner_rule = [inner_rule]
 
         # Parse the inner rules into Check objects
@@ -350,6 +347,6 @@ def parse_rule(rule):
     """Parses a policy rule into a tree of :class:`.Check` objects."""
 
     # If the rule is a string, it's in the policy language
-    if isinstance(rule, six.string_types):
+    if isinstance(rule, str):
         return _parse_text_rule(rule)
     return _parse_list_rule(rule)

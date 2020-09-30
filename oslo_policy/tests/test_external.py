@@ -18,7 +18,7 @@ from unittest import mock
 
 from oslo_serialization import jsonutils
 from requests_mock.contrib import fixture as rm_fixture
-import six.moves.urllib.parse as urlparse
+from urllib import parse as urlparse
 
 from oslo_policy import _external
 from oslo_policy import opts
