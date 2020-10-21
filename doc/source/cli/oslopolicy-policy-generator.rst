@@ -38,19 +38,12 @@ The generate the effective policy file for a namespace called ``keystone``:
 
    oslopolicy-policy-generator --namespace keystone
 
-To generate the effective policy file in JSON:
-
-.. code-block:: bash
-
-   oslopolicy-policy-generator --namespace keystone --format json
-
 To generate the effective policy file and output directly to a file:
 
 .. code-block:: bash
 
    oslopolicy-policy-generator \
      --namespace keystone \
-     --format yaml \
      --output-file keystone-policy.yaml
 
 To show the additional options and arguments supported by
