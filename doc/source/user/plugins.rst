@@ -35,7 +35,7 @@ entry point and will try to invoke that stevedore plugin.
 This mechanism allows anyone to write their own code, in their own library
 with their own custom stevedore based rule check plugins and can enhance
 their policies with custom checks. This would be useful for example to
-integrate with a in-house policy server.
+integrate with an in-house policy server.
 
 
 Example code - HttpCheck

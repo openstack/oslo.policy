@@ -23,7 +23,7 @@ where:
 
 ``policy_generator_config_file``
   Path to an configuration file used with the ``oslopolicy-sample-generator``
-  utility. This can be an full path or a value relative to the documentation
+  utility. This can be a full path or a value relative to the documentation
   source directory (``app.srcdir``). If this option is not specified or is
   invalid then the sample policy file generation will be skipped.
 
@@ -34,8 +34,8 @@ where:
 
 ``sample_policy_basename``
   Base name of the output file. This name will be appended with a
-  ``.policy.yaml.sample`` extension to generate the final output file and the
-  path is relative to documentation source directory (``app.srcdir``). As such,
+  ``.policy.yaml.sample`` extension to generate the final output file, and the
+  path is relative to the documentation source directory (``app.srcdir``). As such,
   using the above example, the policy file will be output to
   ``_static/nova.policy.yaml.sample``. If this option is not specified, the
   file will be output to ``sample.policy.yaml``.

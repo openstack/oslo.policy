@@ -19,8 +19,8 @@ Incorporating oslo.policy tooling
 
 The ``oslo.policy`` library offers a generator that projects can use to render
 sample policy files, check for redundant rules or policies, among other things.
-This is a useful tool not only for operators managing policies, but also
-developers looking to automate documentation describing the projects default
+This is a useful tool not only for operators managing policies but also for
+developers looking to automate documentation describing projects' default
 policies.
 
 This part of the document describes how you can incorporate these features into
@@ -39,7 +39,7 @@ First, you'll need to expose a couple of entry points in the project's
         foo = foo.common.policy:get_enforcer
 
 The ``oslo.policy`` library uses the project namespace to call ``list_rules``,
-which should return a list of ``oslo.policy`` objects, either instances of
+which should return a list of ``oslo.policy`` objects, instances of either
 ``RuleDefault`` or ``DocumentedRuleDefault``.
 
 The second entry point allows ``oslo.policy`` to generate complete policy from
@@ -129,7 +129,7 @@ benefits.
   providing better documentation.
 
 * A sample policy file can be generated based on the registered policies
-  rather than needing to manually maintain one.
+  rather than needing to be manually maintained.
 
 * A policy file can be generated which is a merge of registered defaults and
   policies loaded from a file. This shows the effective policy in use.
@@ -174,7 +174,7 @@ class::
 The `DocumentedRuleDefault` class inherits from the `RuleDefault`
 implementation, but it must be supplied with the `description` attribute in
 order to be used. In addition, the `DocumentedRuleDefault` class requires a new
-`operations` attributes that is a list of dictionaries. Each dictionary must
+`operations` attribute that is a list of dictionaries. Each dictionary must
 have a `path` and a `method` key. The `path` should map to the path used to
 interact with the resource the policy protects. The `method` should be the HTTP
 verb corresponding to the `path`. The list of `operations` can be supplied with
@@ -269,9 +269,9 @@ Putting it all together
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Now that you know what services types, resources, attributes, and actions are
-within the context of policy names, let establish the order you should use
-them. Policy names should increase in detail as you read it. This results in
-the following syntax::
+within the context of policy names, it is possible to establish the order you
+should use them. Policy names should increase in detail as you read it. This
+results in the following syntax::
 
   <service-type>:<resource>[:<subresource>][:<attribute>]:<action>[:<subaction>]
 
@@ -341,7 +341,8 @@ for a user with a project-scoped token to access a system-level API.
 
 Developers incorporating `scope_types` into OpenStack services should be
 mindful of the relationship between the API they are protecting with a policy
-and if it operates on system-level resources or project-level resources.
+and the resource level the API operates at, whether it's system-level or
+project-level.
 
 Sample file generation
 ----------------------
@@ -475,7 +476,7 @@ which determines if a user is allowed to do something.
 The coupling between the authorization context, ultimately the token, and the
 policy enforcement mechanism raises the bar for effectively testing policies
 and APIs. Service developers want to ensure the functionality specific to their
-service works, and not dwell on the implementation details of an authorization
+service works and not dwell on the implementation details of an authorization
 system. Additionally, they want to keep unit tests lightweight, as opposed to
 requiring a separate system to issue tokens for authorization, crossing the
 boundary of unit testing to integration testing.
