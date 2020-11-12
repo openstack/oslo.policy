@@ -19,7 +19,6 @@ import abc
 import ast
 import inspect
 
-import six
 import stevedore
 
 if hasattr(inspect, 'getfullargspec'):
@@ -86,8 +85,7 @@ def _check(rule, target, creds, enforcer, current_rule):
     return rule(*rule_args)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class BaseCheck(object):
+class BaseCheck(metaclass=abc.ABCMeta):
     """Abstract base class for Check classes."""
 
     @abc.abstractmethod
@@ -316,7 +314,7 @@ class GenericCheck(Check):
         '''
 
         if len(path_segments) == 0:
-            return match == six.text_type(test_value)
+            return match == str(test_value)
         key, path_segments = path_segments[0], path_segments[1:]
         try:
             test_value = test_value[key]
@@ -341,7 +339,7 @@ class GenericCheck(Check):
         try:
             # Try to interpret self.kind as a literal
             test_value = ast.literal_eval(self.kind)
-            return match == six.text_type(test_value)
+            return match == str(test_value)
 
         except ValueError:
             pass

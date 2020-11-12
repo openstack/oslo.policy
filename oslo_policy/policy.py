@@ -231,7 +231,6 @@ from oslo_config import cfg
 from oslo_context import context
 from oslo_serialization import jsonutils
 from oslo_utils import strutils
-import six
 import yaml
 
 from oslo_policy import _cache_handler
@@ -387,7 +386,7 @@ def parse_file_contents(data):
         except yaml.YAMLError as e:
             # For backwards-compatibility, convert yaml error to ValueError,
             # which is what JSON loader raised.
-            raise ValueError(six.text_type(e))
+            raise ValueError(str(e))
     return parsed or {}
 
 
@@ -456,7 +455,7 @@ class Rules(dict):
         if self.default_rule not in self:
             raise KeyError(key)
 
-        elif isinstance(self.default_rule, six.string_types):
+        elif isinstance(self.default_rule, str):
             return self[self.default_rule]
 
     def __str__(self):
@@ -1176,7 +1175,7 @@ class RuleDefault(object):
             if not isinstance(scope_types, list):
                 raise ValueError(msg)
             for scope_type in scope_types:
-                if not isinstance(scope_type, six.string_types):
+                if not isinstance(scope_type, str):
                     raise ValueError(msg)
                 if scope_types.count(scope_type) > 1:
                     raise ValueError(

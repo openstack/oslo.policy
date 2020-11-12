@@ -16,7 +16,6 @@
 from unittest import mock
 
 from oslotest import base as test_base
-import six
 
 from oslo_policy import _checks
 from oslo_policy import _parser
@@ -173,8 +172,7 @@ class ParseStateMetaTestCase(test_base.BaseTestCase):
         self.assertEqual([['d', 'e', 'f'], ['a', 'b', 'c']], spam.reducers)
 
     def test_parse_state_meta(self):
-        @six.add_metaclass(_parser.ParseStateMeta)
-        class FakeState(object):
+        class FakeState(metaclass=_parser.ParseStateMeta):
 
             @_parser.reducer('a', 'b', 'c')
             @_parser.reducer('d', 'e', 'f')
