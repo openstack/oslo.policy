@@ -360,6 +360,29 @@ class InvalidContextObject(Exception):
         super(InvalidContextObject, self).__init__(msg)
 
 
+def pick_default_policy_file(conf, fallback_to_json_file=True):
+    # TODO(gmann): If service changed the default value of
+    # CONF.oslo_policy.policy_file option to 'policy.yaml' then to avoid
+    # breaking any deployment relying on default value, we need to add
+    # this is fallback logic to pick the old default policy file
+    # (policy.json) if exist. We can to remove this fallback logic once
+    # oslo_policy stop supporting the JSON formatted policy file.
+
+    new_default_policy_file = 'policy.yaml'
+    old_default_policy_file = 'policy.json'
+    if ((conf.oslo_policy.policy_file == new_default_policy_file) and
+            fallback_to_json_file):
+        location = conf.get_location('policy_file', 'oslo_policy').location
+        if conf.find_file(conf.oslo_policy.policy_file):
+            return conf.oslo_policy.policy_file
+        elif location in [cfg.Locations.opt_default,
+                          cfg.Locations.set_default]:
+            if conf.find_file(old_default_policy_file):
+                return old_default_policy_file
+    # Return overridden policy file
+    return conf.oslo_policy.policy_file
+
+
 def parse_file_contents(data):
     """Parse the raw contents of a policy file.
 
@@ -494,7 +517,8 @@ class Enforcer(object):
     """
 
     def __init__(self, conf, policy_file=None, rules=None,
-                 default_rule=None, use_conf=True, overwrite=True):
+                 default_rule=None, use_conf=True, overwrite=True,
+                 fallback_to_json_file=True):
         self.conf = conf
         opts._register(conf)
 
@@ -506,7 +530,8 @@ class Enforcer(object):
 
         self.policy_path = None
 
-        self.policy_file = policy_file or self.conf.oslo_policy.policy_file
+        self.policy_file = policy_file or pick_default_policy_file(
+            self.conf, fallback_to_json_file=fallback_to_json_file)
         self.use_conf = use_conf
         self._need_check_rule = True
         self.overwrite = overwrite
