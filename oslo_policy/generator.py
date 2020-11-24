@@ -177,9 +177,10 @@ def _format_rule_default_yaml(default, include_help=True, comment_rule=True,
         op = ""
         if hasattr(default, 'operations'):
             for operation in default.operations:
-                op += ('# %(method)s  %(path)s\n' %
-                       {'method': operation['method'],
-                        'path': operation['path']})
+                if operation['method'] and operation['path']:
+                    op += ('# %(method)s  %(path)s\n' %
+                           {'method': operation['method'],
+                            'path': operation['path']})
         intended_scope = ""
         if getattr(default, 'scope_types', None) is not None:
             intended_scope = (
@@ -427,7 +428,8 @@ def _convert_policy_json_to_yaml(namespace, policy_file, output_file=None):
                 continue
             file_rule_check_str = file_policies.pop(default_rule.name)
             # Some rules might be still RuleDefault object so let's prepare
-            # empty 'operations' list for those.
+            # empty 'operations' list and rule name as description for
+            # those.
             operations = [{
                 'method': '',
                 'path': ''
@@ -441,7 +443,7 @@ def _convert_policy_json_to_yaml(namespace, policy_file, output_file=None):
             file_rule = policy.DocumentedRuleDefault(
                 default_rule.name,
                 file_rule_check_str,
-                default_rule.description,
+                default_rule.description or default_rule.name,
                 operations,
                 default_rule.deprecated_rule,
                 default_rule.deprecated_for_removal,

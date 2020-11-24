@@ -861,15 +861,9 @@ class ConvertJsonToYamlTestCase(base.PolicyBaseTestCase):
                 deprecated_since='ussuri',
                 scope_types=['system']
             ),
-            policy.DocumentedRuleDefault(
+            policy.RuleDefault(
                 name='rule2_name',
                 check_str='rule:admin',
-                description='test_rule2',
-                operations=[{'path': '/test', 'method': 'PUT'}],
-                deprecated_rule=deprecated_policy,
-                deprecated_reason='testing2',
-                deprecated_since='ussuri',
-                scope_types=['system', 'project']
             )
         ]
         self.extensions = []
@@ -886,9 +880,7 @@ class ConvertJsonToYamlTestCase(base.PolicyBaseTestCase):
 # Intended scope(s): system
 #"rule1_name": "rule:admin"
 
-# test_rule2
-# PUT  /test
-# Intended scope(s): system, project
+# rule2_name
 "rule2_name": "rule:overridden"
 
 # WARNING: Below rules are either deprecated rules
@@ -959,9 +951,7 @@ class ConvertJsonToYamlTestCase(base.PolicyBaseTestCase):
 
     def test_overridden_rules_uncommented_in_yaml_file(self):
         converted_policy_data = self._test_convert_json_to_yaml_file()
-        uncommented_overridden_rule = '''# test_rule2
-# PUT  /test
-# Intended scope(s): system, project
+        uncommented_overridden_rule = '''# rule2_name
 "rule2_name": "rule:overridden"
 
 '''
