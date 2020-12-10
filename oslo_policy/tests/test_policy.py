@@ -1234,7 +1234,9 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
     def test_deprecate_a_policy_check_string(self):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:create_bar',
-            check_str='role:fizz'
+            check_str='role:fizz',
+            deprecated_reason='"role:bang" is a better default',
+            deprecated_since='N'
         )
 
         rule_list = [policy.DocumentedRuleDefault(
@@ -1243,8 +1245,6 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             description='Create a bar.',
             operations=[{'path': '/v1/bars', 'method': 'POST'}],
             deprecated_rule=deprecated_rule,
-            deprecated_reason='"role:bang" is a better default',
-            deprecated_since='N'
         )]
         enforcer = policy.Enforcer(self.conf)
         enforcer.register_defaults(rule_list)
@@ -1274,7 +1274,9 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
     def test_deprecate_an_empty_policy_check_string(self):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:create_bar',
-            check_str=''
+            check_str='',
+            deprecated_reason='because of reasons',
+            deprecated_since='N',
         )
 
         rule_list = [policy.DocumentedRuleDefault(
@@ -1283,8 +1285,6 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             description='Create a bar.',
             operations=[{'path': '/v1/bars', 'method': 'POST'}],
             deprecated_rule=deprecated_rule,
-            deprecated_reason='because of reasons',
-            deprecated_since='N'
         )]
         enforcer = policy.Enforcer(self.conf)
         enforcer.register_defaults(rule_list)
@@ -1302,7 +1302,9 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
     def test_deprecate_replace_with_empty_policy_check_string(self):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:create_bar',
-            check_str='role:fizz'
+            check_str='role:fizz',
+            deprecated_reason='because of reasons',
+            deprecated_since='N',
         )
 
         rule_list = [policy.DocumentedRuleDefault(
@@ -1311,8 +1313,6 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             description='Create a bar.',
             operations=[{'path': '/v1/bars', 'method': 'POST'}],
             deprecated_rule=deprecated_rule,
-            deprecated_reason='because of reasons',
-            deprecated_since='N'
         )]
         enforcer = policy.Enforcer(self.conf)
         enforcer.register_defaults(rule_list)
@@ -1329,15 +1329,7 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
     def test_deprecate_a_policy_name(self):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:bar',
-            check_str='role:baz'
-        )
-
-        rule_list = [policy.DocumentedRuleDefault(
-            name='foo:create_bar',
             check_str='role:baz',
-            description='Create a bar.',
-            operations=[{'path': '/v1/bars/', 'method': 'POST'}],
-            deprecated_rule=deprecated_rule,
             deprecated_reason=(
                 '"foo:bar" is not granular enough. If your deployment has '
                 'overridden "foo:bar", ensure you override the new policies '
@@ -1346,7 +1338,15 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
                 '"foo:bar:update", "foo:bar:list", and "foo:bar:delete", '
                 'which might be backwards incompatible for your deployment'
             ),
-            deprecated_since='N'
+            deprecated_since='N',
+        )
+
+        rule_list = [policy.DocumentedRuleDefault(
+            name='foo:create_bar',
+            check_str='role:baz',
+            description='Create a bar.',
+            operations=[{'path': '/v1/bars/', 'method': 'POST'}],
+            deprecated_rule=deprecated_rule,
         )]
         expected_msg = (
             'Policy "foo:bar":"role:baz" was deprecated in N in favor of '
@@ -1420,7 +1420,9 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
     def test_deprecate_check_str_suppress_does_not_log_warning(self):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:create_bar',
-            check_str='role:fizz'
+            check_str='role:fizz',
+            deprecated_reason='"role:bang" is a better default',
+            deprecated_since='N'
         )
 
         rule_list = [policy.DocumentedRuleDefault(
@@ -1429,8 +1431,6 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             description='Create a bar.',
             operations=[{'path': '/v1/bars', 'method': 'POST'}],
             deprecated_rule=deprecated_rule,
-            deprecated_reason='"role:bang" is a better default',
-            deprecated_since='N'
         )]
         enforcer = policy.Enforcer(self.conf)
         enforcer.suppress_deprecation_warnings = True
@@ -1442,7 +1442,9 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
     def test_deprecate_name_suppress_does_not_log_warning(self):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:bar',
-            check_str='role:baz'
+            check_str='role:baz',
+            deprecated_reason='"foo:bar" is not granular enough.',
+            deprecated_since='N',
         )
 
         rule_list = [policy.DocumentedRuleDefault(
@@ -1451,8 +1453,6 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             description='Create a bar.',
             operations=[{'path': '/v1/bars/', 'method': 'POST'}],
             deprecated_rule=deprecated_rule,
-            deprecated_reason='"foo:bar" is not granular enough.',
-            deprecated_since='N'
         )]
 
         rules = jsonutils.dumps({'foo:bar': 'role:bang'})
@@ -1490,7 +1490,9 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
     def test_suppress_default_change_warnings_flag_not_log_warning(self):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:create_bar',
-            check_str='role:fizz'
+            check_str='role:fizz',
+            deprecated_reason='"role:bang" is a better default',
+            deprecated_since='N',
         )
 
         rule_list = [policy.DocumentedRuleDefault(
@@ -1499,8 +1501,6 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             description='Create a bar.',
             operations=[{'path': '/v1/bars', 'method': 'POST'}],
             deprecated_rule=deprecated_rule,
-            deprecated_reason='"role:bang" is a better default',
-            deprecated_since='N'
         )]
         enforcer = policy.Enforcer(self.conf)
         enforcer.suppress_default_change_warnings = True
@@ -1509,7 +1509,7 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             enforcer.load_rules()
             mock_warn.assert_not_called()
 
-    def test_deprecated_policy_for_removal_must_include_deprecated_since(self):
+    def test_deprecated_policy_for_removal_must_include_deprecated_meta(self):
         self.assertRaises(
             ValueError,
             policy.DocumentedRuleDefault,
@@ -1519,24 +1519,25 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             operations=[{'path': '/v1/foos/', 'method': 'POST'}],
             deprecated_for_removal=True,
             deprecated_reason='Some reason.'
+            # no deprecated_since
         )
 
-    def test_deprecated_policy_must_include_deprecated_since(self):
+    def test_deprecated_policy_should_not_include_deprecated_meta(self):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:bar',
             check_str='rule:baz'
         )
 
-        self.assertRaises(
-            ValueError,
-            policy.DocumentedRuleDefault,
-            name='foo:bar',
-            check_str='rule:baz',
-            description='Create a foo.',
-            operations=[{'path': '/v1/foos/', 'method': 'POST'}],
-            deprecated_rule=deprecated_rule,
-            deprecated_reason='Some reason.'
-        )
+        with mock.patch('warnings.warn') as mock_warn:
+            policy.DocumentedRuleDefault(
+                name='foo:bar',
+                check_str='rule:baz',
+                description='Create a foo.',
+                operations=[{'path': '/v1/foos/', 'method': 'POST'}],
+                deprecated_rule=deprecated_rule,
+                deprecated_reason='Some reason.'
+            )
+            mock_warn.assert_called_once()
 
     def test_deprecated_rule_requires_deprecated_rule_object(self):
         self.assertRaises(
@@ -1572,7 +1573,9 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
         # better.
         deprecated_rule = policy.DeprecatedRule(
             name='foo:bar',
-            check_str='role:fizz'
+            check_str='role:fizz',
+            deprecated_reason='"role:bang" is a better default',
+            deprecated_since='N',
         )
         rule_list = [policy.DocumentedRuleDefault(
             name='foo:create_bar',
@@ -1580,8 +1583,6 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             description='Create a bar.',
             operations=[{'path': '/v1/bars', 'method': 'POST'}],
             deprecated_rule=deprecated_rule,
-            deprecated_reason='"role:bang" is a better default',
-            deprecated_since='N'
         )]
         self.enforcer.register_defaults(rule_list)
 
@@ -1606,7 +1607,9 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
         # better.
         deprecated_rule = policy.DeprecatedRule(
             name='foo:bar',
-            check_str='role:fizz'
+            check_str='role:fizz',
+            deprecated_reason='"role:bang" is a better default',
+            deprecated_since='N',
         )
         rule_list = [policy.DocumentedRuleDefault(
             name='foo:create_bar',
@@ -1614,8 +1617,6 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             description='Create a bar.',
             operations=[{'path': '/v1/bars', 'method': 'POST'}],
             deprecated_rule=deprecated_rule,
-            deprecated_reason='"role:bang" is a better default',
-            deprecated_since='N'
         )]
         self.enforcer.register_defaults(rule_list)
 
@@ -1648,7 +1649,9 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
         # better.
         deprecated_rule = policy.DeprecatedRule(
             name='foo:bar',
-            check_str='role:fizz'
+            check_str='role:fizz',
+            deprecated_reason='"role:bang" is a better default',
+            deprecated_since='N',
         )
         rule_list = [policy.DocumentedRuleDefault(
             name='foo:create_bar',
@@ -1656,8 +1659,6 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             description='Create a bar.',
             operations=[{'path': '/v1/bars', 'method': 'POST'}],
             deprecated_rule=deprecated_rule,
-            deprecated_reason='"role:bang" is a better default',
-            deprecated_since='N'
         )]
         self.enforcer.register_defaults(rule_list)
 
@@ -1692,7 +1693,9 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
         # Deprecate the policy name in favor of something better.
         deprecated_rule = policy.DeprecatedRule(
             name='old_rule',
-            check_str='role:bang'
+            check_str='role:bang',
+            deprecated_reason='"old_rule" is a bad name',
+            deprecated_since='N',
         )
         rule_list = [policy.DocumentedRuleDefault(
             name='new_rule',
@@ -1700,8 +1703,6 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             description='Replacement for old_rule.',
             operations=[{'path': '/v1/bars', 'method': 'POST'}],
             deprecated_rule=deprecated_rule,
-            deprecated_reason='"old_rule" is a bad name',
-            deprecated_since='N'
         )]
         self.enforcer.register_defaults(rule_list)
 
@@ -1721,7 +1722,9 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
                                group='oslo_policy')
         deprecated_rule = policy.DeprecatedRule(
             name='foo:create_bar',
-            check_str='role:fizz'
+            check_str='role:fizz',
+            deprecated_reason='"role:bang" is a better default',
+            deprecated_since='N',
         )
 
         rule_list = [policy.DocumentedRuleDefault(
@@ -1730,8 +1733,6 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             description='Create a bar.',
             operations=[{'path': '/v1/bars', 'method': 'POST'}],
             deprecated_rule=deprecated_rule,
-            deprecated_reason='"role:bang" is a better default',
-            deprecated_since='N'
         )]
         enforcer = policy.Enforcer(self.conf)
         enforcer.register_defaults(rule_list)
@@ -1831,6 +1832,18 @@ class DocumentedRuleDefaultTestCase(base.PolicyBaseTestCase):
                           check_str='rule:foo',
                           description='foo_api',
                           operations=invalid_op)
+
+
+class DeprecatedRuleTestCase(base.PolicyBaseTestCase):
+
+    def test_should_include_deprecated_meta(self):
+        with mock.patch('warnings.warn') as mock_warn:
+            policy.DeprecatedRule(
+                name='foo:bar',
+                check_str='rule:baz'
+            )
+
+            mock_warn.assert_called_once()
 
 
 class EnforcerCheckRulesTest(base.PolicyBaseTestCase):

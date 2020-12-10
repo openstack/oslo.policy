@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    ``DeprecatedRule`` now accepts two new parameters: ``deprecated_reason``
+    and ``deprecated_since``. These should be used in place of the equivalent
+    parameters on the rule that is replacing this rule in order to avoid
+    confusion.
+upgrade:
+  - |
+    Users with a ``RuleDefault`` or ``DocumentedRuleDefault`` that have
+    configured a ``deprecated_rule`` should move the ``deprecated_reason``
+    and ``deprecated_since`` parameters to this ``DeprecatedRule``.
