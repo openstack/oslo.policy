@@ -16,6 +16,7 @@
 import json
 from unittest import mock
 
+import fixtures
 from oslo_serialization import jsonutils
 from requests_mock.contrib import fixture as rm_fixture
 from urllib import parse as urlparse
@@ -155,6 +156,11 @@ class HttpsCheckTestCase(base.PolicyBaseTestCase):
         opts._register(self.conf)
         self.requests_mock = self.useFixture(rm_fixture.Fixture())
 
+        # ensure environment variables don't mess with our test results
+        # https://requests.readthedocs.io/en/master/user/advanced/#ssl-cert-verification
+        self.useFixture(fixtures.EnvironmentVariable('REQUESTS_CA_BUNDLE'))
+        self.useFixture(fixtures.EnvironmentVariable('CURL_CA_BUNDLE'))
+
     def decode_post_data(self, post_data):
         result = {}
         for item in post_data.split('&'):
@@ -202,6 +208,8 @@ class HttpsCheckTestCase(base.PolicyBaseTestCase):
 
     def test_https_accept_with_verify(self):
         self.conf.set_override('remote_ssl_verify_server_crt', True,
+                               group='oslo_policy')
+        self.conf.set_override('remote_ssl_ca_crt_file', None,
                                group='oslo_policy')
         self.requests_mock.post('https://example.com/target', text='True')
 
