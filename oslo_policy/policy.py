@@ -221,7 +221,7 @@ by setting the ``policy_default_rule`` configuration setting to the
 desired rule name.
 """
 
-import collections
+import collections.abc
 import copy
 import logging
 import os
@@ -953,9 +953,9 @@ class Enforcer(object):
         # a method on RequestContext objects that converts attributes of the
         # context object to policy values. However, ``to_policy_values()``
         # doesn't actually return a dictionary, it's a subclass of
-        # collections.MutableMapping, which behaves like a dictionary but
+        # collections.abc.MutableMapping, which behaves like a dictionary but
         # doesn't pass the type check.
-        elif not isinstance(creds, collections.MutableMapping):
+        elif not isinstance(creds, collections.abc.MutableMapping):
             msg = (
                 'Expected type oslo_context.context.RequestContext, dict, or  '
                 'the output of '
