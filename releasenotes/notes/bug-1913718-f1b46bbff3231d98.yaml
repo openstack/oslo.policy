@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    [`bug 1913718 <https://launchpad.net/bugs/1913718>`_]
+    The `Enforcer()` object now only processes deprecated rules once at load or
+    enforcement time, improving performance for users that make extensive use
+    of policy enforcement.

@@ -698,6 +698,11 @@ class Enforcer(object):
                         DeprecatedRule
         """
 
+        # Short-circuit the rule deprecation logic if we've already processed
+        # it for this particular rule.
+        if default._deprecated_rule_handled:
+            return
+
         deprecated_rule = default.deprecated_rule
 
         deprecated_msg = (
@@ -765,6 +770,8 @@ class Enforcer(object):
             if not (self.suppress_deprecation_warnings
                     or self.suppress_default_change_warnings):
                 warnings.warn(deprecated_msg)
+
+        default._deprecated_rule_handled = True
 
     def _undefined_check(self, check):
         '''Check if a RuleCheck references an undefined rule.'''
@@ -1180,6 +1187,7 @@ class RuleDefault(object):
         self.deprecated_for_removal = deprecated_for_removal
         self.deprecated_reason = deprecated_reason
         self.deprecated_since = deprecated_since
+        self._deprecated_rule_handled = False
 
         if self.deprecated_rule:
             if not isinstance(self.deprecated_rule, DeprecatedRule):

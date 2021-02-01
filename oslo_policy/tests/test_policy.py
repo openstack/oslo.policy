@@ -1749,6 +1749,39 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             enforcer.enforce('foo:create_bar', {}, {'roles': ['baz']})
         )
 
+    def test_deprecation_logic_is_only_performed_once_per_rule(self):
+        deprecated_rule = policy.DeprecatedRule(
+            name='foo:create_bar',
+            check_str='role:fizz'
+        )
+        rule = policy.DocumentedRuleDefault(
+            name='foo:create_bar',
+            check_str='role:bang',
+            description='Create a bar.',
+            operations=[{'path': '/v1/bars', 'method': 'POST'}],
+            deprecated_rule=deprecated_rule,
+            deprecated_reason='"role:bang" is a better default',
+            deprecated_since='N'
+        )
+
+        enforcer = policy.Enforcer(self.conf)
+        enforcer.register_defaults([rule])
+
+        # Check that rule deprecation handling hasn't been done, yet
+        self.assertFalse(rule._deprecated_rule_handled)
+
+        # Loading the rules will modify the rule check string to logically OR
+        # the new value with the deprecated value
+        enforcer.load_rules()
+        self.assertTrue(rule._deprecated_rule_handled)
+
+        # Make sure the original value is used instead of instantiating new
+        # OrCheck objects whenever we perform subsequent reloads
+        expected_check = rule.check
+        enforcer.load_rules()
+        self.assertTrue(rule.check is expected_check)
+        self.assertTrue(rule._deprecated_rule_handled)
+
 
 class DocumentedRuleDefaultTestCase(base.PolicyBaseTestCase):
 
