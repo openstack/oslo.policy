@@ -1,3 +1,39 @@
+- job:
+    name: cross-nova-tox-functional
+    parent: openstack-tox
+    description: |
+      Run cross-project functional tests on nova.
+    vars:
+      zuul_work_dir: src/opendev.org/openstack/nova
+      tox_envlist: functional
+    required-projects:
+      - openstack/nova
+      - openstack/oslo.policy
+
+- job:
+    name: cross-nova-tox-py38
+    parent: openstack-tox
+    description: |
+      Run cross-project unit tests on nova.
+    vars:
+      zuul_work_dir: src/opendev.org/openstack/nova
+      tox_envlist: py38
+    required-projects:
+      - openstack/nova
+      - openstack/oslo.policy
+
+- job:
+    name: cross-neutron-tox-py38
+    parent: openstack-tox
+    description: |
+      Run cross-project unit tests on neutron.
+    vars:
+      zuul_work_dir: src/opendev.org/openstack/neutron
+      tox_envlist: py38
+    required-projects:
+      - openstack/neutron
+      - openstack/oslo.policy
+
 - project:
     templates:
       - check-requirements
@@ -7,3 +43,13 @@
       - periodic-stable-jobs
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
+    check:
+      jobs:
+        - cross-nova-tox-py38
+        - cross-nova-tox-functional
+        - cross-neutron-tox-py38
+    gate:
+      jobs:
+        - cross-nova-tox-py38
+        - cross-nova-tox-functional
+        - cross-neutron-tox-py38
