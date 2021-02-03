@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    This fixes the Bug# 1914095. Policy engine has bug of modifying the
+    registered rule original object which caused issue when there are
+    multiple policy objects are processing rules in parallel.
+    With this fix. policy engine will make copies of all the registered rules
+    and process accordingly.

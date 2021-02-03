@@ -747,6 +747,7 @@ class Enforcer(object):
                     self.rules[default.name] = self.file_rules[
                         deprecated_rule.name
                     ].check
+                    default._deprecated_rule_handled = True
 
         # In this case, the default check string is changing. We need to let
         # operators know that this is going to change. If they don't want to
@@ -767,11 +768,10 @@ class Enforcer(object):
             default.check = OrCheck([_parser.parse_rule(cs) for cs in
                                      [default.check_str,
                                       deprecated_rule.check_str]])
+            default._deprecated_rule_handled = True
             if not (self.suppress_deprecation_warnings
                     or self.suppress_default_change_warnings):
                 warnings.warn(deprecated_msg)
-
-        default._deprecated_rule_handled = True
 
     def _undefined_check(self, check):
         '''Check if a RuleCheck references an undefined rule.'''
@@ -1101,7 +1101,11 @@ class Enforcer(object):
         if default.name in self.registered_rules:
             raise DuplicatePolicyError(default.name)
 
-        self.registered_rules[default.name] = default
+        # NOTE Always make copy of registered rule because policy engine
+        # update these rules in many places (one example is
+        # self._handle_deprecated_rule() ). This will avoid any conflict
+        # in rule object values when running tests in parallel.
+        self.registered_rules[default.name] = copy.deepcopy(default)
 
     def register_defaults(self, defaults):
         """Registers a list of RuleDefaults.
