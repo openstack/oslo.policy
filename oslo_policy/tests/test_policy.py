@@ -788,20 +788,15 @@ class EnforcerTest(base.PolicyBaseTestCase):
         rule_original = policy.RuleDefault(
             name='test',
             check_str='role:owner',)
-        rule_original._deprecated_rule_handled = False
         self.enforcer.register_default(rule_original)
         self.enforcer.registered_rules['test'].check_str = 'role:admin'
         self.enforcer.registered_rules['test'].check = 'role:admin'
-        self.enforcer.registered_rules['test']._deprecated_rule_handled = True
         self.assertEqual(self.enforcer.registered_rules['test'].check_str,
                          'role:admin')
         self.assertEqual(self.enforcer.registered_rules['test'].check,
                          'role:admin')
-        self.assertTrue(
-            self.enforcer.registered_rules['test']._deprecated_rule_handled)
         self.assertEqual(rule_original.check_str, 'role:owner')
         self.assertEqual(rule_original.check.__str__(), 'role:owner')
-        self.assertFalse(rule_original._deprecated_rule_handled)
 
     def test_non_reversible_check(self):
         self.create_config_file('policy.json',
@@ -1783,27 +1778,28 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             deprecated_reason='"role:bang" is a better default',
             deprecated_since='N'
         )
+        check = rule.check
 
         enforcer = policy.Enforcer(self.conf)
         enforcer.register_defaults([rule])
-        registered_default_rule = enforcer.registered_rules['foo:create_bar']
-        # Check that rule deprecation handling hasn't been done, yet
-        self.assertFalse(registered_default_rule._deprecated_rule_handled)
 
-        # Loading the rules will modify the rule check string to logically OR
-        # the new value with the deprecated value
-        enforcer.load_rules()
-        self.assertTrue(registered_default_rule._deprecated_rule_handled)
+        # Check that rule processing hasn't been done, yet
+        self.assertEqual({}, enforcer.rules)
 
-        # Make sure the original value is used instead of instantiating new
-        # OrCheck objects whenever we perform subsequent reloads
-        expected_check = policy.OrCheck([_parser.parse_rule(cs) for cs in
-                                         [rule.check_str,
-                                          deprecated_rule.check_str]])
+        # Load the rules
         enforcer.load_rules()
-        self.assertEqual(registered_default_rule.check.__str__(),
-                         expected_check.__str__())
-        self.assertTrue(registered_default_rule._deprecated_rule_handled)
+
+        # Loading the rules will store a version of the rule check string
+        # logically ORed with the check string of the deprecated value. Make
+        # sure this is happening but that the original rule check is unchanged
+        expected_check = policy.OrCheck([
+            _parser.parse_rule(cs) for cs in
+            [rule.check_str, deprecated_rule.check_str]
+        ])
+        self.assertIn('foo:create_bar', enforcer.rules)
+        self.assertEqual(
+            str(enforcer.rules['foo:create_bar']), str(expected_check))
+        self.assertEqual(check, rule.check)
 
 
 class DocumentedRuleDefaultTestCase(base.PolicyBaseTestCase):

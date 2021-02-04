@@ -638,11 +638,15 @@ class Enforcer(object):
             for default in self.registered_rules.values():
                 if default.deprecated_for_removal:
                     self._emit_deprecated_for_removal_warning(default)
-                elif default.deprecated_rule:
-                    self._handle_deprecated_rule(default)
 
-                if default.name not in self.rules:
-                    self.rules[default.name] = default.check
+                if default.name in self.rules:
+                    continue
+
+                check = default.check
+                if default.deprecated_rule:
+                    check = self._handle_deprecated_rule(default)
+
+                self.rules[default.name] = check
 
             # Detect and log obvious incorrect rule definitions
             if self._need_check_rule:
@@ -699,11 +703,6 @@ class Enforcer(object):
                         DeprecatedRule
         """
 
-        # Short-circuit the rule deprecation logic if we've already processed
-        # it for this particular rule.
-        if default._deprecated_rule_handled:
-            return
-
         deprecated_rule = default.deprecated_rule
         deprecated_reason = (
             deprecated_rule.deprecated_reason or default.deprecated_reason)
@@ -749,10 +748,7 @@ class Enforcer(object):
                     str(self.file_rules[deprecated_rule.name].check)
                     != 'rule:%s' % default.name):
                 if default.name not in self.file_rules.keys():
-                    self.rules[default.name] = self.file_rules[
-                        deprecated_rule.name
-                    ].check
-                    default._deprecated_rule_handled = True
+                    return self.file_rules[deprecated_rule.name].check
 
         # In this case, the default check string is changing. We need to let
         # operators know that this is going to change. If they don't want to
@@ -770,13 +766,17 @@ class Enforcer(object):
                 and deprecated_rule.check_str != default.check_str
                 and default.name not in self.file_rules):
 
-            default.check = OrCheck([_parser.parse_rule(cs) for cs in
-                                     [default.check_str,
-                                      deprecated_rule.check_str]])
-            default._deprecated_rule_handled = True
             if not (self.suppress_deprecation_warnings
                     or self.suppress_default_change_warnings):
                 warnings.warn(deprecated_msg)
+
+            return OrCheck([
+                _parser.parse_rule(cs) for cs in [
+                    default.check_str, deprecated_rule.check_str,
+                ]
+            ])
+
+        return default.check
 
     def _undefined_check(self, check):
         '''Check if a RuleCheck references an undefined rule.'''
@@ -1195,7 +1195,6 @@ class RuleDefault(object):
         self.deprecated_for_removal = deprecated_for_removal
         self.deprecated_reason = deprecated_reason
         self.deprecated_since = deprecated_since
-        self._deprecated_rule_handled = False
 
         if self.deprecated_rule:
             if not isinstance(self.deprecated_rule, DeprecatedRule):
