@@ -788,13 +788,15 @@ class EnforcerTest(base.PolicyBaseTestCase):
         rule_original = policy.RuleDefault(
             name='test',
             check_str='role:owner',)
+
         self.enforcer.register_default(rule_original)
-        self.enforcer.registered_rules['test'].check_str = 'role:admin'
-        self.enforcer.registered_rules['test'].check = 'role:admin'
-        self.assertEqual(self.enforcer.registered_rules['test'].check_str,
-                         'role:admin')
-        self.assertEqual(self.enforcer.registered_rules['test'].check,
-                         'role:admin')
+        self.enforcer.registered_rules['test']._check_str = 'role:admin'
+        self.enforcer.registered_rules['test']._check = 'role:admin'
+
+        self.assertEqual(
+            self.enforcer.registered_rules['test'].check_str, 'role:admin')
+        self.assertEqual(
+            self.enforcer.registered_rules['test'].check, 'role:admin')
         self.assertEqual(rule_original.check_str, 'role:owner')
         self.assertEqual(rule_original.check.__str__(), 'role:owner')
 

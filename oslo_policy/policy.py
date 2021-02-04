@@ -731,7 +731,6 @@ class Enforcer(object):
         # self.file_rules, we know that it's being overridden.
         if deprecated_rule.name != default.name and (
                 deprecated_rule.name in self.file_rules):
-
             if not self.suppress_deprecation_warnings:
                 warnings.warn(deprecated_msg)
 
@@ -765,16 +764,11 @@ class Enforcer(object):
         if (not self.conf.oslo_policy.enforce_new_defaults
                 and deprecated_rule.check_str != default.check_str
                 and default.name not in self.file_rules):
-
             if not (self.suppress_deprecation_warnings
                     or self.suppress_default_change_warnings):
                 warnings.warn(deprecated_msg)
 
-            return OrCheck([
-                _parser.parse_rule(cs) for cs in [
-                    default.check_str, deprecated_rule.check_str,
-                ]
-            ])
+            return OrCheck([default.check, deprecated_rule.check])
 
         return default.check
 
@@ -1141,32 +1135,52 @@ class Enforcer(object):
                             *args, **kwargs)
 
 
-class RuleDefault(object):
+class _BaseRule:
+
+    def __init__(self, name, check_str):
+        self._name = name
+        self._check_str = check_str
+        self._check = _parser.parse_rule(self.check_str)
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def check_str(self):
+        return self._check_str
+
+    @property
+    def check(self):
+        return self._check
+
+    def __str__(self):
+        return f'"{self.name}": "{self.check_str}"'
+
+
+class RuleDefault(_BaseRule):
     """A class for holding policy definitions.
 
     It is required to supply a name and value at creation time. It is
     encouraged to also supply a description to assist operators.
 
     :param name: The name of the policy. This is used when referencing it
-                 from another rule or during policy enforcement.
+        from another rule or during policy enforcement.
     :param check_str: The policy. This is a string  defining a policy that
-                      conforms to the policy language outlined at the top of
-                      the file.
+        conforms to the policy language outlined at the top of the file.
     :param description: A plain text description of the policy. This will be
-                        used to comment sample policy files for use by
-                        deployers.
+        used to comment sample policy files for use by deployers.
     :param deprecated_rule: :class:`.DeprecatedRule`
     :param deprecated_for_removal: indicates whether the policy is planned for
-                                   removal in a future release.
+        removal in a future release.
     :param deprecated_reason: indicates why this policy is planned for removal
-                              in a future release. Silently ignored if
-                              deprecated_for_removal is False.
+        in a future release. Silently ignored if deprecated_for_removal is
+        False.
     :param deprecated_since: indicates which release this policy was deprecated
-                             in. Accepts any string, though valid version
-                             strings are encouraged. Silently ignored if
-                             deprecated_for_removal is False.
+        in. Accepts any string, though valid version strings are encouraged.
+        Silently ignored if deprecated_for_removal is False.
     :param scope_types: A list containing the intended scopes of the operation
-                        being done.
+        being done.
 
     .. versionchanged:: 1.29
        Added *deprecated_rule* parameter.
@@ -1183,18 +1197,19 @@ class RuleDefault(object):
     .. versionchanged:: 1.31
        Added *scope_types* parameter.
     """
-    def __init__(self, name, check_str, description=None,
-                 deprecated_rule=None, deprecated_for_removal=False,
-                 deprecated_reason=None, deprecated_since=None,
-                 scope_types=None):
-        self.name = name
-        self.check_str = check_str
-        self.check = _parser.parse_rule(check_str)
-        self.description = description
-        self.deprecated_rule = copy.deepcopy(deprecated_rule) or []
-        self.deprecated_for_removal = deprecated_for_removal
-        self.deprecated_reason = deprecated_reason
-        self.deprecated_since = deprecated_since
+    def __init__(
+        self, name, check_str, description=None,
+        deprecated_rule=None, deprecated_for_removal=False,
+        deprecated_reason=None, deprecated_since=None,
+        scope_types=None,
+    ):
+        super().__init__(name, check_str)
+
+        self._description = description
+        self._deprecated_rule = copy.deepcopy(deprecated_rule) or []
+        self._deprecated_for_removal = deprecated_for_removal
+        self._deprecated_reason = deprecated_reason
+        self._deprecated_since = deprecated_since
 
         if self.deprecated_rule:
             if not isinstance(self.deprecated_rule, DeprecatedRule):
@@ -1224,18 +1239,37 @@ class RuleDefault(object):
             msg = 'scope_types must be a list of strings.'
             if not isinstance(scope_types, list):
                 raise ValueError(msg)
+
             for scope_type in scope_types:
                 if not isinstance(scope_type, str):
                     raise ValueError(msg)
+
                 if scope_types.count(scope_type) > 1:
                     raise ValueError(
                         'scope_types must be a list of unique strings.'
                     )
+
         self.scope_types = scope_types
 
-    def __str__(self):
-        return '"%(name)s": "%(check_str)s"' % {'name': self.name,
-                                                'check_str': self.check_str}
+    @property
+    def description(self):
+        return self._description
+
+    @property
+    def deprecated_rule(self):
+        return self._deprecated_rule
+
+    @property
+    def deprecated_for_removal(self):
+        return self._deprecated_for_removal
+
+    @property
+    def deprecated_reason(self):
+        return self._deprecated_reason
+
+    @property
+    def deprecated_since(self):
+        return self._deprecated_since
 
     def __eq__(self, other):
         """Equality operator.
@@ -1267,7 +1301,7 @@ class DocumentedRuleDefault(RuleDefault):
     attributes of this class. Eventually, all usage of RuleDefault should be
     converted to use DocumentedRuleDefault.
 
-    :param operations: List of dicts containing each api url and
+    :param operations: List of dicts containing each API URL and
         corresponding http request method.
 
         Example::
@@ -1275,11 +1309,13 @@ class DocumentedRuleDefault(RuleDefault):
             operations=[{'path': '/foo', 'method': 'GET'},
                         {'path': '/some', 'method': 'POST'}]
     """
-    def __init__(self, name, check_str, description, operations,
-                 deprecated_rule=None, deprecated_for_removal=False,
-                 deprecated_reason=None, deprecated_since=None,
-                 scope_types=None):
-        super(DocumentedRuleDefault, self).__init__(
+    def __init__(
+        self, name, check_str, description, operations,
+        deprecated_rule=None, deprecated_for_removal=False,
+        deprecated_reason=None, deprecated_since=None,
+        scope_types=None,
+    ):
+        super().__init__(
             name, check_str, description,
             deprecated_rule=deprecated_rule,
             deprecated_for_removal=deprecated_for_removal,
@@ -1287,41 +1323,36 @@ class DocumentedRuleDefault(RuleDefault):
             deprecated_since=deprecated_since,
             scope_types=scope_types
         )
-        self.operations = operations
 
-    @property
-    def description(self):
-        return self._description
+        self._operations = operations
 
-    @description.setter
-    def description(self, value):
-        # Validates description isn't empty.
-        if not value:
+        if not self._description:
             raise InvalidRuleDefault('Description is required')
-        self._description = value
 
-    @property
-    def operations(self):
-        return self._operations
-
-    @operations.setter
-    def operations(self, ops):
-        if not isinstance(ops, list):
+        if not isinstance(self._operations, list):
             raise InvalidRuleDefault('Operations must be a list')
-        if not ops:
+
+        if not self._operations:
             raise InvalidRuleDefault('Operations list must not be empty')
 
-        for op in ops:
+        for op in self._operations:
             if 'path' not in op:
                 raise InvalidRuleDefault('Operation must contain a path')
             if 'method' not in op:
                 raise InvalidRuleDefault('Operation must contain a method')
             if len(op.keys()) > 2:
                 raise InvalidRuleDefault('Operation contains > 2 keys')
-        self._operations = ops
+
+    @property
+    def description(self):
+        return self._description
+
+    @property
+    def operations(self):
+        return self._operations
 
 
-class DeprecatedRule(object):
+class DeprecatedRule(_BaseRule):
 
     """Represents a Deprecated policy or rule.
 
@@ -1497,13 +1528,21 @@ class DeprecatedRule(object):
         deprecated_reason: ty.Optional[str] = None,
         deprecated_since: ty.Optional[str] = None,
     ):
-        self.name = name
-        self.check_str = check_str
-        self.deprecated_reason = deprecated_reason
-        self.deprecated_since = deprecated_since
+        super().__init__(name, check_str)
+
+        self._deprecated_reason = deprecated_reason
+        self._deprecated_since = deprecated_since
 
         if not deprecated_reason or not deprecated_since:
             warnings.warn(
                 f'{name} deprecated without deprecated_reason or '
                 f'deprecated_since. This will be an error in a future release',
                 DeprecationWarning)
+
+    @property
+    def deprecated_reason(self):
+        return self._deprecated_reason
+
+    @property
+    def deprecated_since(self):
+        return self._deprecated_since
