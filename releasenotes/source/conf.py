@@ -57,7 +57,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-copyright = u'2016, oslo.policy Developers'
+copyright = '2016, oslo.policy Developers'
 
 # Release notes do not need a version in the title, they span
 # multiple versions.
@@ -197,8 +197,8 @@ htmlhelp_basename = 'oslo.policyReleaseNotesDoc'
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     ('index', 'oslo.policyReleaseNotes.tex',
-     u'oslo.policy Release Notes Documentation',
-     u'oslo.policy Developers', 'manual'),
+     'oslo.policy Release Notes Documentation',
+     'oslo.policy Developers', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -228,8 +228,8 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'oslo.policyReleaseNotes',
-     u'oslo.policy Release Notes Documentation',
-     [u'oslo.policy Developers'], 1)
+     'oslo.policy Release Notes Documentation',
+     ['oslo.policy Developers'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -243,8 +243,8 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     ('index', 'oslo.policyReleaseNotes',
-     u'oslo.policy Release Notes Documentation',
-     u'oslo.policy Developers', 'oslo.policyReleaseNotes',
+     'oslo.policy Release Notes Documentation',
+     'oslo.policy Developers', 'oslo.policyReleaseNotes',
      'One line description of project.',
      'Miscellaneous'),
 ]
