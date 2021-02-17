@@ -225,6 +225,7 @@ import collections.abc
 import copy
 import logging
 import os
+import typing as ty
 import warnings
 
 from oslo_config import cfg
@@ -704,6 +705,10 @@ class Enforcer(object):
             return
 
         deprecated_rule = default.deprecated_rule
+        deprecated_reason = (
+            deprecated_rule.deprecated_reason or default.deprecated_reason)
+        deprecated_since = (
+            deprecated_rule.deprecated_since or default.deprecated_since)
 
         deprecated_msg = (
             'Policy "%(old_name)s":"%(old_check_str)s" was deprecated in '
@@ -713,10 +718,10 @@ class Enforcer(object):
             'file and maintain it manually.' % {
                 'old_name': deprecated_rule.name,
                 'old_check_str': deprecated_rule.check_str,
-                'release': default.deprecated_since,
+                'release': deprecated_since,
                 'name': default.name,
                 'check_str': default.check_str,
-                'reason': default.deprecated_reason
+                'reason': deprecated_reason,
             }
         )
 
@@ -1163,21 +1168,20 @@ class RuleDefault(object):
     :param scope_types: A list containing the intended scopes of the operation
                         being done.
 
-    .. versionchanged 1.29
+    .. versionchanged:: 1.29
        Added *deprecated_rule* parameter.
 
-    .. versionchanged 1.29
+    .. versionchanged:: 1.29
        Added *deprecated_for_removal* parameter.
 
-    .. versionchanged 1.29
+    .. versionchanged:: 1.29
        Added *deprecated_reason* parameter.
 
-    .. versionchanged 1.29
+    .. versionchanged:: 1.29
        Added *deprecated_since* parameter.
 
-    .. versionchanged 1.31
+    .. versionchanged:: 1.31
        Added *scope_types* parameter.
-
     """
     def __init__(self, name, check_str, description=None,
                  deprecated_rule=None, deprecated_for_removal=False,
@@ -1199,13 +1203,23 @@ class RuleDefault(object):
                     'deprecated_rule must be a DeprecatedRule object.'
                 )
 
-        if (deprecated_for_removal or deprecated_rule) and (
-                deprecated_reason is None or deprecated_since is None):
-            raise ValueError(
-                '%(name)s deprecated without deprecated_reason or '
-                'deprecated_since. Both must be supplied if deprecating a '
-                'policy' % {'name': self.name}
-            )
+        # if this rule is being deprecated, we need to provide a deprecation
+        # reason here, but if this rule is replacing another rule, then the
+        # deprecation reason belongs on that other rule
+        if deprecated_for_removal:
+            if deprecated_reason is None or deprecated_since is None:
+                raise ValueError(
+                    '%(name)s deprecated without deprecated_reason or '
+                    'deprecated_since. Both must be supplied if deprecating a '
+                    'policy' % {'name': self.name}
+                )
+        elif deprecated_rule and (deprecated_reason or deprecated_since):
+            warnings.warn(
+                f'{name} should not configure deprecated_reason or '
+                f'deprecated_since as these should be configured on the '
+                f'DeprecatedRule indicated by deprecated_rule. '
+                f'This will be an error in a future release',
+                DeprecationWarning)
 
         if scope_types:
             msg = 'scope_types must be a list of strings.'
@@ -1330,6 +1344,8 @@ class DeprecatedRule(object):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:create_bar',
             check_str='role:fizz'
+            deprecated_reason='role:bang is a better default',
+            deprecated_since='N',
         )
 
         policy.DocumentedRuleDefault(
@@ -1338,8 +1354,6 @@ class DeprecatedRule(object):
             description='Create a bar.',
             operations=[{'path': '/v1/bars', 'method': 'POST'}],
             deprecated_rule=deprecated_rule,
-            deprecated_reason='role:bang is a better default',
-            deprecated_since='N'
         )
 
     DeprecatedRule can be used to change the policy name itself. Assume the
@@ -1361,6 +1375,8 @@ class DeprecatedRule(object):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:post_bar',
             check_str='role:fizz'
+            deprecated_reason='foo:create_bar is more consistent',
+            deprecated_since='N',
         )
 
         policy.DocumentedRuleDefault(
@@ -1369,8 +1385,6 @@ class DeprecatedRule(object):
             description='Create a bar.',
             operations=[{'path': '/v1/bars', 'method': 'POST'}],
             deprecated_rule=deprecated_rule,
-            deprecated_reason='foo:create_bar is more consistent',
-            deprecated_since='N'
         )
 
     Finally, let's use DeprecatedRule to break a policy into more granular
@@ -1415,6 +1429,10 @@ class DeprecatedRule(object):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:bar',
             check_str='role:bazz'
+            deprecated_reason=(
+                'foo:bar has been replaced by more granular policies'
+            ),
+            deprecated_since='N',
         )
 
         policy.DocumentedRuleDefault(
@@ -1423,8 +1441,6 @@ class DeprecatedRule(object):
             description='Create a bar.',
             operations=[{'path': '/v1/bars', 'method': 'POST'}],
             deprecated_rule=deprecated_rule,
-            deprecated_reason='foo:create_bar is more granular than foo:bar',
-            deprecated_since='N'
         )
         policy.DocumentedRuleDefault(
             name='foo:list_bars',
@@ -1432,8 +1448,6 @@ class DeprecatedRule(object):
             description='List bars.',
             operations=[{'path': '/v1/bars', 'method': 'GET'}],
             deprecated_rule=deprecated_rule,
-            deprecated_reason='foo:list_bars is more granular than foo:bar',
-            deprecated_since='N'
         )
         policy.DocumentedRuleDefault(
             name='foo:get_bar',
@@ -1441,8 +1455,6 @@ class DeprecatedRule(object):
             description='Get a bar.',
             operations=[{'path': '/v1/bars/{bar_id}', 'method': 'GET'}],
             deprecated_rule=deprecated_rule,
-            deprecated_reason='foo:get_bar is more granular than foo:bar',
-            deprecated_since='N'
         )
         policy.DocumentedRuleDefault(
             name='foo:update_bar',
@@ -1450,8 +1462,6 @@ class DeprecatedRule(object):
             description='Update a bar.',
             operations=[{'path': '/v1/bars/{bar_id}', 'method': 'PATCH'}],
             deprecated_rule=deprecated_rule,
-            deprecated_reason='foo:update_bar is more granular than foo:bar',
-            deprecated_since='N'
         )
         policy.DocumentedRuleDefault(
             name='foo:delete_bar',
@@ -1459,19 +1469,42 @@ class DeprecatedRule(object):
             description='Delete a bar.',
             operations=[{'path': '/v1/bars/{bar_id}', 'method': 'DELETE'}],
             deprecated_rule=deprecated_rule,
-            deprecated_reason='foo:delete_bar is more granular than foo:bar',
-            deprecated_since='N'
         )
 
-    .. versionchanged 1.29
+    :param name: The name of the policy. This is used when referencing it
+        from another rule or during policy enforcement.
+    :param check_str: The policy. This is a string  defining a policy that
+        conforms to the policy language outlined at the top of the file.
+    :param deprecated_reason: indicates why this policy is planned for removal
+        in a future release.
+    :param deprecated_since: indicates which release this policy was deprecated
+        in. Accepts any string, though valid version strings are encouraged.
+
+    .. versionchanged:: 1.29
        Added *DeprecatedRule* object.
+
+    .. versionchanged:: 3.4
+       Added *deprecated_reason* parameter.
+
+    .. versionchanged:: 3.4
+       Added *deprecated_since* parameter.
     """
 
-    def __init__(self, name, check_str):
-        """Construct a DeprecatedRule object.
-
-        :param name: the policy name
-        :param check_str: the value of the policy's check string
-        """
+    def __init__(
+        self,
+        name: str,
+        check_str: str,
+        *,
+        deprecated_reason: ty.Optional[str] = None,
+        deprecated_since: ty.Optional[str] = None,
+    ):
         self.name = name
         self.check_str = check_str
+        self.deprecated_reason = deprecated_reason
+        self.deprecated_since = deprecated_since
+
+        if not deprecated_reason or not deprecated_since:
+            warnings.warn(
+                f'{name} deprecated without deprecated_reason or '
+                f'deprecated_since. This will be an error in a future release',
+                DeprecationWarning)

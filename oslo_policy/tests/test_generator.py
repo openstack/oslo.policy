@@ -194,17 +194,17 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
     def test_deprecated_policies_are_aliased_to_new_names(self):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:post_bar',
-            check_str='role:fizz'
+            check_str='role:fizz',
+            deprecated_reason=(
+                'foo:post_bar is being removed in favor of foo:create_bar'
+            ),
+            deprecated_since='N',
         )
         new_rule = policy.RuleDefault(
             name='foo:create_bar',
             check_str='role:fizz',
             description='Create a bar.',
             deprecated_rule=deprecated_rule,
-            deprecated_reason=(
-                'foo:post_bar is being removed in favor of foo:create_bar'
-            ),
-            deprecated_since='N'
         )
         opts = {'rules': [new_rule]}
 
@@ -240,17 +240,17 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
     def test_deprecated_policies_with_same_name(self):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:create_bar',
-            check_str='role:old'
+            check_str='role:old',
+            deprecated_reason=(
+                'role:fizz is a more sane default for foo:create_bar'
+            ),
+            deprecated_since='N',
         )
         new_rule = policy.RuleDefault(
             name='foo:create_bar',
             check_str='role:fizz',
             description='Create a bar.',
             deprecated_rule=deprecated_rule,
-            deprecated_reason=(
-                'role:fizz is a more sane default for foo:create_bar'
-            ),
-            deprecated_since='N'
         )
         opts = {'rules': [new_rule]}
 
@@ -606,12 +606,18 @@ class ListRedundantTestCase(base.PolicyBaseTestCase):
         enforcer.register_default(
             policy.RuleDefault('owner', 'project_id:%(project_id)s'))
         # register a new opt
-        deprecated_rule = policy.DeprecatedRule('old_foo', 'role:bar')
+        deprecated_rule = policy.DeprecatedRule(
+            name='old_foo',
+            check_str='role:bar',
+            deprecated_reason='reason',
+            deprecated_since='T'
+        )
         enforcer.register_default(
-            policy.RuleDefault('foo', 'role:foo',
-                               deprecated_rule=deprecated_rule,
-                               deprecated_reason='reason',
-                               deprecated_since='T')
+            policy.RuleDefault(
+                name='foo',
+                check_str='role:foo',
+                deprecated_rule=deprecated_rule,
+            ),
         )
 
         # Mock out stevedore to return the configured enforcer
@@ -656,7 +662,9 @@ class UpgradePolicyTestCase(base.PolicyBaseTestCase):
         self.create_config_file('policy.json', policy_json_contents)
         deprecated_policy = policy.DeprecatedRule(
             name='deprecated_name',
-            check_str='rule:admin'
+            check_str='rule:admin',
+            deprecated_reason='test',
+            deprecated_since='Stein',
         )
         self.new_policy = policy.DocumentedRuleDefault(
             name='new_policy_name',
@@ -664,8 +672,6 @@ class UpgradePolicyTestCase(base.PolicyBaseTestCase):
             description='test_policy',
             operations=[{'path': '/test', 'method': 'GET'}],
             deprecated_rule=deprecated_policy,
-            deprecated_reason='test',
-            deprecated_since='Stein'
         )
         self.extensions = []
         ext = stevedore.extension.Extension(name='test_upgrade',
@@ -848,7 +854,9 @@ class ConvertJsonToYamlTestCase(base.PolicyBaseTestCase):
             'converted_policy.yaml')
         deprecated_policy = policy.DeprecatedRule(
             name='deprecated_rule1_name',
-            check_str='rule:admin'
+            check_str='rule:admin',
+            deprecated_reason='testing',
+            deprecated_since='ussuri',
         )
         self.registered_policy = [
             policy.DocumentedRuleDefault(
@@ -857,9 +865,7 @@ class ConvertJsonToYamlTestCase(base.PolicyBaseTestCase):
                 description='test_rule1',
                 operations=[{'path': '/test', 'method': 'GET'}],
                 deprecated_rule=deprecated_policy,
-                deprecated_reason='testing',
-                deprecated_since='ussuri',
-                scope_types=['system']
+                scope_types=['system'],
             ),
             policy.RuleDefault(
                 name='rule2_name',
