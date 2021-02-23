@@ -391,8 +391,8 @@ def parse_file_contents(data):
     yaml or json format. Both can be parsed as yaml.
 
     :param data: A string containing the contents of a policy file.
-    :returns: A dict of the form {'policy_name1': 'policy1',
-                                  'policy_name2': 'policy2,...}
+    :returns: A dict of the form ``{'policy_name1': 'policy1',
+        'policy_name2': 'policy2,...}``
     """
     try:
         # NOTE(snikitin): jsonutils.loads() is much faster than
@@ -438,7 +438,6 @@ class Rules(dict):
         .. warning::
             This method is deprecated as of the 1.5.0 release in favor of
             :meth:`load` and may be removed in the 2.0 release.
-
         """
         warnings.warn(
             'The load_json() method is deprecated as of the 1.5.0 release in '
@@ -502,24 +501,24 @@ class Enforcer(object):
     """Responsible for loading and enforcing rules.
 
     :param conf: A configuration object.
-    :param policy_file: Custom policy file to use, if none is
-                        specified, ``conf.oslo_policy.policy_file`` will be
-                        used.
-    :param rules: Default dictionary / Rules to use. It will be
-                  considered just in the first instantiation. If
-                  :meth:`load_rules` with ``force_reload=True``,
-                  :meth:`clear` or :meth:`set_rules` with ``overwrite=True``
-                  is called this will be overwritten.
-    :param default_rule: Default rule to use, conf.default_rule will
-                         be used if none is specified.
+    :param policy_file: Custom policy file to use, if none is specified,
+        ``conf.oslo_policy.policy_file`` will be used.
+    :param rules: Default dictionary / Rules to use. It will be considered just
+        in the first instantiation. If :meth:`load_rules` with
+        ``force_reload=True``, :meth:`clear` or :meth:`set_rules` with
+        ``overwrite=True`` is called this will be overwritten.
+    :param default_rule: Default rule to use, conf.default_rule will be used if
+        none is specified.
     :param use_conf: Whether to load rules from cache or config file.
     :param overwrite: Whether to overwrite existing rules when reload rules
-                      from config file.
+        from config file.
     """
 
-    def __init__(self, conf, policy_file=None, rules=None,
-                 default_rule=None, use_conf=True, overwrite=True,
-                 fallback_to_json_file=True):
+    def __init__(
+        self, conf, policy_file=None, rules=None,
+        default_rule=None, use_conf=True, overwrite=True,
+        fallback_to_json_file=True,
+    ):
         self.conf = conf
         opts._register(conf)
 
@@ -552,9 +551,9 @@ class Enforcer(object):
     def set_rules(self, rules, overwrite=True, use_conf=False):
         """Create a new :class:`Rules` based on the provided dict of rules.
 
-        :param dict rules: New rules to use.
+        :param rules: New rules to use.
         :param overwrite: Whether to overwrite current rules or update them
-                          with the new rules.
+            with the new rules.
         :param use_conf: Whether to reload rules from cache or config file.
         """
 
@@ -700,7 +699,7 @@ class Enforcer(object):
         """Handle cases where a policy rule has been deprecated.
 
         :param default: an instance of RuleDefault that contains an instance of
-                        DeprecatedRule
+            DeprecatedRule
         """
 
         deprecated_rule = default.deprecated_rule
@@ -729,8 +728,10 @@ class Enforcer(object):
         # renamed to foo:create_bar then they need to be able to see that
         # before they roll out the next release. If the policy name is in
         # self.file_rules, we know that it's being overridden.
-        if deprecated_rule.name != default.name and (
-                deprecated_rule.name in self.file_rules):
+        if (
+            deprecated_rule.name != default.name and
+            deprecated_rule.name in self.file_rules
+        ):
             if not self.suppress_deprecation_warnings:
                 warnings.warn(deprecated_msg)
 
@@ -742,12 +743,13 @@ class Enforcer(object):
             # we set the deprecated rule name to reference the new rule. If we
             # see that the deprecated override rule is just the new rule, then
             # we shouldn't mess with it.
-            if (self.file_rules[deprecated_rule.name].check
-                    != _parser.parse_rule(deprecated_rule.check_str) and
-                    str(self.file_rules[deprecated_rule.name].check)
-                    != 'rule:%s' % default.name):
-                if default.name not in self.file_rules.keys():
-                    return self.file_rules[deprecated_rule.name].check
+            file_rule = self.file_rules[deprecated_rule.name]
+            if (
+                file_rule.check != deprecated_rule.check and
+                str(file_rule.check) != 'rule:%s' % default.name and
+                default.name not in self.file_rules.keys()
+            ):
+                return self.file_rules[deprecated_rule.name].check
 
         # In this case, the default check string is changing. We need to let
         # operators know that this is going to change. If they don't want to
@@ -761,11 +763,15 @@ class Enforcer(object):
         # support the new policy.
         # If the enforce_new_defaults flag is True, do not add OrCheck to the
         # old check_str and enforce only the new defaults.
-        if (not self.conf.oslo_policy.enforce_new_defaults
-                and deprecated_rule.check_str != default.check_str
-                and default.name not in self.file_rules):
-            if not (self.suppress_deprecation_warnings
-                    or self.suppress_default_change_warnings):
+        if (
+            not self.conf.oslo_policy.enforce_new_defaults
+            and deprecated_rule.check_str != default.check_str
+            and default.name not in self.file_rules
+        ):
+            if not (
+                self.suppress_deprecation_warnings
+                or self.suppress_default_change_warnings
+            ):
                 warnings.warn(deprecated_msg)
 
             return OrCheck([default.check, deprecated_rule.check])
@@ -773,7 +779,7 @@ class Enforcer(object):
         return default.check
 
     def _undefined_check(self, check):
-        '''Check if a RuleCheck references an undefined rule.'''
+        """Check if a RuleCheck references an undefined rule."""
         if isinstance(check, RuleCheck):
             if check.match not in self.rules:
                 # Undefined rule
@@ -789,12 +795,16 @@ class Enforcer(object):
         return False
 
     def _cycle_check(self, check, seen=None):
-        '''Check if RuleChecks cycle.
+        """Check if RuleChecks cycle.
 
-        Looking for something like:
-        "foo": "rule:bar"
-        "bar": "rule:foo"
-        '''
+        Looking for something like::
+
+            "foo": "rule:bar"
+            "bar": "rule:foo"
+
+        :param check: The check to search for.
+        :param seen: A set of previously seen rules, else None.
+        """
         if seen is None:
             seen = set()
 
@@ -884,11 +894,10 @@ class Enforcer(object):
     def _load_policy_file(self, path, force_reload, overwrite=True):
         """Load policy rules from the specified policy file.
 
-        :param str path: A path of the policy file to load rules from.
-        :param bool force_reload: Forcefully reload the policy file content.
-        :param bool overwrite: Replace policy rules instead of updating them.
+        :param path: A path of the policy file to load rules from.
+        :param force_reload: Forcefully reload the policy file content.
+        :param overwrite: Replace policy rules instead of updating them.
         :return: A bool indicating whether rules have been changed or not.
-        :rtype: bool
         """
         rules_changed = False
         reloaded, data = _cache_handler.read_cached_file(
@@ -906,14 +915,12 @@ class Enforcer(object):
         """Locate the policy YAML/JSON data file/path.
 
         :param path: It's value can be a full path or related path. When
-                     full path specified, this function just returns the full
-                     path. When related path specified, this function will
-                     search configuration directories to find one that exists.
+            full path specified, this function just returns the full path. When
+            related path specified, this function will search configuration
+            directories to find one that exists.
 
         :returns: The policy path
-
-        :raises: ConfigFilesNotFoundError if the file/path couldn't
-                 be located.
+        :raises: ConfigFilesNotFoundError if the file/path couldn't be located.
         """
         policy_path = self.conf.find_file(path)
 
@@ -922,35 +929,30 @@ class Enforcer(object):
 
         raise cfg.ConfigFilesNotFoundError((path,))
 
-    def enforce(self, rule, target, creds, do_raise=False, exc=None,
-                *args, **kwargs):
+    def enforce(
+        self, rule, target, creds, do_raise=False, exc=None, *args, **kwargs,
+    ):
         """Checks authorization of a rule against the target and credentials.
 
-        :param rule: The rule to evaluate.
-        :type rule: string or :class:`BaseCheck`
-        :param dict target: As much information about the object being
-                            operated on as possible. The target
-                            argument should be a dict instance or an
-                            instance of a class that fully supports
-                            the Mapping abstract base class.
-        :param dict creds: As much information about the user performing the
-                           action as possible. This parameter can also be an
-                           instance of ``oslo_context.context.RequestContext``.
+        :param rule: The rule to evaluate as a string or :class:`BaseCheck`.
+        :param target: As much information about the object being operated on
+            as possible. The target argument should be a dict instance or an
+            instance of a class that fully supports the Mapping abstract base
+            class.
+        :param creds: As much information about the user performing the action
+            as possible. This parameter can also be an instance of
+            ``oslo_context.context.RequestContext``.
         :param do_raise: Whether to raise an exception or not if check
-                        fails.
+            fails.
         :param exc: Class of the exception to raise if the check fails.
-                    Any remaining arguments passed to :meth:`enforce` (both
-                    positional and keyword arguments) will be passed to
-                    the exception class. If not specified,
-                    :class:`PolicyNotAuthorized` will be used.
-
-        :return: ``False`` if the policy does not allow the action and `exc` is
-                 not provided; otherwise, returns a value that evaluates to
-                 ``True``.  Note: for rules using the "case" expression, this
-                 ``True`` value will be the specified string from the
-                 expression.
+            Any remaining arguments passed to :meth:`enforce` (both positional
+            and keyword arguments) will be passed to the exception class. If
+            not specified, :class:`PolicyNotAuthorized` will be used.
+        :return: ``False`` if the policy does not allow the action and ``exc``
+            is not provided; otherwise, returns a value that evaluates to
+            ``True``.  Note: for rules using the "case" expression, this
+            ``True`` value will be the specified string from the expression.
         """
-
         self.load_rules()
 
         if isinstance(creds, context.RequestContext):
@@ -1131,8 +1133,8 @@ class Enforcer(object):
         """
         if rule not in self.registered_rules:
             raise PolicyNotRegistered(rule)
-        return self.enforce(rule, target, creds, do_raise, exc,
-                            *args, **kwargs)
+        return self.enforce(
+            rule, target, creds, do_raise, exc, *args, **kwargs)
 
 
 class _BaseRule:
