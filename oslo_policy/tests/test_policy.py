@@ -1802,6 +1802,12 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
         self.assertEqual(
             str(enforcer.rules['foo:create_bar']), str(expected_check))
         self.assertEqual(check, rule.check)
+        # Hacky way to check whether _handle_deprecated_rule was called again.
+        # If a second call to load_rules doesn't overwrite our dummy rule then
+        # we know it didn't call the deprecated rule function again.
+        enforcer.rules['foo:create_bar'] = 'foo:bar'
+        enforcer.load_rules()
+        self.assertEqual('foo:bar', enforcer.rules['foo:create_bar'])
 
 
 class DocumentedRuleDefaultTestCase(base.PolicyBaseTestCase):
