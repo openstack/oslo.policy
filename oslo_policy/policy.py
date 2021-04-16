@@ -371,15 +371,25 @@ def pick_default_policy_file(conf, fallback_to_json_file=True):
 
     new_default_policy_file = 'policy.yaml'
     old_default_policy_file = 'policy.json'
+    policy_file = None
     if ((conf.oslo_policy.policy_file == new_default_policy_file) and
             fallback_to_json_file):
         location = conf.get_location('policy_file', 'oslo_policy').location
         if conf.find_file(conf.oslo_policy.policy_file):
-            return conf.oslo_policy.policy_file
+            policy_file = conf.oslo_policy.policy_file
         elif location in [cfg.Locations.opt_default,
                           cfg.Locations.set_default]:
+            LOG.debug('Searching old policy.json file.')
             if conf.find_file(old_default_policy_file):
-                return old_default_policy_file
+                policy_file = old_default_policy_file
+        if policy_file:
+            LOG.debug(
+                'Picking default policy file: %s. Config location: %s',
+                policy_file, location)
+            return policy_file
+    LOG.debug(
+        'No default policy file present, picking the configured '
+        'one: %s.', conf.oslo_policy.policy_file)
     # Return overridden policy file
     return conf.oslo_policy.policy_file
 
