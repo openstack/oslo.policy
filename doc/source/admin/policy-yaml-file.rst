@@ -239,7 +239,19 @@ Target object attributes are fields from the object description in the
 database. For example in the case of the ``"compute:start"`` API, the
 object is the instance to be started. The policy for starting instances
 could use the ``%(project_id)s`` attribute, that is the project that
-owns the instance. The trailing ``s`` indicates this is a string.
+owns the instance. The trailing ``s`` indicates this is a string. The same
+case would be valid for API attributes like ``%(user_id)s`` and
+``%(domain_id)s``.
+
+During a debug logging phase, it's common to have the target object
+attributes retrieved in the API calls. Comparing the API call on the logs
+with the policy enforced for the corresponding API, you can check which API
+attribute has been used as the target object. For example in the policy.yaml
+for the Nova project you can find ``"compute:start"`` API, the policy will show as
+``"rule:admin_or_owner"`` which will point for
+``"admin_or_owner":  "is_admin:True or project_id:%(project_id)s"`` and in this
+way you can check that the target object in the debug logging it needs to be a
+``project_id`` attribute.
 
 ``is_admin`` indicates that administrative privileges are granted via
 the admin token mechanism (the ``--os-token`` option of the ``keystone``
