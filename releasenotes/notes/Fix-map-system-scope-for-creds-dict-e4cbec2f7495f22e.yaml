@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes the mapping of 'system_scope' to 'system' when enforce is called
+    with a 'creds' dictionary instead of a RequestContext.
