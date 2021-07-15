@@ -940,6 +940,17 @@ class Enforcer(object):
             )
             raise InvalidContextObject(msg)
 
+        # NOTE(lbragstad): We unfortunately have to special case this
+        # attribute. Originally when the system scope when into oslo.policy, we
+        # checked for a key called 'system' in creds. The oslo.context library
+        # uses `system_scope` instead, and the compatibility between
+        # oslo.policy and oslo.context was an afterthought. We'll have to
+        # support services who've been setting creds['system'], but we can do
+        # that by making sure we populate it with what's in the context object
+        # if it has a system_scope attribute.
+        if creds.get('system_scope'):
+            creds['system'] = creds.get('system_scope')
+
         if LOG.isEnabledFor(logging.DEBUG):
             try:
                 creds_dict = strutils.mask_dict_password(creds)
@@ -1045,17 +1056,6 @@ class Enforcer(object):
         context_values = context.to_policy_values()
         for k, v in context_values.items():
             creds[k] = v
-
-        # NOTE(lbragstad): We unfortunately have to special case this
-        # attribute. Originally when the system scope when into oslo.policy, we
-        # checked for a key called 'system' in creds. The oslo.context library
-        # uses `system_scope` instead, and the compatibility between
-        # oslo.policy and oslo.context was an afterthought. We'll have to
-        # support services who've been setting creds['system'], but we can do
-        # that by making sure we populate it with what's in the context object
-        # if it has a system_scope attribute.
-        if context.system_scope:
-            creds['system'] = context.system_scope
 
         return creds
 
