@@ -881,23 +881,6 @@ class EnforcerTest(base.PolicyBaseTestCase):
         for k, v in expected_creds.items():
             self.assertEqual(expected_creds[k], creds[k])
 
-    @mock.patch('warnings.warn', new=mock.Mock())
-    def test_map_context_attributes_populated_system(self):
-        request_context = context.RequestContext(system_scope='all')
-        expected_creds = request_context.to_policy_values()
-        expected_creds['system'] = 'all'
-
-        creds = self.enforcer._map_context_attributes_into_creds(
-            request_context
-        )
-
-        # We don't use self.assertDictEqual here because to_policy_values
-        # actaully returns a non-dict object that just behaves like a
-        # dictionary, but does some special handling when people access
-        # deprecated policy values.
-        for k, v in expected_creds.items():
-            self.assertEqual(expected_creds[k], creds[k])
-
     def test_enforcer_accepts_policy_values_from_context(self):
         rule = policy.RuleDefault(name='fake_rule', check_str='role:test')
         self.enforcer.register_default(rule)
@@ -917,6 +900,20 @@ class EnforcerTest(base.PolicyBaseTestCase):
         ctx = context.RequestContext(system_scope='all')
         target_dict = {}
         self.enforcer.enforce('fake_rule', target_dict, ctx)
+
+    def test_enforcer_understands_system_scope_creds_dict(self):
+        self.conf.set_override('enforce_scope', True, group='oslo_policy')
+        rule = policy.RuleDefault(
+            name='fake_rule', check_str='role:test', scope_types=['system']
+        )
+        self.enforcer.register_default(rule)
+
+        ctx = context.RequestContext()
+        creds = ctx.to_dict()
+        creds['system_scope'] = 'all'
+
+        target_dict = {}
+        self.enforcer.enforce('fake_rule', target_dict, creds)
 
     def test_enforcer_raises_invalid_scope_with_system_scope_type(self):
         self.conf.set_override('enforce_scope', True, group='oslo_policy')
