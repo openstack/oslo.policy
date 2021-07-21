@@ -18,7 +18,7 @@ Synopsis
 Description
 -----------
 
-The ``oslopolicy-policy-generator`` command can be used to check policy against
+The ``oslopolicy-checker`` command can be used to check policy against
 the OpenStack Identity API access information. The access information is a
 keystone token response from keystone's `authentication API
 <https://docs.openstack.org/api-ref/identity/v3/#password-authentication-with-scoped-authorization>`_.
