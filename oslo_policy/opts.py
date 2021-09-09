@@ -44,7 +44,11 @@ _options = [
                        'defaults, it will be disallowed. It is encouraged to '
                        'enable this flag along with the ``enforce_scope`` '
                        'flag so that you can get the benefits of new defaults '
-                       'and ``scope_type`` together')),
+                       'and ``scope_type`` together. If ``False``, the '
+                       'deprecated policy check string is logically OR\'d '
+                       'with the new policy check string, allowing for a '
+                       'graceful upgrade experience between releases with '
+                       'new policies, which is the default behavior.')),
     cfg.StrOpt('policy_file',
                default='policy.json',
                help=_('The relative or absolute path of a file that maps '
