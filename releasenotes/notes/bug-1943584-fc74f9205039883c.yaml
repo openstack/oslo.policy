@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    [`bug 1943584 <https://bugs.launchpad.net/oslo.policy/+bug/1943584>`_]
+    If file in policy directory was emptied, rules were not re-calculated. The
+    only workaround was to restart an application. Now rules are re-calculated
+    "on the fly", without app restart.

@@ -238,13 +238,6 @@ class EnforcerTest(base.PolicyBaseTestCase):
         super(EnforcerTest, self).setUp()
         self.create_config_file('policy.json', POLICY_JSON_CONTENTS)
 
-    def check_loaded_files(self, filenames):
-        self.assertEqual(
-            [self.get_config_file_fullname(n)
-             for n in filenames],
-            self.enforcer._loaded_files
-        )
-
     def _test_scenario_with_opts_registered(self, scenario, *args, **kwargs):
         # This test registers some rules, calls the scenario and then checks
         # the registered rules. The scenario should be a method which loads
@@ -291,11 +284,6 @@ class EnforcerTest(base.PolicyBaseTestCase):
         loaded_rules = jsonutils.loads(str(self.enforcer.rules))
         self.assertEqual('role:fakeB', loaded_rules['default'])
         self.assertEqual('is_admin:True', loaded_rules['admin'])
-        self.check_loaded_files([
-            'policy.json',
-            os.path.join('policy.d', 'a.conf'),
-            os.path.join('policy.d', 'b.conf'),
-        ])
 
     def test_load_directory_after_file_update(self):
         self.create_config_file(
@@ -305,10 +293,6 @@ class EnforcerTest(base.PolicyBaseTestCase):
         loaded_rules = jsonutils.loads(str(self.enforcer.rules))
         self.assertEqual('role:fakeA', loaded_rules['default'])
         self.assertEqual('is_admin:True', loaded_rules['admin'])
-        self.check_loaded_files([
-            'policy.json',
-            os.path.join('policy.d', 'a.conf'),
-        ])
         new_policy_json_contents = jsonutils.dumps({
             "default": "rule:admin",
             "admin": "is_admin:True",
@@ -332,12 +316,41 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual('role:fakeA', loaded_rules['default'])
         self.assertEqual('is_admin:True', loaded_rules['admin'])
         self.assertEqual('rule:bar', loaded_rules['foo'])
-        self.check_loaded_files([
-            'policy.json',
-            os.path.join('policy.d', 'a.conf'),
-            'policy.json',
-            os.path.join('policy.d', 'a.conf'),
-        ])
+
+    def test_load_directory_after_file_is_emptied(self):
+        def dict_rules(enforcer_rules):
+            """Converts enforcer rules to dictionary.
+
+            :param enforcer_rules: enforcer rules represented as a class Rules
+            :return: enforcer rules represented as a dictionary
+            """
+            return jsonutils.loads(str(enforcer_rules))
+
+        self.assertEqual(self.enforcer.rules, {})
+
+        self.enforcer.load_rules()
+        main_policy_file_rules = jsonutils.loads(POLICY_JSON_CONTENTS)
+        self.assertEqual(main_policy_file_rules,
+                         dict_rules(self.enforcer.rules))
+
+        folder_policy_file = os.path.join('policy.d', 'a.conf')
+        self.create_config_file(folder_policy_file, POLICY_A_CONTENTS)
+        self.enforcer.load_rules()
+        expected_rules = main_policy_file_rules.copy()
+        expected_rules.update(jsonutils.loads(POLICY_A_CONTENTS))
+        self.assertEqual(expected_rules, dict_rules(self.enforcer.rules))
+
+        self.create_config_file(folder_policy_file, '{}')
+        # Force the mtime change since the unit test may write to this file
+        # too fast for mtime to actually change.
+        absolute_folder_policy_file_path = self.get_config_file_fullname(
+            folder_policy_file)
+        stinfo = os.stat(absolute_folder_policy_file_path)
+        os.utime(absolute_folder_policy_file_path,
+                 (stinfo.st_atime + 42, stinfo.st_mtime + 42))
+        self.enforcer.load_rules()
+        self.assertEqual(main_policy_file_rules,
+                         dict_rules(self.enforcer.rules))
 
     def test_load_directory_opts_registered(self):
         self._test_scenario_with_opts_registered(self.test_load_directory)
@@ -364,11 +377,6 @@ class EnforcerTest(base.PolicyBaseTestCase):
 
         loaded_rules = jsonutils.loads(str(self.enforcer.rules))
         self.assertEqual('is_admin:True', loaded_rules['admin'])
-        self.check_loaded_files([
-            'policy.json',
-            os.path.join('policy.d', 'a.conf'),
-            os.path.join('policy.d', 'a.conf'),
-        ])
 
     def test_load_directory_caching_with_files_updated_opts_registered(self):
         self._test_scenario_with_opts_registered(
@@ -392,10 +400,6 @@ class EnforcerTest(base.PolicyBaseTestCase):
 
         loaded_rules = jsonutils.loads(str(self.enforcer.rules))
         self.assertEqual('is_admin:True', loaded_rules['admin'])
-        self.check_loaded_files([
-            'policy.json',
-            os.path.join('policy.d', 'a.conf'),
-        ])
 
     def test_load_directory_caching_with_files_same_but_overwrite_false(self):
         self.test_load_directory_caching_with_files_same(overwrite=False)
@@ -453,12 +457,6 @@ class EnforcerTest(base.PolicyBaseTestCase):
         loaded_rules = jsonutils.loads(str(self.enforcer.rules))
         self.assertEqual('role:fakeC', loaded_rules['default'])
         self.assertEqual('is_admin:True', loaded_rules['admin'])
-        self.check_loaded_files([
-            'policy.json',
-            os.path.join('policy.d', 'a.conf'),
-            os.path.join('policy.d', 'b.conf'),
-            os.path.join('policy.2.d', 'fake.conf'),
-        ])
 
     def test_load_multiple_directories_opts_registered(self):
         self._test_scenario_with_opts_registered(
@@ -474,8 +472,6 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertIsNotNone(self.enforcer.rules)
         self.assertIn('default', self.enforcer.rules)
         self.assertIn('admin', self.enforcer.rules)
-        self.check_loaded_files(
-            ['policy.json', os.path.join('policy.d', 'a.conf')])
 
     def test_load_non_existed_directory_opts_registered(self):
         self._test_scenario_with_opts_registered(
@@ -1011,13 +1007,6 @@ class EnforcerNoPolicyFileTest(base.PolicyBaseTestCase):
     def setUp(self):
         super(EnforcerNoPolicyFileTest, self).setUp()
 
-    def check_loaded_files(self, filenames):
-        self.assertEqual(
-            [self.get_config_file_fullname(n)
-             for n in filenames],
-            self.enforcer._loaded_files
-        )
-
     def test_load_rules(self):
         # Check that loading rules with no policy file does not error
         self.enforcer.load_rules(True)
@@ -1043,10 +1032,6 @@ class EnforcerNoPolicyFileTest(base.PolicyBaseTestCase):
         loaded_rules = jsonutils.loads(str(self.enforcer.rules))
         self.assertEqual('role:fakeB', loaded_rules['default'])
         self.assertEqual('is_admin:True', loaded_rules['admin'])
-        self.check_loaded_files([
-            'policy.d/a.conf',
-            'policy.d/b.conf',
-        ])
 
 
 class CheckFunctionTestCase(base.PolicyBaseTestCase):
