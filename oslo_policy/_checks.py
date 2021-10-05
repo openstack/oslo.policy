@@ -83,6 +83,8 @@ def _check(rule, target, creds, enforcer, current_rule):
 class BaseCheck(metaclass=abc.ABCMeta):
     """Abstract base class for Check classes."""
 
+    scope_types = None
+
     @abc.abstractmethod
     def __str__(self):
         """String representation of the Check tree rooted at this node."""
