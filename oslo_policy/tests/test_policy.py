@@ -999,6 +999,22 @@ class EnforcerTest(base.PolicyBaseTestCase):
             target_dict, ctx
         )
 
+    def test_enforce_scope_with_subclassed_checks_when_scope_not_set(self):
+        self.conf.set_override('enforce_scope', True, group='oslo_policy')
+        rule = _checks.TrueCheck()
+        rule.scope_types = None
+        ctx = context.RequestContext(system_scope='all', roles=['admin'])
+        self.enforcer.enforce(rule, {}, ctx)
+
+    def test_enforcer_raises_invalid_scope_with_subclassed_checks(self):
+        self.conf.set_override('enforce_scope', True, group='oslo_policy')
+        rule = _checks.TrueCheck()
+        rule.scope_types = ['domain']
+        ctx = context.RequestContext(system_scope='all', roles=['admin'])
+        self.assertRaises(
+            policy.InvalidScope,
+            self.enforcer.enforce, rule, {}, ctx)
+
 
 class EnforcerNoPolicyFileTest(base.PolicyBaseTestCase):
     def setUp(self):

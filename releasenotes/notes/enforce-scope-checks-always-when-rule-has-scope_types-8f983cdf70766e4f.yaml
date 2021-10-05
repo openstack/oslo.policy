@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    Scope check is enforced for all rules, registered ones as well as the ones
+    which are subclasses of the ``BaseCheck`` class if rule has ``scope_types``
+    set.

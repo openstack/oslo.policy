@@ -1041,6 +1041,8 @@ class Enforcer(object):
         if isinstance(rule, _checks.BaseCheck):
             # If the thing we're given is a Check, we don't know the
             # name of the rule, so pass None for current_rule.
+            if rule.scope_types:
+                self._enforce_scope(creds, rule)
             result = _checks._check(
                 rule=rule,
                 target=target,
