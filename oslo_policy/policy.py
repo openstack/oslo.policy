@@ -545,7 +545,6 @@ class Enforcer(object):
         self.use_conf = use_conf
         self._need_check_rule = True
         self.overwrite = overwrite
-        self._loaded_files = []
         self._policy_dir_mtimes = {}
         self._file_cache = {}
         self._informed_no_policy_file = False
@@ -586,7 +585,6 @@ class Enforcer(object):
         self.set_rules({})
         self.default_rule = None
         self.policy_path = None
-        self._loaded_files = []
         self._policy_dir_mtimes = {}
         self._file_cache.clear()
         self.registered_rules = {}
@@ -627,22 +625,48 @@ class Enforcer(object):
                     overwrite=self.overwrite
                 )
 
-            force_reload_policy_dir = force_reload
+            force_reload_policy_dirs = force_reload
             if policy_file_rules_changed:
-                force_reload_policy_dir = True
+                force_reload_policy_dirs = True
+            existing_policy_dirs = []
 
             for path in self.conf.oslo_policy.policy_dirs:
                 try:
-                    path = self._get_policy_path(path)
+                    absolute_path = self._get_policy_path(path)
+                    existing_policy_dirs.append(absolute_path)
                 except cfg.ConfigFilesNotFoundError:
                     continue
-                if (self._is_directory_updated(self._policy_dir_mtimes, path)
-                        or force_reload_policy_dir):
+                # If change was made in any policy directory or main policy
+                # file then all policy directories and main file are
+                # re-calculated from scratch. We don't have separate rule sets
+                # for every policy folder, we only have the only rule set in
+                # RAM for all rule configs (self.rules). So it's the only way
+                # to be consistent.
+                if self._is_directory_updated(self._policy_dir_mtimes,
+                                              absolute_path):
+                    force_reload_policy_dirs = True
+            if force_reload_policy_dirs and existing_policy_dirs:
+                # Here we realize that some policy folders or main policy file
+                # were changed and we need to recalculate all rules from
+                # scratch.
+                # If policy_file_rules_changed is True then we know:
+                # 1. all rules were already reset.
+                # 2. rules from main policy file were already applied.
+                # Otherwise main policy file was not changed and rules were not
+                # reset and. So we reset rules and force to re-calculate
+                # rules in main policy file. And after that we apply rules
+                # from every policy directory.
+                if self.policy_path:
+                    if not policy_file_rules_changed:
+                        self._load_policy_file(path=self.policy_path,
+                                               force_reload=True,
+                                               overwrite=self.overwrite
+                                               )
+                else:
+                    self.rules = Rules(default_rule=self.default_rule)
+                for path in existing_policy_dirs:
                     self._walk_through_policy_directory(
-                        path,
-                        self._load_policy_file,
-                        force_reload_policy_dir, False
-                    )
+                        path, self._load_policy_file, True, False)
 
             for default in self.registered_rules.values():
                 if default.deprecated_for_removal:
@@ -917,7 +941,6 @@ class Enforcer(object):
             self.set_rules(rules, overwrite=overwrite, use_conf=True)
             rules_changed = True
             self._record_file_rules(data, overwrite)
-            self._loaded_files.append(path)
             LOG.debug('Reloaded policy file: %(path)s', {'path': path})
         return rules_changed
 
