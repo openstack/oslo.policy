@@ -657,12 +657,12 @@ class Enforcer(object):
                 # rules in main policy file. And after that we apply rules
                 # from every policy directory.
                 if self.policy_path:
-                    if not policy_file_rules_changed:
+                    if not policy_file_rules_changed and self.overwrite:
                         self._load_policy_file(path=self.policy_path,
                                                force_reload=True,
                                                overwrite=self.overwrite
                                                )
-                else:
+                elif self.overwrite:
                     self.rules = Rules(default_rule=self.default_rule)
                 for path in existing_policy_dirs:
                     self._walk_through_policy_directory(
