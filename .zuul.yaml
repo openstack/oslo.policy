@@ -27,6 +27,7 @@
     parent: openstack-tox
     description: |
       Run cross-project unit tests on neutron.
+    timeout: 3600
     vars:
       zuul_work_dir: src/opendev.org/openstack/neutron
       tox_envlist: py38
