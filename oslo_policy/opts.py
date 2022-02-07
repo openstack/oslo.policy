@@ -122,7 +122,7 @@ def _register(conf):
     conf.register_opts(_options, group=_option_group)
 
 
-def set_defaults(conf, policy_file=None):
+def set_defaults(conf, policy_file=None, **kwargs):
     """Set defaults for configuration variables.
 
     Overrides default options values.
@@ -133,8 +133,13 @@ def set_defaults(conf, policy_file=None):
     :param policy_file: The base filename for the file that
                         defines policies.
     :type policy_file: unicode
+    :param kwargs: Any other configuration variable and their new
+                   default value.
     """
     _register(conf)
 
     if policy_file is not None:
         cfg.set_defaults(_options, policy_file=policy_file)
+
+    if kwargs:
+        cfg.set_defaults(_options, **kwargs)

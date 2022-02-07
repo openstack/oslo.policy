@@ -37,3 +37,24 @@ class OptsTestCase(test_base.BaseTestCase):
         opts.set_defaults(self.conf, policy_file='new-value.json')
         self.assertEqual('new-value.json',
                          self.conf.oslo_policy.policy_file)
+
+    def test_set_defaults_enforce_scope(self):
+        opts._register(self.conf)
+        self.assertEqual(False,
+                         self.conf.oslo_policy.enforce_scope)
+        opts.set_defaults(self.conf, enforce_scope=True)
+        self.assertEqual(True,
+                         self.conf.oslo_policy.enforce_scope)
+
+    def test_set_defaults_two_opts(self):
+        opts._register(self.conf)
+        self.assertEqual(False,
+                         self.conf.oslo_policy.enforce_scope)
+        self.assertEqual(False,
+                         self.conf.oslo_policy.enforce_new_defaults)
+        opts.set_defaults(self.conf, enforce_scope=True,
+                          enforce_new_defaults=True)
+        self.assertEqual(True,
+                         self.conf.oslo_policy.enforce_scope)
+        self.assertEqual(True,
+                         self.conf.oslo_policy.enforce_new_defaults)
