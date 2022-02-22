@@ -27,6 +27,10 @@ LOG = logging.getLogger(__name__)
 GENERATOR_OPTS = [
     cfg.StrOpt('output-file',
                help='Path of the file to write to. Defaults to stdout.'),
+    cfg.BoolOpt('exclude-deprecated',
+                default=False,
+                help='If True, exclude deprecated entries from the generated '
+                     'output.'),
 ]
 
 RULE_OPTS = [
@@ -232,7 +236,16 @@ def _format_rule_default_yaml(default, include_help=True, comment_rule=True,
         }
 
         if default.name != default.deprecated_rule.name:
-            text += ('"%(old_name)s": "rule:%(name)s"\n' %
+            text += ('# WARNING: A rule name change has been identified.\n'
+                     '#          This may be an artifact of new rules being\n'
+                     '#          included which require legacy fallback\n'
+                     '#          rules to ensure proper policy behavior.\n'
+                     '#          Alternatively, this may just be an alias.\n'
+                     '#          Please evaluate on a case by case basis\n'
+                     '#          keeping in mind the format for aliased\n'
+                     '#          rules is:\n'
+                     '#          "old_rule_name": "new_rule_name".\n')
+            text += ('# "%(old_name)s": "rule:%(name)s"\n' %
                      {'old_name': default.deprecated_rule.name,
                       'name': default.name})
         text += '\n'
@@ -252,7 +265,7 @@ def _format_rule_default_json(default):
 
 
 def _sort_and_format_by_section(policies, output_format='yaml',
-                                include_help=True):
+                                include_help=True, exclude_deprecated=False):
     """Generate a list of policy section texts
 
     The text for a section will be created and returned one at a time. The
@@ -264,20 +277,24 @@ def _sort_and_format_by_section(policies, output_format='yaml',
     :param policies: A dict of {section1: [rule_default_1, rule_default_2],
                                 section2: [rule_default_3]}
     :param output_format: The format of the file to output to.
+    :param exclude_deprecated: If to exclude deprecated policy rule entries,
+                               defaults to False.
     """
     for section in sorted(policies.keys()):
         rule_defaults = policies[section]
         for rule_default in rule_defaults:
             if output_format == 'yaml':
-                yield _format_rule_default_yaml(rule_default,
-                                                include_help=include_help)
+                yield _format_rule_default_yaml(
+                    rule_default,
+                    include_help=include_help,
+                    add_deprecated_rules=not exclude_deprecated)
             elif output_format == 'json':
                 LOG.warning(policy.WARN_JSON)
                 yield _format_rule_default_json(rule_default)
 
 
 def _generate_sample(namespaces, output_file=None, output_format='yaml',
-                     include_help=True):
+                     include_help=True, exclude_deprecated=False):
     """Generate a sample policy file.
 
     List all of the policies available via the namespace specified in the
@@ -291,6 +308,8 @@ def _generate_sample(namespaces, output_file=None, output_format='yaml',
     :param include_help: True, generates a sample-policy file with help text
                          along with rules in which everything is commented out.
                          False, generates a sample-policy file with only rules.
+    :param exclude_deprecated: If to exclude deprecated policy rule entries,
+                               defaults to False.
     """
     policies = get_policies_dict(namespaces)
 
@@ -298,8 +317,10 @@ def _generate_sample(namespaces, output_file=None, output_format='yaml',
                    else sys.stdout)
 
     sections_text = []
-    for section in _sort_and_format_by_section(policies, output_format,
-                                               include_help=include_help):
+    for section in _sort_and_format_by_section(
+            policies, output_format,
+            include_help=include_help,
+            exclude_deprecated=exclude_deprecated):
         sections_text.append(section)
 
     if output_format == 'yaml':
@@ -315,7 +336,7 @@ def _generate_sample(namespaces, output_file=None, output_format='yaml',
         output_file.close()
 
 
-def _generate_policy(namespace, output_file=None):
+def _generate_policy(namespace, output_file=None, exclude_deprecated=False):
     """Generate a policy file showing what will be used.
 
     This takes all registered policies and merges them with what's defined in
@@ -323,6 +344,8 @@ def _generate_policy(namespace, output_file=None):
     that will be honored by policy checks.
 
     :param output_file: The path of a file to output to. stdout used if None.
+    :param exclude_deprecated: If to exclude deprecated policy rule entries,
+                               defaults to False.
     """
     enforcer = _get_enforcer(namespace)
     # Ensure that files have been parsed
@@ -338,7 +361,9 @@ def _generate_policy(namespace, output_file=None):
     output_file = (open(output_file, 'w') if output_file
                    else sys.stdout)
 
-    for section in _sort_and_format_by_section(policies, include_help=False):
+    for section in _sort_and_format_by_section(
+            policies, include_help=False,
+            exclude_deprecated=exclude_deprecated):
         output_file.write(section)
 
     if output_file != sys.stdout:
@@ -520,7 +545,8 @@ def generate_sample(args=None, conf=None):
     conf.register_opts(GENERATOR_OPTS + RULE_OPTS)
     conf(args)
     _check_for_namespace_opt(conf)
-    _generate_sample(conf.namespace, conf.output_file, conf.format)
+    _generate_sample(conf.namespace, conf.output_file, conf.format,
+                     conf.exclude_deprecated)
 
 
 def generate_policy(args=None):
@@ -530,7 +556,8 @@ def generate_policy(args=None):
     conf.register_opts(GENERATOR_OPTS + ENFORCER_OPTS)
     conf(args)
     _check_for_namespace_opt(conf)
-    _generate_policy(conf.namespace, conf.output_file)
+    _generate_policy(conf.namespace, conf.output_file,
+                     conf.exclude_deprecated)
 
 
 def _upgrade_policies(policies, default_policies):

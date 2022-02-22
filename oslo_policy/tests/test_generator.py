@@ -223,7 +223,16 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
 # "foo:post_bar":"role:fizz" has been deprecated since N in favor of
 # "foo:create_bar":"role:fizz".
 # foo:post_bar is being removed in favor of foo:create_bar
-"foo:post_bar": "rule:foo:create_bar"
+# WARNING: A rule name change has been identified.
+#          This may be an artifact of new rules being
+#          included which require legacy fallback
+#          rules to ensure proper policy behavior.
+#          Alternatively, this may just be an alias.
+#          Please evaluate on a case by case basis
+#          keeping in mind the format for aliased
+#          rules is:
+#          "old_rule_name": "new_rule_name".
+# "foo:post_bar": "rule:foo:create_bar"
 
 '''
         stdout = self._capture_stdout()

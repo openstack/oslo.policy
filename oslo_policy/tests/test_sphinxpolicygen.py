@@ -27,13 +27,15 @@ class SingleSampleGenerationTest(base.BaseTestCase):
         isdir.return_value = True
 
         config = mock.Mock(policy_generator_config_file='nova.conf',
-                           sample_policy_basename='nova')
+                           sample_policy_basename='nova',
+                           exclude_deprecated=False)
         app = mock.Mock(srcdir='/opt/nova', config=config)
         sphinxpolicygen.generate_sample(app)
 
         sample.assert_called_once_with(args=[
             '--config-file', '/opt/nova/nova.conf',
-            '--output-file', '/opt/nova/nova.policy.yaml.sample'],
+            '--output-file', '/opt/nova/nova.policy.yaml.sample',
+            '--exclude-deprecated', False],
             conf=mock.ANY)
 
     @mock.patch('os.path.isdir')
@@ -45,13 +47,15 @@ class SingleSampleGenerationTest(base.BaseTestCase):
         isdir.return_value = True
 
         config = mock.Mock(policy_generator_config_file='nova.conf',
-                           sample_policy_basename=None)
+                           sample_policy_basename=None,
+                           exclude_deprecated=True)
         app = mock.Mock(srcdir='/opt/nova', config=config)
         sphinxpolicygen.generate_sample(app)
 
         sample.assert_called_once_with(args=[
             '--config-file', '/opt/nova/nova.conf',
-            '--output-file', '/opt/nova/sample.policy.yaml'],
+            '--output-file', '/opt/nova/sample.policy.yaml',
+            '--exclude-deprecated', True],
             conf=mock.ANY)
 
     @mock.patch('os.path.isdir')
@@ -66,16 +70,19 @@ class SingleSampleGenerationTest(base.BaseTestCase):
 
         config = mock.Mock(policy_generator_config_file=[
             ('nova.conf', 'nova'),
-            ('placement.conf', 'placement')])
+            ('placement.conf', 'placement')],
+            exclude_deprecated=False)
         app = mock.Mock(srcdir='/opt/nova', config=config)
         sphinxpolicygen.generate_sample(app)
 
         sample.assert_has_calls([
             mock.call(args=[
                 '--config-file', '/opt/nova/nova.conf',
-                '--output-file', '/opt/nova/nova.policy.yaml.sample'],
+                '--output-file', '/opt/nova/nova.policy.yaml.sample',
+                '--exclude-deprecated', False],
                 conf=mock.ANY),
             mock.call(args=[
                 '--config-file', '/opt/nova/placement.conf',
-                '--output-file', '/opt/nova/placement.policy.yaml.sample'],
+                '--output-file', '/opt/nova/placement.policy.yaml.sample',
+                '--exclude-deprecated', False],
                 conf=mock.ANY)])
