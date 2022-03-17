@@ -1042,7 +1042,10 @@ class Enforcer(object):
             # If the thing we're given is a Check, we don't know the
             # name of the rule, so pass None for current_rule.
             if rule.scope_types:
-                self._enforce_scope(creds, rule)
+                scope_valid = self._enforce_scope(creds, rule,
+                                                  do_raise=do_raise)
+                if not scope_valid:
+                    return False
             result = _checks._check(
                 rule=rule,
                 target=target,
@@ -1067,7 +1070,10 @@ class Enforcer(object):
 
                 registered_rule = self.registered_rules.get(rule)
                 if registered_rule and registered_rule.scope_types:
-                    self._enforce_scope(creds, registered_rule)
+                    scope_valid = self._enforce_scope(creds, registered_rule,
+                                                      do_raise=do_raise)
+                    if not scope_valid:
+                        return False
                 result = _checks._check(
                     rule=to_check,
                     target=target,
@@ -1085,7 +1091,7 @@ class Enforcer(object):
 
         return result
 
-    def _enforce_scope(self, creds, rule):
+    def _enforce_scope(self, creds, rule, do_raise=True):
         # Check the scope of the operation against the possible scope
         # attributes provided in `creds`.
         if creds.get('system'):
@@ -1097,11 +1103,15 @@ class Enforcer(object):
             # we're dealing with a project-scoped token.
             token_scope = 'project'  # nosec
 
+        result = True
         if token_scope not in rule.scope_types:
             if self.conf.oslo_policy.enforce_scope:
-                raise InvalidScope(
-                    rule, rule.scope_types, token_scope
-                )
+                if do_raise:
+                    raise InvalidScope(
+                        rule, rule.scope_types, token_scope
+                    )
+                else:
+                    result = False
             # If we don't raise an exception we should at least
             # inform operators about policies that are being used
             # with improper scopes.
@@ -1117,6 +1127,7 @@ class Enforcer(object):
                 }
             )
             warnings.warn(msg)
+        return result
 
     def _map_context_attributes_into_creds(self, context):
         creds = {}
