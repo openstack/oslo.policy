@@ -37,18 +37,20 @@ def generate_sample(app):
         for config_file, base_name in app.config.policy_generator_config_file:
             if base_name is None:
                 base_name = _get_default_basename(config_file)
-            _generate_sample(app, config_file, base_name)
+            _generate_sample(app, config_file, base_name,
+                             app.config.exclude_deprecated)
     else:
         _generate_sample(app,
                          app.config.policy_generator_config_file,
-                         app.config.sample_policy_basename)
+                         app.config.sample_policy_basename,
+                         app.config.exclude_deprecated)
 
 
 def _get_default_basename(config_file):
     return os.path.splitext(os.path.basename(config_file))[0]
 
 
-def _generate_sample(app, policy_file, base_name):
+def _generate_sample(app, policy_file, base_name, exclude_deprecated):
 
     def info(msg):
         LOG.info('[%s] %s' % (__name__, msg))
@@ -83,14 +85,17 @@ def _generate_sample(app, policy_file, base_name):
     # in their documented modules. It's not allowed to register a cli arg after
     # the args have been parsed once.
     conf = cfg.ConfigOpts()
-    generator.generate_sample(args=['--config-file', config_path,
-                                    '--output-file', out_file],
-                              conf=conf)
+    generator.generate_sample(
+        args=['--config-file', config_path,
+              '--output-file', out_file,
+              '--exclude-deprecated', exclude_deprecated],
+        conf=conf)
 
 
 def setup(app):
     app.add_config_value('policy_generator_config_file', None, 'env')
     app.add_config_value('sample_policy_basename', None, 'env')
+    app.add_config_value('exclude_deprecated', False, 'env')
     app.connect('builder-inited', generate_sample)
     return {
         'parallel_read_safe': True,

@@ -1,0 +1,19 @@
+---
+fixes:
+  - |
+    Fixes handling of deprecated rules when generating sample policy files
+    such that legacy rules are no longer automatically aliased in the
+    resulting output. Previously, the behavior led to operator confusion when
+    attempting to evaluate the output to determine if customized rules were
+    required, as the aliases were always added as active rules. A warning
+    is now also added to the generated output.
+    For more information, please see `launchpad bug #1945336 <https://bugs.launchpad.net/oslo.policy/+bug/1945336>`_.
+features:
+  - Adds the ability to exclude deprecated policies from generated samples by
+    utilizing the ``--exclude-deprecated`` setting when generating YAML
+    example files. The Spinx generator can also be controlled using the
+    ``exclude_deprecated`` environment variable. By default, these rules
+    will be included, but operators and projects may not desire these
+    deprecated rules to exist in latest documentation, espescially when
+    considering the number of policy rules projects have made in the
+    Secure RBAC effort.

@@ -40,6 +40,11 @@ where:
   ``_static/nova.policy.yaml.sample``. If this option is not specified, the
   file will be output to ``sample.policy.yaml``.
 
+``exclude_deprecated``
+  Boolean value, default False, controls if the output should include deprecated
+  policy information or values, as these can be confusing and misleading
+  in some cases.
+
 Once configured, you can include this configuration file in your source:
 
 .. code:: reST
