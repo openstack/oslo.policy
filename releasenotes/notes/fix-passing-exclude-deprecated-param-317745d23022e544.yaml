@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed passing ``--exclude-deprecated`` boolean value to
+    sphinx-build command. Now ``--exclude-deprecated`` is only
+    passed when it is True without bool True/False value.

@@ -34,8 +34,7 @@ class SingleSampleGenerationTest(base.BaseTestCase):
 
         sample.assert_called_once_with(args=[
             '--config-file', '/opt/nova/nova.conf',
-            '--output-file', '/opt/nova/nova.policy.yaml.sample',
-            '--exclude-deprecated', False],
+            '--output-file', '/opt/nova/nova.policy.yaml.sample'],
             conf=mock.ANY)
 
     @mock.patch('os.path.isdir')
@@ -55,7 +54,7 @@ class SingleSampleGenerationTest(base.BaseTestCase):
         sample.assert_called_once_with(args=[
             '--config-file', '/opt/nova/nova.conf',
             '--output-file', '/opt/nova/sample.policy.yaml',
-            '--exclude-deprecated', True],
+            '--exclude-deprecated'],
             conf=mock.ANY)
 
     @mock.patch('os.path.isdir')
@@ -78,11 +77,9 @@ class SingleSampleGenerationTest(base.BaseTestCase):
         sample.assert_has_calls([
             mock.call(args=[
                 '--config-file', '/opt/nova/nova.conf',
-                '--output-file', '/opt/nova/nova.policy.yaml.sample',
-                '--exclude-deprecated', False],
+                '--output-file', '/opt/nova/nova.policy.yaml.sample'],
                 conf=mock.ANY),
             mock.call(args=[
                 '--config-file', '/opt/nova/placement.conf',
-                '--output-file', '/opt/nova/placement.policy.yaml.sample',
-                '--exclude-deprecated', False],
+                '--output-file', '/opt/nova/placement.policy.yaml.sample'],
                 conf=mock.ANY)])

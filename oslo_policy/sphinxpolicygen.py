@@ -85,10 +85,12 @@ def _generate_sample(app, policy_file, base_name, exclude_deprecated):
     # in their documented modules. It's not allowed to register a cli arg after
     # the args have been parsed once.
     conf = cfg.ConfigOpts()
+    arguments = ['--config-file', config_path,
+                 '--output-file', out_file]
+    if exclude_deprecated:
+        arguments += ['--exclude-deprecated']
     generator.generate_sample(
-        args=['--config-file', config_path,
-              '--output-file', out_file,
-              '--exclude-deprecated', exclude_deprecated],
+        args=arguments,
         conf=conf)
 
 
