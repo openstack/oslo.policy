@@ -545,8 +545,9 @@ def generate_sample(args=None, conf=None):
     conf.register_opts(GENERATOR_OPTS + RULE_OPTS)
     conf(args)
     _check_for_namespace_opt(conf)
-    _generate_sample(conf.namespace, conf.output_file, conf.format,
-                     conf.exclude_deprecated)
+    _generate_sample(conf.namespace, output_file=conf.output_file,
+                     output_format=conf.format,
+                     exclude_deprecated=conf.exclude_deprecated)
 
 
 def generate_policy(args=None):
