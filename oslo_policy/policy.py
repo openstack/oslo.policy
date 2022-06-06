@@ -664,6 +664,7 @@ class Enforcer(object):
                                                )
                 elif self.overwrite:
                     self.rules = Rules(default_rule=self.default_rule)
+                    self.file_rules = {}
                 for path in existing_policy_dirs:
                     self._walk_through_policy_directory(
                         path, self._load_policy_file, True, False)
