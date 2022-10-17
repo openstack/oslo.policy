@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: oslo.policy\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-08-07 10:53+0000\n"
+"POT-Creation-Date: 2022-09-09 16:02+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -22,17 +22,11 @@ msgstr "1.15.0"
 msgid "1.22.1"
 msgstr "1.22.1"
 
-msgid "1.25.2-2"
-msgstr "1.25.2-2"
-
 msgid "1.29.0"
 msgstr "1.29.0"
 
 msgid "1.33.0"
 msgstr "1.33.0"
-
-msgid "1.33.1-4"
-msgstr "1.33.1-4"
 
 msgid "1.37.0"
 msgstr "1.37.0"
