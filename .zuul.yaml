@@ -11,28 +11,28 @@
       - openstack/oslo.policy
 
 - job:
-    name: cross-nova-tox-py38
+    name: cross-nova-tox-py310
     parent: openstack-tox
-    nodeset: ubuntu-focal
+    nodeset: ubuntu-jammy
     description: |
       Run cross-project unit tests on nova.
     vars:
       zuul_work_dir: src/opendev.org/openstack/nova
-      tox_envlist: py38
+      tox_envlist: py310
     required-projects:
       - openstack/nova
       - openstack/oslo.policy
 
 - job:
-    name: cross-neutron-tox-py38
+    name: cross-neutron-tox-py310
     parent: openstack-tox
-    nodeset: ubuntu-focal
+    nodeset: ubuntu-jammy
     description: |
       Run cross-project unit tests on neutron.
     timeout: 3600
     vars:
       zuul_work_dir: src/opendev.org/openstack/neutron
-      tox_envlist: py38
+      tox_envlist: py310
     required-projects:
       - openstack/neutron
       - openstack/oslo.policy
@@ -47,11 +47,11 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - cross-nova-tox-py38
+        - cross-nova-tox-py310
         - cross-nova-tox-functional
-        - cross-neutron-tox-py38
+        - cross-neutron-tox-py310
     gate:
       jobs:
-        - cross-nova-tox-py38
+        - cross-nova-tox-py310
         - cross-nova-tox-functional
-        - cross-neutron-tox-py38
+        - cross-neutron-tox-py310
