@@ -98,7 +98,7 @@ man_pages = [
 # -- sphinx.ext.extlinks configuration ---------------------------------------
 
 extlinks = {
-    'example': (source_tree + '/oslo_policy/%s', ''),
+    'example': (source_tree + '/oslo_policy/%s', '%s'),
 }
 
 # -- sphinxcontrib.apidoc configuration --------------------------------------
