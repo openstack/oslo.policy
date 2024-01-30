@@ -556,6 +556,10 @@ class Enforcer(object):
         self.suppress_default_change_warnings = False
         # FOR TESTING ONLY
         self.suppress_deprecation_warnings = False
+        # NOTE(tkajinam): Some components(eg. neutron-lib) build their own
+        # enforcers to check only partial rules with the full policy rules, and
+        # this sometimes causes a lot of undefined warnings
+        self.skip_undefined_check = False
 
     def set_rules(self, rules, overwrite=True, use_conf=False):
         """Create a new :class:`Rules` based on the provided dict of rules.
@@ -693,7 +697,7 @@ class Enforcer(object):
         cyclic_checks = []
         violation = False
         for name, check in self.rules.items():
-            if self._undefined_check(check):
+            if not self.skip_undefined_check and self._undefined_check(check):
                 undefined_checks.append(name)
                 violation = True
             if self._cycle_check(check):

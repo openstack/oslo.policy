@@ -1949,6 +1949,18 @@ class EnforcerCheckRulesTest(base.PolicyBaseTestCase):
         mock_log.warning.assert_called()
 
     @mock.patch.object(policy, 'LOG')
+    def test_undefined_rule_skipped(self, mock_log):
+        rules = jsonutils.dumps({'foo': 'rule:bar'})
+        self.create_config_file('policy.json', rules)
+        self.enforcer.skip_undefined_check = True
+        self.enforcer.load_rules(True)
+
+        self.assertTrue(self.enforcer.check_rules())
+        # TODO(tkajinam): This fails because of warnings caused by JSON format
+        # policy file used
+        # mock_log.warning.assert_not_called()
+
+    @mock.patch.object(policy, 'LOG')
     def test_undefined_rule_raises(self, mock_log):
         rules = jsonutils.dumps({'foo': 'rule:bar'})
         self.create_config_file('policy.json', rules)
@@ -1957,6 +1969,18 @@ class EnforcerCheckRulesTest(base.PolicyBaseTestCase):
         self.assertRaises(policy.InvalidDefinitionError,
                           self.enforcer.check_rules, raise_on_violation=True)
         mock_log.warning.assert_called()
+
+    @mock.patch.object(policy, 'LOG')
+    def test_undefined_rule_raises_skipped(self, mock_log):
+        rules = jsonutils.dumps({'foo': 'rule:bar'})
+        self.create_config_file('policy.json', rules)
+        self.enforcer.skip_undefined_check = True
+        self.enforcer.load_rules(True)
+
+        self.assertTrue(self.enforcer.check_rules(raise_on_violation=True))
+        # TODO(tkajinam): This fails because of warnings caused by JSON format
+        # policy file used
+        # mock_log.warning.assert_not_called()
 
     @mock.patch.object(policy, 'LOG')
     def test_cyclical_rules(self, mock_log):
