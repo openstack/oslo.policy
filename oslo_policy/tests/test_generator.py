@@ -978,6 +978,6 @@ class ConvertJsonToYamlTestCase(base.PolicyBaseTestCase):
 # or extra rules in policy file, it is strongly
 # recommended to switch to new rules.
 "deprecated_rule1_name": "rule:admin"
-'''
+'''  # noqa: E501
         self.assertIn(existing_deprecated_rule_with_warning,
                       converted_policy_data)
