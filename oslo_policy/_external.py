@@ -18,11 +18,12 @@
 import contextlib
 import copy
 import os
+import requests
+from requests.exceptions import Timeout
 
 from oslo_policy import _checks
 from oslo_policy._i18n import _
 from oslo_serialization import jsonutils
-import requests
 
 
 class HttpCheck(_checks.Check):
@@ -33,13 +34,18 @@ class HttpCheck(_checks.Check):
     """
 
     def __call__(self, target, creds, enforcer, current_rule=None):
+        timeout = enforcer.conf.oslo_policy.remote_timeout
+
         url = ('http:' + self.match) % target
         data, json = self._construct_payload(creds, current_rule,
                                              enforcer, target)
-        with contextlib.closing(
-                requests.post(url, json=json, data=data)
-        ) as r:
-            return r.text.lstrip('"').rstrip('"') == 'True'
+        try:
+            with contextlib.closing(
+                    requests.post(url, json=json, data=data, timeout=timeout)
+            ) as r:
+                return r.text.lstrip('"').rstrip('"') == 'True'
+        except Timeout:
+            raise RuntimeError("Timeout in REST API call")
 
     @staticmethod
     def _construct_payload(creds, current_rule, enforcer, target):
@@ -78,6 +84,7 @@ class HttpsCheck(HttpCheck):
         key_file = enforcer.conf.oslo_policy.remote_ssl_client_key_file
         ca_crt_file = enforcer.conf.oslo_policy.remote_ssl_ca_crt_file
         verify_server = enforcer.conf.oslo_policy.remote_ssl_verify_server_crt
+        timeout = enforcer.conf.oslo_policy.remote_timeout
 
         if cert_file:
             if not os.path.exists(cert_file):
@@ -103,9 +110,13 @@ class HttpsCheck(HttpCheck):
 
         data, json = self._construct_payload(creds, current_rule,
                                              enforcer, target)
-        with contextlib.closing(
-                requests.post(url, json=json,
-                              data=data, cert=cert,
-                              verify=verify_server)
-        ) as r:
-            return r.text.lstrip('"').rstrip('"') == 'True'
+        try:
+            with contextlib.closing(
+                    requests.post(url, json=json,
+                                  data=data, cert=cert,
+                                  verify=verify_server,
+                                  timeout=timeout)
+            ) as r:
+                return r.text.lstrip('"').rstrip('"') == 'True'
+        except Timeout:
+            raise RuntimeError("Timeout in REST API call")
