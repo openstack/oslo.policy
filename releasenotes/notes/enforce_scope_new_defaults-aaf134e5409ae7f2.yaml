@@ -1,0 +1,23 @@
+---
+upgrade:
+  - |
+    The default value of config options ``enforce_scope`` and
+    ``enforce_new_defaults`` have been changed to ``True``.
+
+    Most of the OpenStack services have enabled these options by
+    default, and now it's time to change the default in the oslo
+    policy itself.
+
+    If you want to disable them, modify the values of these config
+    options in the service configuration file (for example, "nova.conf")::
+
+      [oslo_policy]
+      enforce_new_defaults=False
+      enforce_scope=False
+deprecations:
+  - |
+    The ``enforce_scope`` configuration option was added temporarily
+    to facilitate a smooth transition to the new RBAC. OpenStack will
+    always enforce the scope checks, and they will not be configurable.
+    This configuration option is marked as deprecated and will be removed
+    in the 2025.2 cycle.

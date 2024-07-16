@@ -1271,7 +1271,6 @@ class RuleDefaultTestCase(base.PolicyBaseTestCase):
 
 class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
 
-    @mock.patch('warnings.warn', new=mock.Mock())
     def test_deprecate_a_policy_check_string(self):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:create_bar',
@@ -1285,33 +1284,24 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             check_str='role:bang',
             description='Create a bar.',
             operations=[{'path': '/v1/bars', 'method': 'POST'}],
+            scope_types=['project'],
             deprecated_rule=deprecated_rule,
         )]
         enforcer = policy.Enforcer(self.conf)
         enforcer.register_defaults(rule_list)
-        expected_msg = (
-            'Policy "foo:create_bar":"role:fizz" was deprecated in N in favor '
-            'of "foo:create_bar":"role:bang". Reason: "role:bang" is a better '
-            'default. Either ensure your deployment is ready for the new '
-            'default or copy/paste the deprecated policy into your policy '
-            'file and maintain it manually.'
-        )
 
-        with mock.patch('warnings.warn') as mock_warn:
-            enforcer.load_rules()
-            mock_warn.assert_called_once_with(expected_msg)
+        enforcer.load_rules()
 
         self.assertTrue(
             enforcer.enforce('foo:create_bar', {}, {'roles': ['bang']})
         )
-        self.assertTrue(
+        self.assertFalse(
             enforcer.enforce('foo:create_bar', {}, {'roles': ['fizz']})
         )
         self.assertFalse(
             enforcer.enforce('foo:create_bar', {}, {'roles': ['baz']})
         )
 
-    @mock.patch('warnings.warn', new=mock.Mock())
     def test_deprecate_an_empty_policy_check_string(self):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:create_bar',
@@ -1325,21 +1315,18 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             check_str='role:bang',
             description='Create a bar.',
             operations=[{'path': '/v1/bars', 'method': 'POST'}],
+            scope_types=['project'],
             deprecated_rule=deprecated_rule,
         )]
         enforcer = policy.Enforcer(self.conf)
         enforcer.register_defaults(rule_list)
-
-        with mock.patch('warnings.warn') as mock_warn:
-            enforcer.load_rules()
-            mock_warn.assert_called_once()
+        enforcer.load_rules()
 
         enforcer.enforce('foo:create_bar', {}, {'roles': ['bang']},
                          do_raise=True)
-        enforcer.enforce('foo:create_bar', {}, {'roles': ['fizz']},
-                         do_raise=True)
+        self.assertFalse(
+            self.enforcer.enforce('foo:create_bar', {}, {'roles': ['fizz']}))
 
-    @mock.patch('warnings.warn', new=mock.Mock())
     def test_deprecate_replace_with_empty_policy_check_string(self):
         deprecated_rule = policy.DeprecatedRule(
             name='foo:create_bar',
@@ -1353,14 +1340,12 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             check_str='',
             description='Create a bar.',
             operations=[{'path': '/v1/bars', 'method': 'POST'}],
+            scope_types=['project'],
             deprecated_rule=deprecated_rule,
         )]
         enforcer = policy.Enforcer(self.conf)
         enforcer.register_defaults(rule_list)
-
-        with mock.patch('warnings.warn') as mock_warn:
-            enforcer.load_rules()
-            mock_warn.assert_called_once()
+        enforcer.load_rules()
 
         enforcer.enforce('foo:create_bar', {}, {'roles': ['fizz']},
                          do_raise=True)
@@ -1387,6 +1372,7 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             check_str='role:baz',
             description='Create a bar.',
             operations=[{'path': '/v1/bars/', 'method': 'POST'}],
+            scope_types=['project'],
             deprecated_rule=deprecated_rule,
         )]
         expected_msg = (
@@ -1459,6 +1445,8 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             mock_warn.assert_not_called()
 
     def test_deprecate_check_str_suppress_does_not_log_warning(self):
+        self.conf.set_override('enforce_new_defaults', False,
+                               group='oslo_policy')
         deprecated_rule = policy.DeprecatedRule(
             name='foo:create_bar',
             check_str='role:fizz',
@@ -1481,6 +1469,8 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             mock_warn.assert_not_called()
 
     def test_deprecate_name_suppress_does_not_log_warning(self):
+        self.conf.set_override('enforce_new_defaults', False,
+                               group='oslo_policy')
         deprecated_rule = policy.DeprecatedRule(
             name='foo:bar',
             check_str='role:baz',
@@ -1507,6 +1497,9 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             mock_warn.assert_not_called()
 
     def test_deprecate_for_removal_suppress_does_not_log_warning(self):
+        self.conf.set_override('enforce_new_defaults', False,
+                               group='oslo_policy')
+
         rule_list = [policy.DocumentedRuleDefault(
             name='foo:bar',
             check_str='role:baz',
@@ -1529,6 +1522,9 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             mock_warn.assert_not_called()
 
     def test_suppress_default_change_warnings_flag_not_log_warning(self):
+        self.conf.set_override('enforce_new_defaults', False,
+                               group='oslo_policy')
+
         deprecated_rule = policy.DeprecatedRule(
             name='foo:create_bar',
             check_str='role:fizz',
@@ -1759,8 +1755,6 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
         self.assertEqual('bang', self.enforcer.rules['new_rule'].match)
 
     def test_enforce_new_defaults_no_old_check_string(self):
-        self.conf.set_override('enforce_new_defaults', True,
-                               group='oslo_policy')
         deprecated_rule = policy.DeprecatedRule(
             name='foo:create_bar',
             check_str='role:fizz',
@@ -1785,6 +1779,43 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             enforcer.enforce('foo:create_bar', {}, {'roles': ['bang']})
         )
         self.assertFalse(
+            enforcer.enforce('foo:create_bar', {}, {'roles': ['fizz']})
+        )
+        self.assertFalse(
+            enforcer.enforce('foo:create_bar', {}, {'roles': ['baz']})
+        )
+
+    def test_disable_enforce_new_defaults_add_old_check_string(self):
+        self.conf.set_override('enforce_new_defaults', False,
+                               group='oslo_policy')
+        deprecated_rule = policy.DeprecatedRule(
+            name='foo:create_bar',
+            check_str='role:fizz',
+            deprecated_reason='"role:bang" is a better default',
+            deprecated_since='N',
+        )
+
+        rule_list = [policy.DocumentedRuleDefault(
+            name='foo:create_bar',
+            check_str='role:bang',
+            description='Create a bar.',
+            operations=[{'path': '/v1/bars', 'method': 'POST'}],
+            deprecated_rule=deprecated_rule,
+        )]
+        enforcer = policy.Enforcer(self.conf)
+        enforcer.register_defaults(rule_list)
+        enforcer.load_rules()
+
+        expected_check = policy.OrCheck([
+            _parser.parse_rule(cs) for cs in
+            [rule_list[0].check_str, deprecated_rule.check_str]
+        ])
+        self.assertEqual(
+            str(enforcer.rules['foo:create_bar']), str(expected_check))
+        self.assertTrue(
+            enforcer.enforce('foo:create_bar', {}, {'roles': ['bang']})
+        )
+        self.assertTrue(
             enforcer.enforce('foo:create_bar', {}, {'roles': ['fizz']})
         )
         self.assertFalse(
@@ -1817,15 +1848,12 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
         enforcer.load_rules()
 
         # Loading the rules will store a version of the rule check string
-        # logically ORed with the check string of the deprecated value. Make
-        # sure this is happening but that the original rule check is unchanged
-        expected_check = policy.OrCheck([
-            _parser.parse_rule(cs) for cs in
-            [rule.check_str, deprecated_rule.check_str]
-        ])
+        # but as enforce_new_defaults is True it will not logically ORed with
+        # the check string of the deprecated value. Make sure this is happening
+        # and the original rule check is unchanged
         self.assertIn('foo:create_bar', enforcer.rules)
-        self.assertEqual(
-            str(enforcer.rules['foo:create_bar']), str(expected_check))
+        self.assertEqual(rule.check_str,
+                         str(enforcer.rules['foo:create_bar']))
         self.assertEqual(check, rule.check)
         # Hacky way to check whether _handle_deprecated_rule was called again.
         # If a second call to load_rules doesn't overwrite our dummy rule then

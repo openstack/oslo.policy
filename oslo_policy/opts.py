@@ -25,7 +25,14 @@ _option_group = 'oslo_policy'
 
 _options = [
     cfg.BoolOpt('enforce_scope',
-                default=False,
+                default=True,
+                deprecated_for_removal=True,
+                deprecated_reason='This configuration was added temporarily '
+                                  'to facilitate a smooth transition to the '
+                                  'new RBAC. OpenStack will always enforce '
+                                  'scope checks. This configuration option '
+                                  'is deprecated and will be removed in the '
+                                  '2025.2 cycle.',
                 help=_('This option controls whether or not to enforce scope '
                        'when evaluating policies. If ``True``, the scope of '
                        'the token used in the request is compared to the '
@@ -35,7 +42,7 @@ _options = [
                        'logged informing operators that policies are being '
                        'invoked with mismatching scope.')),
     cfg.BoolOpt('enforce_new_defaults',
-                default=False,
+                default=True,
                 help=_('This option controls whether or not to use old '
                        'deprecated defaults when evaluating policies. If '
                        '``True``, the old deprecated defaults are not going '

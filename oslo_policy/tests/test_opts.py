@@ -40,21 +40,21 @@ class OptsTestCase(test_base.BaseTestCase):
 
     def test_set_defaults_enforce_scope(self):
         opts._register(self.conf)
-        self.assertEqual(False,
-                         self.conf.oslo_policy.enforce_scope)
-        opts.set_defaults(self.conf, enforce_scope=True)
         self.assertEqual(True,
+                         self.conf.oslo_policy.enforce_scope)
+        opts.set_defaults(self.conf, enforce_scope=False)
+        self.assertEqual(False,
                          self.conf.oslo_policy.enforce_scope)
 
     def test_set_defaults_two_opts(self):
         opts._register(self.conf)
-        self.assertEqual(False,
+        self.assertEqual(True,
                          self.conf.oslo_policy.enforce_scope)
-        self.assertEqual(False,
+        self.assertEqual(True,
                          self.conf.oslo_policy.enforce_new_defaults)
-        opts.set_defaults(self.conf, enforce_scope=True,
-                          enforce_new_defaults=True)
-        self.assertEqual(True,
+        opts.set_defaults(self.conf, enforce_scope=False,
+                          enforce_new_defaults=False)
+        self.assertEqual(False,
                          self.conf.oslo_policy.enforce_scope)
-        self.assertEqual(True,
+        self.assertEqual(False,
                          self.conf.oslo_policy.enforce_new_defaults)
