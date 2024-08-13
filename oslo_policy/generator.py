@@ -172,7 +172,7 @@ def _format_rule_default_yaml(default, include_help=True, comment_rule=True,
     :param add_deprecated_rules: Whether to add the deprecated rules in format
                                  text.
     :returns: A string containing a yaml representation of the RuleDefault
-    """
+    """  # noqa: E501
     text = ('"%(name)s": "%(check_str)s"\n' %
             {'name': default.name,
              'check_str': default.check_str})
@@ -258,7 +258,7 @@ def _format_rule_default_json(default):
 
     :param default: A policy.RuleDefault or policy.DocumentedRuleDefault object
     :returns: A string containing a json representation of the RuleDefault
-    """
+    """  # noqa: E501
     return ('"%(name)s": "%(check_str)s"' %
             {'name': default.name,
              'check_str': default.check_str})
