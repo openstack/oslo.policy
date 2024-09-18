@@ -32,10 +32,10 @@ from oslo_policy import policy
 from oslo_policy.tests import base
 
 
-POLICY_A_CONTENTS = jsonutils.dumps({"default": "role:fakeA"})
-POLICY_B_CONTENTS = jsonutils.dumps({"default": "role:fakeB"})
-POLICY_FAKE_CONTENTS = jsonutils.dumps({"default": "role:fakeC"})
-POLICY_JSON_CONTENTS = jsonutils.dumps({
+POLICY_A_CONTENTS = yaml.dump({"default": "role:fakeA"})
+POLICY_B_CONTENTS = yaml.dump({"default": "role:fakeB"})
+POLICY_FAKE_CONTENTS = yaml.dump({"default": "role:fakeC"})
+POLICY_YAML_CONTENTS = yaml.dump({
     "default": "rule:admin",
     "admin": "is_admin:True"
 })
@@ -236,7 +236,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
 
     def setUp(self):
         super(EnforcerTest, self).setUp()
-        self.create_config_file('policy.json', POLICY_JSON_CONTENTS)
+        self.create_config_file('policy.yaml', POLICY_YAML_CONTENTS)
 
     def _test_scenario_with_opts_registered(self, scenario, *args, **kwargs):
         # This test registers some rules, calls the scenario and then checks
@@ -281,7 +281,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
             os.path.join('policy.d', 'b.conf'), POLICY_B_CONTENTS)
         self.enforcer.load_rules(True)
         self.assertIsNotNone(self.enforcer.rules)
-        loaded_rules = jsonutils.loads(str(self.enforcer.rules))
+        loaded_rules = yaml.safe_load(str(self.enforcer.rules))
         self.assertEqual('role:fakeB', loaded_rules['default'])
         self.assertEqual('is_admin:True', loaded_rules['admin'])
 
@@ -290,19 +290,19 @@ class EnforcerTest(base.PolicyBaseTestCase):
             os.path.join('policy.d', 'a.conf'), POLICY_A_CONTENTS)
         self.enforcer.load_rules(True)
         self.assertIsNotNone(self.enforcer.rules)
-        loaded_rules = jsonutils.loads(str(self.enforcer.rules))
+        loaded_rules = yaml.safe_load(str(self.enforcer.rules))
         self.assertEqual('role:fakeA', loaded_rules['default'])
         self.assertEqual('is_admin:True', loaded_rules['admin'])
-        new_policy_json_contents = jsonutils.dumps({
+        new_policy_yaml_contents = yaml.dump({
             "default": "rule:admin",
             "admin": "is_admin:True",
             "foo": "rule:bar",
         })
-        # Modify the policy.json file and then validate that the rules
+        # Modify the policy.yaml file and then validate that the rules
         # from the policy directory are re-applied on top of the
         # new rules from the file.
-        self.create_config_file('policy.json', new_policy_json_contents)
-        policy_file_path = self.get_config_file_fullname('policy.json')
+        self.create_config_file('policy.yaml', new_policy_yaml_contents)
+        policy_file_path = self.get_config_file_fullname('policy.yaml')
         # Force the mtime change since the unit test may write to this file
         # too fast for mtime to actually change.
         stinfo = os.stat(policy_file_path)
@@ -312,7 +312,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.load_rules()
 
         self.assertIsNotNone(self.enforcer.rules)
-        loaded_rules = jsonutils.loads(str(self.enforcer.rules))
+        loaded_rules = yaml.safe_load(str(self.enforcer.rules))
         self.assertEqual('role:fakeA', loaded_rules['default'])
         self.assertEqual('is_admin:True', loaded_rules['admin'])
         self.assertEqual('rule:bar', loaded_rules['foo'])
@@ -324,12 +324,12 @@ class EnforcerTest(base.PolicyBaseTestCase):
             :param enforcer_rules: enforcer rules represented as a class Rules
             :return: enforcer rules represented as a dictionary
             """
-            return jsonutils.loads(str(enforcer_rules))
+            return yaml.safe_load(str(enforcer_rules))
 
         self.assertEqual(self.enforcer.rules, {})
 
         self.enforcer.load_rules()
-        main_policy_file_rules = jsonutils.loads(POLICY_JSON_CONTENTS)
+        main_policy_file_rules = yaml.safe_load(POLICY_YAML_CONTENTS)
         self.assertEqual(main_policy_file_rules,
                          dict_rules(self.enforcer.rules))
 
@@ -337,7 +337,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.create_config_file(folder_policy_file, POLICY_A_CONTENTS)
         self.enforcer.load_rules()
         expected_rules = main_policy_file_rules.copy()
-        expected_rules.update(jsonutils.loads(POLICY_A_CONTENTS))
+        expected_rules.update(yaml.safe_load(POLICY_A_CONTENTS))
         self.assertEqual(expected_rules, dict_rules(self.enforcer.rules))
 
         self.create_config_file(folder_policy_file, '{}')
@@ -375,7 +375,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual(1, len(self.enforcer._policy_dir_mtimes))
         self.assertEqual(old, next(iter(self.enforcer._policy_dir_mtimes)))
 
-        loaded_rules = jsonutils.loads(str(self.enforcer.rules))
+        loaded_rules = yaml.safe_load(str(self.enforcer.rules))
         self.assertEqual('is_admin:True', loaded_rules['admin'])
 
     def test_load_directory_caching_with_files_updated_opts_registered(self):
@@ -398,7 +398,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual(1, len(self.enforcer._policy_dir_mtimes))
         self.assertEqual(old, next(iter(self.enforcer._policy_dir_mtimes)))
 
-        loaded_rules = jsonutils.loads(str(self.enforcer.rules))
+        loaded_rules = yaml.safe_load(str(self.enforcer.rules))
         self.assertEqual('is_admin:True', loaded_rules['admin'])
 
     def test_load_directory_caching_with_files_same_but_overwrite_false(self):
@@ -417,7 +417,9 @@ class EnforcerTest(base.PolicyBaseTestCase):
     @mock.patch.object(policy, 'LOG')
     def test_load_json_file_log_warning(self, mock_log):
         rules = jsonutils.dumps({'foo': 'rule:bar'})
-        self.create_config_file('policy.json', rules)
+        # NOTE(tkajinam): This is ugly but an easy way to make the enforcer
+        #                 load a JSON-formatted file.
+        self.create_config_file('policy.yaml', rules)
         self.enforcer.load_rules(True)
 
         mock_log.warning.assert_any_call(policy.WARN_JSON)
@@ -454,7 +456,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
                                group='oslo_policy')
         self.enforcer.load_rules(True)
         self.assertIsNotNone(self.enforcer.rules)
-        loaded_rules = jsonutils.loads(str(self.enforcer.rules))
+        loaded_rules = yaml.safe_load(str(self.enforcer.rules))
         self.assertEqual('role:fakeC', loaded_rules['default'])
         self.assertEqual('is_admin:True', loaded_rules['admin'])
 
@@ -572,22 +574,22 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual({}, self.enforcer.registered_rules)
 
     def test_rule_with_check(self):
-        rules_json = jsonutils.dumps({
+        rules_yaml = yaml.dump({
             "deny_stack_user": "not role:stack_user",
             "cloudwatch:PutMetricData": ""
         })
-        rules = policy.Rules.load(rules_json)
+        rules = policy.Rules.load(rules_yaml)
         self.enforcer.set_rules(rules)
         action = 'cloudwatch:PutMetricData'
         creds = {'roles': ''}
         self.assertTrue(self.enforcer.enforce(action, {}, creds))
 
     def test_enforcer_with_default_rule(self):
-        rules_json = jsonutils.dumps({
+        rules_yaml = yaml.dump({
             "deny_stack_user": "not role:stack_user",
             "cloudwatch:PutMetricData": ""
         })
-        rules = policy.Rules.load(rules_json)
+        rules = policy.Rules.load(rules_yaml)
         default_rule = _checks.TrueCheck()
         enforcer = policy.Enforcer(self.conf, default_rule=default_rule)
         enforcer.set_rules(rules)
@@ -623,7 +625,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertNotIn('test', self.enforcer.rules)
         self.assertIn('default', self.enforcer.rules)
         self.assertIn('admin', self.enforcer.rules)
-        loaded_rules = jsonutils.loads(str(self.enforcer.rules))
+        loaded_rules = yaml.safe_load(str(self.enforcer.rules))
         self.assertEqual(2 + opts_registered, len(loaded_rules))
         self.assertIn('role:fakeB', loaded_rules['default'])
         self.assertIn('is_admin:True', loaded_rules['admin'])
@@ -663,7 +665,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertIn('test', self.enforcer.rules)
         self.assertIn('default', self.enforcer.rules)
         self.assertIn('admin', self.enforcer.rules)
-        loaded_rules = jsonutils.loads(str(self.enforcer.rules))
+        loaded_rules = yaml.safe_load(str(self.enforcer.rules))
         self.assertEqual(3 + opts_registered, len(loaded_rules))
         self.assertIn('role:test', loaded_rules['test'])
         self.assertIn('role:fakeB', loaded_rules['default'])
@@ -694,11 +696,11 @@ class EnforcerTest(base.PolicyBaseTestCase):
         # reloading will be triggered when calling
         # enforcer(), this case could happen only
         # when use_conf flag equals True.
-        rules = jsonutils.loads(str(self.enforcer.rules))
+        rules = yaml.safe_load(str(self.enforcer.rules))
         rules['_dynamic_test_rule'] = 'role:test'
 
         with open(self.enforcer.policy_path, 'w') as f:
-            f.write(jsonutils.dumps(rules))
+            f.write(yaml.dump(rules))
 
         self.enforcer.load_rules(force_reload=True)
         self.assertTrue(self.enforcer.enforce('_dynamic_test_rule', {},
@@ -747,14 +749,14 @@ class EnforcerTest(base.PolicyBaseTestCase):
                          enforcer.policy_file)
 
     def test_enforcer_with_policy_file(self):
-        enforcer = policy.Enforcer(self.conf, policy_file='non-default.json')
-        self.assertEqual('non-default.json', enforcer.policy_file)
+        enforcer = policy.Enforcer(self.conf, policy_file='non-default.yaml')
+        self.assertEqual('non-default.yaml', enforcer.policy_file)
 
     def test_get_policy_path_raises_exc(self):
-        enforcer = policy.Enforcer(self.conf, policy_file='raise_error.json')
+        enforcer = policy.Enforcer(self.conf, policy_file='raise_error.yaml')
         e = self.assertRaises(cfg.ConfigFilesNotFoundError,
                               enforcer._get_policy_path, enforcer.policy_file)
-        self.assertEqual(('raise_error.json', ), e.config_files)
+        self.assertEqual(('raise_error.yaml', ), e.config_files)
 
     def test_enforcer_set_rules(self):
         self.enforcer.load_rules()
@@ -797,13 +799,13 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual(rule_original.check.__str__(), 'role:owner')
 
     def test_non_reversible_check(self):
-        self.create_config_file('policy.json',
-                                jsonutils.dumps(
+        self.create_config_file('policy.yaml',
+                                yaml.dump(
                                     {'shared': 'field:networks:shared=True'}))
         # load_rules succeeding without error is the focus of this test
         self.enforcer.load_rules(True)
         self.assertIsNotNone(self.enforcer.rules)
-        loaded_rules = jsonutils.loads(str(self.enforcer.rules))
+        loaded_rules = yaml.safe_load(str(self.enforcer.rules))
         self.assertNotEqual('field:networks:shared=True',
                             loaded_rules['shared'])
 
@@ -1065,11 +1067,11 @@ class EnforcerNoPolicyFileTest(base.PolicyBaseTestCase):
         self.assertEqual('is_admin:False', str(self.enforcer.rules['admin']))
 
     def test_load_directory(self):
-        self.create_config_file('policy.d/a.conf', POLICY_JSON_CONTENTS)
+        self.create_config_file('policy.d/a.conf', POLICY_YAML_CONTENTS)
         self.create_config_file('policy.d/b.conf', POLICY_B_CONTENTS)
         self.enforcer.load_rules(True)
         self.assertIsNotNone(self.enforcer.rules)
-        loaded_rules = jsonutils.loads(str(self.enforcer.rules))
+        loaded_rules = yaml.safe_load(str(self.enforcer.rules))
         self.assertEqual('role:fakeB', loaded_rules['default'])
         self.assertEqual('is_admin:True', loaded_rules['admin'])
 
@@ -1078,7 +1080,7 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
 
     def setUp(self):
         super(CheckFunctionTestCase, self).setUp()
-        self.create_config_file('policy.json', POLICY_JSON_CONTENTS)
+        self.create_config_file('policy.yaml', POLICY_YAML_CONTENTS)
 
     def test_check_explicit(self):
         rule = base.FakeCheck()
@@ -1087,8 +1089,8 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
         self.assertEqual(('target', creds, self.enforcer), result)
 
     def test_check_no_rules(self):
-        # Clear the policy.json file created in setUp()
-        self.create_config_file('policy.json', "{}")
+        # Clear the policy.yaml file created in setUp()
+        self.create_config_file('policy.yaml', "{}")
         self.enforcer.default_rule = None
         self.enforcer.load_rules()
         creds = {}
@@ -1106,7 +1108,7 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
         # If the rule doesn't exist, then enforce() fails rather than KeyError.
 
         # This test needs a non-empty file otherwise the code short-circuits.
-        self.create_config_file('policy.json', jsonutils.dumps({"a_rule": []}))
+        self.create_config_file('policy.yaml', yaml.dump({"a_rule": []}))
         self.enforcer.default_rule = None
         self.enforcer.load_rules()
         creds = {}
@@ -1388,8 +1390,8 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             'file and maintain it manually.'
         )
 
-        rules = jsonutils.dumps({'foo:bar': 'role:bang'})
-        self.create_config_file('policy.json', rules)
+        rules = yaml.dump({'foo:bar': 'role:bang'})
+        self.create_config_file('policy.yaml', rules)
         enforcer = policy.Enforcer(self.conf)
         enforcer.register_defaults(rule_list)
 
@@ -1414,8 +1416,8 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             'Reason: "foo:bar" is no longer a policy used by the service. Its '
             'value may be silently ignored in the future.'
         )
-        rules = jsonutils.dumps({'foo:bar': 'role:bang'})
-        self.create_config_file('policy.json', rules)
+        rules = yaml.dump({'foo:bar': 'role:bang'})
+        self.create_config_file('policy.yaml', rules)
         enforcer = policy.Enforcer(self.conf)
         enforcer.register_defaults(rule_list)
 
@@ -1486,8 +1488,8 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             deprecated_rule=deprecated_rule,
         )]
 
-        rules = jsonutils.dumps({'foo:bar': 'role:bang'})
-        self.create_config_file('policy.json', rules)
+        rules = yaml.dump({'foo:bar': 'role:bang'})
+        self.create_config_file('policy.yaml', rules)
         enforcer = policy.Enforcer(self.conf)
         enforcer.suppress_deprecation_warnings = True
         enforcer.register_defaults(rule_list)
@@ -1511,8 +1513,8 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             ),
             deprecated_since='N'
         )]
-        rules = jsonutils.dumps({'foo:bar': 'role:bang'})
-        self.create_config_file('policy.json', rules)
+        rules = yaml.dump({'foo:bar': 'role:bang'})
+        self.create_config_file('policy.yaml', rules)
         enforcer = policy.Enforcer(self.conf)
         enforcer.suppress_deprecation_warnings = True
         enforcer.register_defaults(rule_list)
@@ -1603,8 +1605,8 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
     @mock.patch('warnings.warn', new=mock.Mock())
     def test_override_deprecated_policy_with_old_name(self):
         # Simulate an operator overriding a policy
-        rules = jsonutils.dumps({'foo:bar': 'role:bazz'})
-        self.create_config_file('policy.json', rules)
+        rules = yaml.dump({'foo:bar': 'role:bazz'})
+        self.create_config_file('policy.yaml', rules)
 
         # Deprecate the policy name and check string in favor of something
         # better.
@@ -1637,8 +1639,8 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
 
     def test_override_deprecated_policy_with_new_name(self):
         # Simulate an operator overriding a policy using the new policy name
-        rules = jsonutils.dumps({'foo:create_bar': 'role:bazz'})
-        self.create_config_file('policy.json', rules)
+        rules = yaml.dump({'foo:create_bar': 'role:bazz'})
+        self.create_config_file('policy.yaml', rules)
 
         # Deprecate the policy name and check string in favor of something
         # better.
@@ -1679,8 +1681,8 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             'foo:create_bar': 'role:bazz',
             'foo:bar': 'role:wee'
         }
-        rules = jsonutils.dumps(rules_dict)
-        self.create_config_file('policy.json', rules)
+        rules = yaml.dump(rules_dict)
+        self.create_config_file('policy.yaml', rules)
 
         # Deprecate the policy name and check string in favor of something
         # better.
@@ -1724,8 +1726,8 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
     def test_override_deprecated_policy_with_new_rule(self):
         # Simulate an operator overriding a deprecated policy with a reference
         # to the new policy, as done by the sample policy generator.
-        rules = jsonutils.dumps({'old_rule': 'rule:new_rule'})
-        self.create_config_file('policy.json', rules)
+        rules = yaml.dump({'old_rule': 'rule:new_rule'})
+        self.create_config_file('policy.yaml', rules)
 
         # Deprecate the policy name in favor of something better.
         deprecated_rule = policy.DeprecatedRule(
@@ -1963,14 +1965,14 @@ class EnforcerCheckRulesTest(base.PolicyBaseTestCase):
         super(EnforcerCheckRulesTest, self).setUp()
 
     def test_no_violations(self):
-        self.create_config_file('policy.json', POLICY_JSON_CONTENTS)
+        self.create_config_file('policy.yaml', POLICY_YAML_CONTENTS)
         self.enforcer.load_rules(True)
         self.assertTrue(self.enforcer.check_rules(raise_on_violation=True))
 
     @mock.patch.object(policy, 'LOG')
     def test_undefined_rule(self, mock_log):
-        rules = jsonutils.dumps({'foo': 'rule:bar'})
-        self.create_config_file('policy.json', rules)
+        rules = yaml.dump({'foo': 'rule:bar'})
+        self.create_config_file('policy.yaml', rules)
         self.enforcer.load_rules(True)
 
         self.assertFalse(self.enforcer.check_rules())
@@ -1978,20 +1980,18 @@ class EnforcerCheckRulesTest(base.PolicyBaseTestCase):
 
     @mock.patch.object(policy, 'LOG')
     def test_undefined_rule_skipped(self, mock_log):
-        rules = jsonutils.dumps({'foo': 'rule:bar'})
-        self.create_config_file('policy.json', rules)
+        rules = yaml.dump({'foo': 'rule:bar'})
+        self.create_config_file('policy.yaml', rules)
         self.enforcer.skip_undefined_check = True
         self.enforcer.load_rules(True)
 
         self.assertTrue(self.enforcer.check_rules())
-        # TODO(tkajinam): This fails because of warnings caused by JSON format
-        # policy file used
-        # mock_log.warning.assert_not_called()
+        mock_log.warning.assert_not_called()
 
     @mock.patch.object(policy, 'LOG')
     def test_undefined_rule_raises(self, mock_log):
-        rules = jsonutils.dumps({'foo': 'rule:bar'})
-        self.create_config_file('policy.json', rules)
+        rules = yaml.dump({'foo': 'rule:bar'})
+        self.create_config_file('policy.yaml', rules)
         self.enforcer.load_rules(True)
 
         self.assertRaises(policy.InvalidDefinitionError,
@@ -2000,20 +2000,18 @@ class EnforcerCheckRulesTest(base.PolicyBaseTestCase):
 
     @mock.patch.object(policy, 'LOG')
     def test_undefined_rule_raises_skipped(self, mock_log):
-        rules = jsonutils.dumps({'foo': 'rule:bar'})
-        self.create_config_file('policy.json', rules)
+        rules = yaml.dump({'foo': 'rule:bar'})
+        self.create_config_file('policy.yaml', rules)
         self.enforcer.skip_undefined_check = True
         self.enforcer.load_rules(True)
 
         self.assertTrue(self.enforcer.check_rules(raise_on_violation=True))
-        # TODO(tkajinam): This fails because of warnings caused by JSON format
-        # policy file used
-        # mock_log.warning.assert_not_called()
+        mock_log.warning.assert_not_called()
 
     @mock.patch.object(policy, 'LOG')
     def test_cyclical_rules(self, mock_log):
-        rules = jsonutils.dumps({'foo': 'rule:bar', 'bar': 'rule:foo'})
-        self.create_config_file('policy.json', rules)
+        rules = yaml.dump({'foo': 'rule:bar', 'bar': 'rule:foo'})
+        self.create_config_file('policy.yaml', rules)
         self.enforcer.load_rules(True)
 
         self.assertFalse(self.enforcer.check_rules())
@@ -2021,8 +2019,8 @@ class EnforcerCheckRulesTest(base.PolicyBaseTestCase):
 
     @mock.patch.object(policy, 'LOG')
     def test_cyclical_rules_raises(self, mock_log):
-        rules = jsonutils.dumps({'foo': 'rule:bar', 'bar': 'rule:foo'})
-        self.create_config_file('policy.json', rules)
+        rules = yaml.dump({'foo': 'rule:bar', 'bar': 'rule:foo'})
+        self.create_config_file('policy.yaml', rules)
         self.enforcer.load_rules(True)
 
         self.assertRaises(policy.InvalidDefinitionError,
@@ -2031,20 +2029,20 @@ class EnforcerCheckRulesTest(base.PolicyBaseTestCase):
 
     @mock.patch.object(policy, 'LOG')
     def test_complex_cyclical_rules_false(self, mock_log):
-        rules = jsonutils.dumps({'foo': 'rule:bar',
-                                 'bar': 'rule:baz and role:admin',
-                                 'baz': 'rule:foo or role:user'})
-        self.create_config_file('policy.json', rules)
+        rules = yaml.dump({'foo': 'rule:bar',
+                           'bar': 'rule:baz and role:admin',
+                           'baz': 'rule:foo or role:user'})
+        self.create_config_file('policy.yaml', rules)
         self.enforcer.load_rules(True)
 
         self.assertFalse(self.enforcer.check_rules())
         mock_log.warning.assert_called()
 
     def test_complex_cyclical_rules_true(self):
-        rules = jsonutils.dumps({'foo': 'rule:bar or rule:baz',
-                                 'bar': 'role:admin',
-                                 'baz': 'rule:bar or role:user'})
-        self.create_config_file('policy.json', rules)
+        rules = yaml.dump({'foo': 'rule:bar or rule:baz',
+                           'bar': 'role:admin',
+                           'baz': 'rule:bar or role:user'})
+        self.create_config_file('policy.yaml', rules)
         self.enforcer.load_rules(True)
 
         self.assertTrue(self.enforcer.check_rules())
@@ -2094,8 +2092,6 @@ class PickPolicyFileTestCase(base.PolicyBaseTestCase):
         self.assertEqual(selected_policy_file, tmpfilename)
 
     def test_only_new_default_policy_file_exist(self):
-        self.conf.set_override('policy_file', 'policy.yaml',
-                               group='oslo_policy')
         tmpfilename = os.path.join(self.tmpdir.path, 'policy.yaml')
         with open(tmpfilename, 'w') as fh:
             yaml.dump(self.data, fh)
@@ -2105,8 +2101,6 @@ class PickPolicyFileTestCase(base.PolicyBaseTestCase):
         self.assertEqual(selected_policy_file, 'policy.yaml')
 
     def test_only_old_default_policy_file_exist(self):
-        self.conf.set_override('policy_file', 'policy.yaml',
-                               group='oslo_policy')
         tmpfilename = os.path.join(self.tmpdir.path, 'policy.json')
         with open(tmpfilename, 'w') as fh:
             jsonutils.dump(self.data, fh)
@@ -2116,8 +2110,6 @@ class PickPolicyFileTestCase(base.PolicyBaseTestCase):
         self.assertEqual(selected_policy_file, 'policy.json')
 
     def test_both_default_policy_file_exist(self):
-        self.conf.set_override('policy_file', 'policy.yaml',
-                               group='oslo_policy')
         tmpfilename1 = os.path.join(self.tmpdir.path, 'policy.json')
         with open(tmpfilename1, 'w') as fh:
             jsonutils.dump(self.data, fh)
