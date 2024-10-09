@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The following options are no longer loaded from the ``[DEFAULT]`` section.
+    Use the ``[oslo_policy]`` section instead.
+
+    - ``policy_file``
+    - ``policy_default_rule``
+    - ``policy_dirs``

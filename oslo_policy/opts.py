@@ -61,13 +61,11 @@ _options = [
                help=_('The relative or absolute path of a file that maps '
                       'roles to permissions for a given service. Relative '
                       'paths must be specified in relation to the '
-                      'configuration file setting this option.'),
-               deprecated_group='DEFAULT'),
+                      'configuration file setting this option.')),
     cfg.StrOpt('policy_default_rule',
                default='default',
                help=_('Default rule. Enforced when a requested rule is not '
-                      'found.'),
-               deprecated_group='DEFAULT'),
+                      'found.')),
     cfg.MultiStrOpt('policy_dirs',
                     default=['policy.d'],
                     help=_('Directories where policy configuration files are '
@@ -76,8 +74,7 @@ _options = [
                            'option, or absolute paths. The file defined by '
                            'policy_file must exist for these directories to '
                            'be searched.  Missing or empty directories are '
-                           'ignored.'),
-                    deprecated_group='DEFAULT'),
+                           'ignored.')),
     cfg.StrOpt('remote_content_type',
                choices=('application/x-www-form-urlencoded',
                         'application/json'),
