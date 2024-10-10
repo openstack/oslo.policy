@@ -94,6 +94,10 @@ _options = [
     cfg.StrOpt('remote_ssl_client_key_file',
                help=_("Absolute path client key file REST based "
                       "policy check")),
+    cfg.FloatOpt('remote_timeout',
+                 default=60,
+                 min=0,
+                 help=_("Timeout in seconds for REST based policy check"))
 ]
 
 

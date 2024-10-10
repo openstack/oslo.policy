@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The new ``[oslo_policy] remote_timeout`` option has been added. This option
+    determines timeout in HTTP(S) requests in REST based policy check. Its
+    default value is 60 seconds.
