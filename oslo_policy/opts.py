@@ -57,7 +57,7 @@ _options = [
                        'graceful upgrade experience between releases with '
                        'new policies, which is the default behavior.')),
     cfg.StrOpt('policy_file',
-               default='policy.json',
+               default='policy.yaml',
                help=_('The relative or absolute path of a file that maps '
                       'roles to permissions for a given service. Relative '
                       'paths must be specified in relation to the '
