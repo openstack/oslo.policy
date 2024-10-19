@@ -55,8 +55,7 @@ class FieldCheck(_checks.Check):
         # Process the match
         resource, field_value = match.split(':', 1)
         field, value = field_value.split('=', 1)
-        super(FieldCheck, self).__init__(kind, '%s:%s:%s' %
-                                         (resource, field, value))
+        super().__init__(kind, '{}:{}:{}'.format(resource, field, value))
         self.field = field
         self.value = value
 
@@ -235,7 +234,7 @@ default: [
 class EnforcerTest(base.PolicyBaseTestCase):
 
     def setUp(self):
-        super(EnforcerTest, self).setUp()
+        super().setUp()
         self.create_config_file('policy.yaml', POLICY_YAML_CONTENTS)
 
     def _test_scenario_with_opts_registered(self, scenario, *args, **kwargs):
@@ -843,7 +842,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         rule = policy.RuleDefault(name='fake_rule', check_str='role:test')
         self.enforcer.register_default(rule)
 
-        class InvalidContext(object):
+        class InvalidContext:
             pass
 
         request_context = InvalidContext()
@@ -1047,7 +1046,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
 
 class EnforcerNoPolicyFileTest(base.PolicyBaseTestCase):
     def setUp(self):
-        super(EnforcerNoPolicyFileTest, self).setUp()
+        super().setUp()
 
     def test_load_rules(self):
         # Check that loading rules with no policy file does not error
@@ -1079,7 +1078,7 @@ class EnforcerNoPolicyFileTest(base.PolicyBaseTestCase):
 class CheckFunctionTestCase(base.PolicyBaseTestCase):
 
     def setUp(self):
-        super(CheckFunctionTestCase, self).setUp()
+        super().setUp()
         self.create_config_file('policy.yaml', POLICY_YAML_CONTENTS)
 
     def test_check_explicit(self):
@@ -1209,7 +1208,7 @@ class RuleDefaultTestCase(base.PolicyBaseTestCase):
         self.assertNotEqual(opt1, opt2)
 
     def test_not_equal_class(self):
-        class NotRuleDefault(object):
+        class NotRuleDefault:
             def __init__(self, name, check_str):
                 self.name = name
                 self.check = _parser.parse_rule(check_str)
@@ -1962,7 +1961,7 @@ class DeprecatedRuleTestCase(base.PolicyBaseTestCase):
 
 class EnforcerCheckRulesTest(base.PolicyBaseTestCase):
     def setUp(self):
-        super(EnforcerCheckRulesTest, self).setUp()
+        super().setUp()
 
     def test_no_violations(self):
         self.create_config_file('policy.yaml', POLICY_YAML_CONTENTS)
@@ -2051,7 +2050,7 @@ class EnforcerCheckRulesTest(base.PolicyBaseTestCase):
 class PickPolicyFileTestCase(base.PolicyBaseTestCase):
 
     def setUp(self):
-        super(PickPolicyFileTestCase, self).setUp()
+        super().setUp()
         self.data = {
             'rule_admin': 'True',
             'rule_admin2': 'is_admin:True'

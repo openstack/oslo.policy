@@ -281,7 +281,7 @@ class NotCheckTestCase(test_base.BaseTestCase):
     def test_rule_takes_current_rule(self):
         results = []
 
-        class TestCheck(object):
+        class TestCheck:
             def __call__(self, target, cred, enforcer, current_rule=None):
                 results.append((target, cred, enforcer, current_rule))
                 return True
@@ -297,7 +297,7 @@ class NotCheckTestCase(test_base.BaseTestCase):
     def test_rule_does_not_take_current_rule(self):
         results = []
 
-        class TestCheck(object):
+        class TestCheck:
             def __call__(self, target, cred, enforcer):
                 results.append((target, cred, enforcer))
                 return True
@@ -378,7 +378,7 @@ class AndCheckTestCase(test_base.BaseTestCase):
     def test_rule_takes_current_rule(self):
         results = []
 
-        class TestCheck(object):
+        class TestCheck:
             def __call__(self, target, cred, enforcer, current_rule=None):
                 results.append((target, cred, enforcer, current_rule))
                 return False
@@ -394,7 +394,7 @@ class AndCheckTestCase(test_base.BaseTestCase):
     def test_rule_does_not_take_current_rule(self):
         results = []
 
-        class TestCheck(object):
+        class TestCheck:
             def __call__(self, target, cred, enforcer):
                 results.append((target, cred, enforcer))
                 return False
@@ -468,7 +468,7 @@ class OrCheckTestCase(test_base.BaseTestCase):
     def test_rule_takes_current_rule(self):
         results = []
 
-        class TestCheck(object):
+        class TestCheck:
             def __call__(self, target, cred, enforcer, current_rule=None):
                 results.append((target, cred, enforcer, current_rule))
                 return False
@@ -484,7 +484,7 @@ class OrCheckTestCase(test_base.BaseTestCase):
     def test_rule_does_not_take_current_rule(self):
         results = []
 
-        class TestCheck(object):
+        class TestCheck:
             def __call__(self, target, cred, enforcer):
                 results.append((target, cred, enforcer))
                 return False

@@ -51,7 +51,7 @@ def read_cached_file(cache, filename, force_reload=False):
         try:
             with open(filename) as fap:
                 cache_info['data'] = fap.read()
-        except IOError as err:
+        except OSError as err:
             msg = err.strerror
             err_code = err.errno
             LOG.error('IO error loading %(filename)s: %(msg)s',

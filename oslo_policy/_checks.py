@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2015 OpenStack Foundation.
 # All Rights Reserved.
@@ -138,7 +137,7 @@ class Check(BaseCheck):
     def __str__(self):
         """Return a string representation of this check."""
 
-        return '%s:%s' % (self.kind, self.match)
+        return '{}:{}'.format(self.kind, self.match)
 
 
 class NotCheck(BaseCheck):

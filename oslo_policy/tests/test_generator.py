@@ -46,7 +46,7 @@ OPTS = {'base_rules': [policy.RuleDefault('admin', 'is_admin:True',
 
 class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
     def setUp(self):
-        super(GenerateSampleYAMLTestCase, self).setUp()
+        super().setUp()
         self.enforcer = policy.Enforcer(self.conf, policy_file='policy.yaml')
 
     def test_generate_loadable_yaml(self):
@@ -112,7 +112,7 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
                 on_load_failure_callback=generator.on_load_failure_callback,
                 invoke_on_load=True)
 
-        with open(output_file, 'r') as written_file:
+        with open(output_file) as written_file:
             written_policy = written_file.read()
 
         self.assertEqual(expected, written_policy)
@@ -309,7 +309,7 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
                 on_load_failure_callback=generator.on_load_failure_callback,
                 invoke_on_load=True)
 
-        with open(output_file, 'r') as written_file:
+        with open(output_file) as written_file:
             written_policy = written_file.read()
 
         self.assertEqual(expected, written_policy)
@@ -387,7 +387,7 @@ We have some text...
 
 class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
     def setUp(self):
-        super(GenerateSampleJSONTestCase, self).setUp()
+        super().setUp()
         self.enforcer = policy.Enforcer(self.conf, policy_file='policy.json')
 
     def test_generate_loadable_json(self):
@@ -449,7 +449,7 @@ class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
                 on_load_failure_callback=generator.on_load_failure_callback,
                 invoke_on_load=True)
 
-        with open(output_file, 'r') as written_file:
+        with open(output_file) as written_file:
             written_policy = written_file.read()
 
         self.assertEqual(expected, written_policy)
@@ -507,7 +507,7 @@ class GeneratorRaiseErrorTestCase(testtools.TestCase):
         class FakeException(Exception):
             pass
 
-        class FakeEP(object):
+        class FakeEP:
 
             def __init__(self):
                 self.name = 'callback_is_expected'
@@ -533,7 +533,7 @@ class GeneratorRaiseErrorTestCase(testtools.TestCase):
 
 class GeneratePolicyTestCase(base.PolicyBaseTestCase):
     def setUp(self):
-        super(GeneratePolicyTestCase, self).setUp()
+        super().setUp()
 
     def test_merged_rules(self):
         extensions = []
@@ -589,7 +589,7 @@ class GeneratePolicyTestCase(base.PolicyBaseTestCase):
 
 class ListRedundantTestCase(base.PolicyBaseTestCase):
     def setUp(self):
-        super(ListRedundantTestCase, self).setUp()
+        super().setUp()
 
     @mock.patch('warnings.warn')
     def test_matched_rules(self, mock_warn):
@@ -664,7 +664,7 @@ class ListRedundantTestCase(base.PolicyBaseTestCase):
 
 class UpgradePolicyTestCase(base.PolicyBaseTestCase):
     def setUp(self):
-        super(UpgradePolicyTestCase, self).setUp()
+        super().setUp()
         policy_json_contents = jsonutils.dumps({
             "deprecated_name": "rule:admin"
         })
@@ -706,7 +706,7 @@ class UpgradePolicyTestCase(base.PolicyBaseTestCase):
             with mock.patch('sys.argv', testargs):
                 generator.upgrade_policy(conf=self.local_conf)
                 new_file = self.get_config_file_fullname('new_policy.json')
-                with open(new_file, 'r') as fh:
+                with open(new_file) as fh:
                     new_policy = jsonutils.loads(fh.read())
                 self.assertIsNotNone(new_policy.get('new_policy_name'))
                 self.assertIsNone(new_policy.get('deprecated_name'))
@@ -743,7 +743,7 @@ class UpgradePolicyTestCase(base.PolicyBaseTestCase):
             with mock.patch('sys.argv', testargs):
                 generator.upgrade_policy(conf=self.local_conf)
                 new_file = self.get_config_file_fullname('new_policy.yaml')
-                with open(new_file, 'r') as fh:
+                with open(new_file) as fh:
                     new_policy = yaml.safe_load(fh)
                 self.assertIsNotNone(new_policy.get('new_policy_name'))
                 self.assertIsNone(new_policy.get('deprecated_name'))
@@ -852,7 +852,7 @@ class ValidatorTestCase(base.PolicyBaseTestCase):
 
 class ConvertJsonToYamlTestCase(base.PolicyBaseTestCase):
     def setUp(self):
-        super(ConvertJsonToYamlTestCase, self).setUp()
+        super().setUp()
         policy_json_contents = jsonutils.dumps({
             "rule1_name": "rule:admin",
             "rule2_name": "rule:overridden",
@@ -932,7 +932,7 @@ class ConvertJsonToYamlTestCase(base.PolicyBaseTestCase):
             with mock.patch('sys.argv', testargs):
                 generator.convert_policy_json_to_yaml(conf=self.local_conf)
                 if output_to_file:
-                    with open(self.output_file_path, 'r') as fh:
+                    with open(self.output_file_path) as fh:
                         converted_policy_data = fh.read()
         return converted_policy_data
 

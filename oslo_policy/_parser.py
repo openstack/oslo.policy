@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2015 OpenStack Foundation.
 # All Rights Reserved.
@@ -67,7 +66,7 @@ class ParseStateMeta(type):
 
         cls_dict['reducers'] = reducers
 
-        return super(ParseStateMeta, mcs).__new__(mcs, name, bases, cls_dict)
+        return super().__new__(mcs, name, bases, cls_dict)
 
 
 class ParseState(metaclass=ParseStateMeta):

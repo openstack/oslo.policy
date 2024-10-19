@@ -25,11 +25,11 @@ class HttpCheckFixture(fixtures.Fixture):
                implies that the policy check failed
         :type return_value: boolean
         """
-        super(HttpCheckFixture, self).__init__()
+        super().__init__()
         self.return_value = return_value
 
     def setUp(self):
-        super(HttpCheckFixture, self).setUp()
+        super().setUp()
 
         def mocked_call(target, cred, enforcer, rule):
             return self.return_value
@@ -52,11 +52,11 @@ class HttpsCheckFixture(fixtures.Fixture):
                implies that the policy check failed
         :type return_value: boolean
         """
-        super(HttpsCheckFixture, self).__init__()
+        super().__init__()
         self.return_value = return_value
 
     def setUp(self):
-        super(HttpsCheckFixture, self).setUp()
+        super().setUp()
 
         def mocked_call(target, cred, enforcer, rule):
             return self.return_value

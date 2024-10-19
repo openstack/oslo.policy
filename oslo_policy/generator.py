@@ -229,11 +229,11 @@ def _format_rule_default_yaml(default, include_help=True, comment_rule=True,
             'name': default.name,
             'check_str': default.check_str,
         }
-        text = '%(text)s# DEPRECATED\n%(deprecated_text)s\n%(reason)s\n' % {
-            'text': text,
-            'reason': _format_help_text(deprecated_reason),
-            'deprecated_text': _format_help_text(deprecated_text)
-        }
+        text = '{text}# DEPRECATED\n{deprecated_text}\n{reason}\n'.format(
+            text=text,
+            reason=_format_help_text(deprecated_reason),
+            deprecated_text=_format_help_text(deprecated_text)
+        )
 
         if default.name != default.deprecated_rule.name:
             text += ('# WARNING: A rule name change has been identified.\n'
@@ -452,7 +452,7 @@ def _validate_policy(namespace):
 
 
 def _convert_policy_json_to_yaml(namespace, policy_file, output_file=None):
-    with open(policy_file, 'r') as rule_data:
+    with open(policy_file) as rule_data:
         file_policies = jsonutils.loads(rule_data.read())
 
     yaml_format_rules = []
@@ -585,7 +585,7 @@ def upgrade_policy(args=None, conf=None):
     conf.register_opts(GENERATOR_OPTS + RULE_OPTS + UPGRADE_OPTS)
     conf(args)
     _check_for_namespace_opt(conf)
-    with open(conf.policy, 'r') as input_data:
+    with open(conf.policy) as input_data:
         policies = policy.parse_file_contents(input_data.read())
     default_policies = get_policies_dict(conf.namespace)
 
