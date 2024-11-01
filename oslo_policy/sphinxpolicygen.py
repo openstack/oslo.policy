@@ -53,7 +53,7 @@ def _get_default_basename(config_file):
 def _generate_sample(app, policy_file, base_name, exclude_deprecated):
 
     def info(msg):
-        LOG.info('[%s] %s' % (__name__, msg))
+        LOG.info('[{}] {}'.format(__name__, msg))
 
     # If we are given a file that isn't an absolute path, look for it
     # in the source directory if it doesn't exist.

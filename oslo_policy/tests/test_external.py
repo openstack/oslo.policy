@@ -29,7 +29,7 @@ from oslo_policy.tests import base
 class HttpCheckTestCase(base.PolicyBaseTestCase):
 
     def setUp(self):
-        super(HttpCheckTestCase, self).setUp()
+        super().setUp()
         opts._register(self.conf)
         self.requests_mock = self.useFixture(rm_fixture.Fixture())
 
@@ -152,7 +152,7 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
 class HttpsCheckTestCase(base.PolicyBaseTestCase):
 
     def setUp(self):
-        super(HttpsCheckTestCase, self).setUp()
+        super().setUp()
         opts._register(self.conf)
         self.requests_mock = self.useFixture(rm_fixture.Fixture())
 

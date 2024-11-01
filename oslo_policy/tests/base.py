@@ -30,7 +30,7 @@ from oslo_policy import policy
 class PolicyBaseTestCase(test_base.BaseTestCase):
 
     def setUp(self):
-        super(PolicyBaseTestCase, self).setUp()
+        super().setUp()
         self.conf = self.useFixture(config.Config()).conf
         self.config_dir = self.useFixture(fixtures.TempDir()).path
         self.conf(args=['--config-dir', self.config_dir])

@@ -23,7 +23,7 @@ from oslo_policy import opts
 from oslo_policy import policy
 
 
-class FakeEnforcer(object):
+class FakeEnforcer:
     def __init__(self, rules, config):
         self.rules = rules
         self.conf = None

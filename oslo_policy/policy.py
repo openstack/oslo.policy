@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2012 OpenStack Foundation.
 # All Rights Reserved.
@@ -310,7 +309,7 @@ class PolicyNotAuthorized(Exception):
 
     def __init__(self, rule, target, creds):
         msg = _("%(rule)s is disallowed by policy") % {'rule': rule}
-        super(PolicyNotAuthorized, self).__init__(msg)
+        super().__init__(msg)
 
 
 class InvalidScope(Exception):
@@ -325,40 +324,40 @@ class InvalidScope(Exception):
                 'token_scope': token_scope
             }
         )
-        super(InvalidScope, self).__init__(msg)
+        super().__init__(msg)
 
 
 class DuplicatePolicyError(Exception):
     def __init__(self, name):
         msg = _('Policy %(name)s is already registered') % {'name': name}
-        super(DuplicatePolicyError, self).__init__(msg)
+        super().__init__(msg)
 
 
 class PolicyNotRegistered(Exception):
     def __init__(self, name):
         msg = _('Policy %(name)s has not been registered') % {'name': name}
-        super(PolicyNotRegistered, self).__init__(msg)
+        super().__init__(msg)
 
 
 class InvalidDefinitionError(Exception):
     def __init__(self, names):
         msg = _('Policies %(names)s are not well defined. Check logs for '
                 'more details.') % {'names': names}
-        super(InvalidDefinitionError, self).__init__(msg)
+        super().__init__(msg)
 
 
 class InvalidRuleDefault(Exception):
     def __init__(self, error):
         msg = (_('Invalid policy rule default: '
                  '%(error)s.') % {'error': error})
-        super(InvalidRuleDefault, self).__init__(msg)
+        super().__init__(msg)
 
 
 class InvalidContextObject(Exception):
     def __init__(self, error):
         msg = (_('Invalid context object: '
                  '%(error)s.') % {'error': error})
-        super(InvalidContextObject, self).__init__(msg)
+        super().__init__(msg)
 
 
 def pick_default_policy_file(conf, fallback_to_json_file=True):
@@ -467,7 +466,7 @@ class Rules(dict):
     def __init__(self, rules=None, default_rule=None):
         """Initialize the Rules store."""
 
-        super(Rules, self).__init__(rules or {})
+        super().__init__(rules or {})
         self.default_rule = default_rule
 
     def __missing__(self, key):
@@ -507,7 +506,7 @@ class Rules(dict):
         return jsonutils.dumps(out_rules, indent=4)
 
 
-class Enforcer(object):
+class Enforcer:
     """Responsible for loading and enforcing rules.
 
     :param conf: A configuration object.

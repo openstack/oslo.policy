@@ -86,16 +86,14 @@ def _format_policy_section(section, rules):
     yield ''
 
     for rule in rules:
-        for line in _format_policy_rule(rule):
-            yield line
+        yield from _format_policy_rule(rule)
 
 
 def _format_policy(namespaces):
     policies = generator.get_policies_dict(namespaces)
 
     for section in sorted(policies.keys()):
-        for line in _format_policy_section(section, policies[section]):
-            yield line
+        yield from _format_policy_section(section, policies[section])
 
 
 class ShowPolicyDirective(rst.Directive):

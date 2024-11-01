@@ -47,7 +47,7 @@ class CheckerTestCase(base.PolicyBaseTestCase):
 '''
 
     def setUp(self):
-        super(CheckerTestCase, self).setUp()
+        super().setUp()
         self.create_config_file("policy.yaml", self.SAMPLE_POLICY)
         self.create_config_file(
             "access.json",
@@ -229,7 +229,7 @@ passed: sampleservice:sample_rule2
         self.create_config_file(
             "target.json",
             jsonutils.dumps(target))
-        with open(self.get_config_file_fullname('target.json'), 'r') as fh:
+        with open(self.get_config_file_fullname('target.json')) as fh:
             target_from_file = fh.read()
         result = shell.flatten(jsonutils.loads(target_from_file))
         self.assertEqual(result, {"target.secret.project_id": "1234"})

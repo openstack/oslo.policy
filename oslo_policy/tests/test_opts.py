@@ -21,7 +21,7 @@ from oslo_policy import opts
 class OptsTestCase(test_base.BaseTestCase):
 
     def setUp(self):
-        super(OptsTestCase, self).setUp()
+        super().setUp()
         self.conf = cfg.ConfigOpts()
         self.original_opts = opts._options
         opts._options = copy.deepcopy(opts._options)
