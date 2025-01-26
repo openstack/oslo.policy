@@ -9,6 +9,15 @@
     required-projects:
       - openstack/nova
       - openstack/oslo.policy
+    irrelevant-files: &irrelevant-files
+      - ^.*\.rst$
+      - ^doc/.*$
+      - LICENSE
+      - ^releasenotes/.*$
+      - ^sample_data/.*$
+      - ^\.pre-commit-config\.yaml$
+      - ^oslo_policy/tests/.*$
+      - ^test-requirements\.txt$
 
 - job:
     name: cross-nova-tox-py312
@@ -22,6 +31,7 @@
     required-projects:
       - openstack/nova
       - openstack/oslo.policy
+    irrelevant-files: *irrelevant-files
 
 - job:
     name: cross-neutron-tox-py312
@@ -36,6 +46,7 @@
     required-projects:
       - openstack/neutron
       - openstack/oslo.policy
+    irrelevant-files: *irrelevant-files
 
 - project:
     templates:
