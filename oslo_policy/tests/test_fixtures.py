@@ -27,14 +27,10 @@ class FixtureTestCase(test_base.PolicyBaseTestCase):
     def _test_enforce_http(self, return_value):
         self.useFixture(fixture.HttpCheckFixture(return_value=return_value))
         action = self.getUniqueString()
-        rules_json = {
-            action: "http:" + self.getUniqueString()
-        }
+        rules_json = {action: 'http:' + self.getUniqueString()}
         rules = oslo_policy.Rules.load(json.dumps(rules_json))
         self.enforcer.set_rules(rules)
-        return self.enforcer.enforce(rule=action,
-                                     target={},
-                                     creds={})
+        return self.enforcer.enforce(rule=action, target={}, creds={})
 
     def test_enforce_https_true(self):
         self.assertTrue(self._test_enforce_http(True))
@@ -45,11 +41,7 @@ class FixtureTestCase(test_base.PolicyBaseTestCase):
     def _test_enforce_https(self, return_value):
         self.useFixture(fixture.HttpsCheckFixture(return_value=return_value))
         action = self.getUniqueString()
-        rules_json = {
-            action: "https:" + self.getUniqueString()
-        }
+        rules_json = {action: 'https:' + self.getUniqueString()}
         rules = oslo_policy.Rules.load(json.dumps(rules_json))
         self.enforcer.set_rules(rules)
-        return self.enforcer.enforce(rule=action,
-                                     target={},
-                                     creds={})
+        return self.enforcer.enforce(rule=action, target={}, creds={})

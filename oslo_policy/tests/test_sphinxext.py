@@ -21,42 +21,46 @@ from oslo_policy import sphinxext
 
 
 class IndentTest(base.BaseTestCase):
-
     def test_indent(self):
-        result = sphinxext._indent("foo\nbar")
-        self.assertEqual("    foo\n    bar", result)
+        result = sphinxext._indent('foo\nbar')
+        self.assertEqual('    foo\n    bar', result)
 
-        result = sphinxext._indent("")
-        self.assertEqual("", result)
+        result = sphinxext._indent('')
+        self.assertEqual('', result)
 
-        result = sphinxext._indent("\n")
-        self.assertEqual("\n", result)
+        result = sphinxext._indent('\n')
+        self.assertEqual('\n', result)
 
-        result = sphinxext._indent("test\ntesting\n\nafter blank")
-        self.assertEqual("    test\n    testing\n\n    after blank", result)
+        result = sphinxext._indent('test\ntesting\n\nafter blank')
+        self.assertEqual('    test\n    testing\n\n    after blank', result)
 
-        result = sphinxext._indent("\tfoo\nbar")
-        self.assertEqual("    \tfoo\n    bar", result)
+        result = sphinxext._indent('\tfoo\nbar')
+        self.assertEqual('    \tfoo\n    bar', result)
 
-        result = sphinxext._indent("    foo\nbar")
-        self.assertEqual("        foo\n    bar", result)
+        result = sphinxext._indent('    foo\nbar')
+        self.assertEqual('        foo\n    bar', result)
 
-        result = sphinxext._indent("foo\n    bar")
-        self.assertEqual("    foo\n        bar", result)
+        result = sphinxext._indent('foo\n    bar')
+        self.assertEqual('    foo\n        bar', result)
 
-        result = sphinxext._indent("foo\n\n    bar")
-        self.assertEqual("    foo\n\n        bar", result)
+        result = sphinxext._indent('foo\n\n    bar')
+        self.assertEqual('    foo\n\n        bar', result)
 
         self.assertRaises(AttributeError, sphinxext._indent, None)
 
 
 class FormatPolicyTest(base.BaseTestCase):
-
     def test_minimal(self):
-        results = '\n'.join(list(sphinxext._format_policy_section(
-            'foo', [policy.RuleDefault('rule_a', '@')])))
+        results = '\n'.join(
+            list(
+                sphinxext._format_policy_section(
+                    'foo', [policy.RuleDefault('rule_a', '@')]
+                )
+            )
+        )
 
-        self.assertEqual(textwrap.dedent("""
+        self.assertEqual(
+            textwrap.dedent("""
         foo
         ===
 
@@ -64,14 +68,22 @@ class FormatPolicyTest(base.BaseTestCase):
             :Default: ``@``
 
             (no description provided)
-        """).lstrip(), results)
+        """).lstrip(),
+            results,
+        )
 
     def test_with_description(self):
-        results = '\n'.join(list(sphinxext._format_policy_section(
-            'foo', [policy.RuleDefault('rule_a', '@', 'My sample rule')]
-        )))
+        results = '\n'.join(
+            list(
+                sphinxext._format_policy_section(
+                    'foo',
+                    [policy.RuleDefault('rule_a', '@', 'My sample rule')],
+                )
+            )
+        )
 
-        self.assertEqual(textwrap.dedent("""
+        self.assertEqual(
+            textwrap.dedent("""
         foo
         ===
 
@@ -79,17 +91,32 @@ class FormatPolicyTest(base.BaseTestCase):
             :Default: ``@``
 
             My sample rule
-        """).lstrip(), results)
+        """).lstrip(),
+            results,
+        )
 
     def test_with_operations(self):
-        results = '\n'.join(list(sphinxext._format_policy_section(
-            'foo', [policy.DocumentedRuleDefault(
-                'rule_a', '@', 'My sample rule', [
-                    {'method': 'GET', 'path': '/foo'},
-                    {'method': 'POST', 'path': '/some'}])]
-        )))
+        results = '\n'.join(
+            list(
+                sphinxext._format_policy_section(
+                    'foo',
+                    [
+                        policy.DocumentedRuleDefault(
+                            'rule_a',
+                            '@',
+                            'My sample rule',
+                            [
+                                {'method': 'GET', 'path': '/foo'},
+                                {'method': 'POST', 'path': '/some'},
+                            ],
+                        )
+                    ],
+                )
+            )
+        )
 
-        self.assertEqual(textwrap.dedent("""
+        self.assertEqual(
+            textwrap.dedent("""
         foo
         ===
 
@@ -100,24 +127,30 @@ class FormatPolicyTest(base.BaseTestCase):
                 - **POST** ``/some``
 
             My sample rule
-        """).lstrip(), results)
+        """).lstrip(),
+            results,
+        )
 
     def test_with_scope_types(self):
         operations = [
             {'method': 'GET', 'path': '/foo'},
-            {'method': 'POST', 'path': '/some'}
+            {'method': 'POST', 'path': '/some'},
         ]
         scope_types = ['bar']
         rule = policy.DocumentedRuleDefault(
-            'rule_a', '@', 'My sample rule', operations,
-            scope_types=scope_types
+            'rule_a',
+            '@',
+            'My sample rule',
+            operations,
+            scope_types=scope_types,
         )
 
-        results = '\n'.join(list(sphinxext._format_policy_section(
-            'foo', [rule]
-        )))
+        results = '\n'.join(
+            list(sphinxext._format_policy_section('foo', [rule]))
+        )
 
-        self.assertEqual(textwrap.dedent("""
+        self.assertEqual(
+            textwrap.dedent("""
         foo
         ===
 
@@ -130,4 +163,6 @@ class FormatPolicyTest(base.BaseTestCase):
                 - **bar**
 
             My sample rule
-        """).lstrip(), results)
+        """).lstrip(),
+            results,
+        )

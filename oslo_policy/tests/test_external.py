@@ -27,7 +27,6 @@ from oslo_policy.tests import base
 
 
 class HttpCheckTestCase(base.PolicyBaseTestCase):
-
     def setUp(self):
         super().setUp()
         opts._register(self.conf)
@@ -50,16 +49,20 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
         self.assertTrue(check(target_dict, cred_dict, self.enforcer))
 
         last_request = self.requests_mock.last_request
-        self.assertEqual('application/x-www-form-urlencoded',
-                         last_request.headers['Content-Type'])
+        self.assertEqual(
+            'application/x-www-form-urlencoded',
+            last_request.headers['Content-Type'],
+        )
         self.assertEqual('POST', last_request.method)
-        self.assertEqual(dict(target=target_dict, credentials=cred_dict,
-                              rule=None),
-                         self.decode_post_data(last_request.body))
+        self.assertEqual(
+            dict(target=target_dict, credentials=cred_dict, rule=None),
+            self.decode_post_data(last_request.body),
+        )
 
     def test_accept_json(self):
-        self.conf.set_override('remote_content_type', 'application/json',
-                               group='oslo_policy')
+        self.conf.set_override(
+            'remote_content_type', 'application/json', group='oslo_policy'
+        )
         self.requests_mock.post('http://example.com/target', text='True')
 
         check = _external.HttpCheck('http', '//example.com/%(name)s')
@@ -69,16 +72,17 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
         self.assertTrue(check(target_dict, cred_dict, self.enforcer))
 
         last_request = self.requests_mock.last_request
-        self.assertEqual('application/json',
-                         last_request.headers['Content-Type'])
+        self.assertEqual(
+            'application/json', last_request.headers['Content-Type']
+        )
         self.assertEqual('POST', last_request.method)
-        self.assertEqual(dict(rule=None,
-                              credentials=cred_dict,
-                              target=target_dict),
-                         json.loads(last_request.body.decode('utf-8')))
+        self.assertEqual(
+            dict(rule=None, credentials=cred_dict, target=target_dict),
+            json.loads(last_request.body.decode('utf-8')),
+        )
 
     def test_reject(self):
-        self.requests_mock.post("http://example.com/target", text='other')
+        self.requests_mock.post('http://example.com/target', text='other')
 
         check = _external.HttpCheck('http', '//example.com/%(name)s')
 
@@ -88,31 +92,32 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
 
         last_request = self.requests_mock.last_request
         self.assertEqual('POST', last_request.method)
-        self.assertEqual(dict(target=target_dict, credentials=cred_dict,
-                              rule=None),
-                         self.decode_post_data(last_request.body))
+        self.assertEqual(
+            dict(target=target_dict, credentials=cred_dict, rule=None),
+            self.decode_post_data(last_request.body),
+        )
 
     def test_http_with_objects_in_target(self):
-        self.requests_mock.post("http://example.com/target", text='True')
+        self.requests_mock.post('http://example.com/target', text='True')
 
         check = _external.HttpCheck('http', '//example.com/%(name)s')
-        target = {'a': object(),
-                  'name': 'target',
-                  'b': 'test data'}
-        self.assertTrue(check(target,
-                              dict(user='user', roles=['a', 'b', 'c']),
-                              self.enforcer))
+        target = {'a': object(), 'name': 'target', 'b': 'test data'}
+        self.assertTrue(
+            check(
+                target, dict(user='user', roles=['a', 'b', 'c']), self.enforcer
+            )
+        )
 
     def test_http_with_strings_in_target(self):
-        self.requests_mock.post("http://example.com/target", text='True')
+        self.requests_mock.post('http://example.com/target', text='True')
 
         check = _external.HttpCheck('http', '//example.com/%(name)s')
-        target = {'a': 'some_string',
-                  'name': 'target',
-                  'b': 'test data'}
-        self.assertTrue(check(target,
-                              dict(user='user', roles=['a', 'b', 'c']),
-                              self.enforcer))
+        target = {'a': 'some_string', 'name': 'target', 'b': 'test data'}
+        self.assertTrue(
+            check(
+                target, dict(user='user', roles=['a', 'b', 'c']), self.enforcer
+            )
+        )
 
     def test_accept_with_rule_in_argument(self):
         self.requests_mock.post('http://example.com/target', text='True')
@@ -121,36 +126,39 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
 
         target_dict = dict(name='target', spam='spammer')
         cred_dict = dict(user='user', roles=['a', 'b', 'c'])
-        current_rule = "a_rule"
-        self.assertTrue(check(target_dict, cred_dict, self.enforcer,
-                              current_rule))
+        current_rule = 'a_rule'
+        self.assertTrue(
+            check(target_dict, cred_dict, self.enforcer, current_rule)
+        )
 
         last_request = self.requests_mock.last_request
         self.assertEqual('POST', last_request.method)
-        self.assertEqual(dict(target=target_dict, credentials=cred_dict,
-                              rule=current_rule),
-                         self.decode_post_data(last_request.body))
+        self.assertEqual(
+            dict(target=target_dict, credentials=cred_dict, rule=current_rule),
+            self.decode_post_data(last_request.body),
+        )
 
     def test_reject_with_rule_in_argument(self):
-        self.requests_mock.post("http://example.com/target", text='other')
+        self.requests_mock.post('http://example.com/target', text='other')
 
         check = _external.HttpCheck('http', '//example.com/%(name)s')
 
         target_dict = dict(name='target', spam='spammer')
         cred_dict = dict(user='user', roles=['a', 'b', 'c'])
-        current_rule = "a_rule"
-        self.assertFalse(check(target_dict, cred_dict, self.enforcer,
-                               current_rule))
+        current_rule = 'a_rule'
+        self.assertFalse(
+            check(target_dict, cred_dict, self.enforcer, current_rule)
+        )
 
         last_request = self.requests_mock.last_request
         self.assertEqual('POST', last_request.method)
-        self.assertEqual(dict(target=target_dict, credentials=cred_dict,
-                              rule=current_rule),
-                         self.decode_post_data(last_request.body))
+        self.assertEqual(
+            dict(target=target_dict, credentials=cred_dict, rule=current_rule),
+            self.decode_post_data(last_request.body),
+        )
 
 
 class HttpsCheckTestCase(base.PolicyBaseTestCase):
-
     def setUp(self):
         super().setUp()
         opts._register(self.conf)
@@ -178,17 +186,20 @@ class HttpsCheckTestCase(base.PolicyBaseTestCase):
         self.assertTrue(check(target_dict, cred_dict, self.enforcer))
 
         last_request = self.requests_mock.last_request
-        self.assertEqual('application/x-www-form-urlencoded',
-                         last_request.headers['Content-Type'])
+        self.assertEqual(
+            'application/x-www-form-urlencoded',
+            last_request.headers['Content-Type'],
+        )
         self.assertEqual('POST', last_request.method)
-        self.assertEqual(dict(rule=None,
-                              target=target_dict,
-                              credentials=cred_dict),
-                         self.decode_post_data(last_request.body))
+        self.assertEqual(
+            dict(rule=None, target=target_dict, credentials=cred_dict),
+            self.decode_post_data(last_request.body),
+        )
 
     def test_https_accept_json(self):
-        self.conf.set_override('remote_content_type', 'application/json',
-                               group='oslo_policy')
+        self.conf.set_override(
+            'remote_content_type', 'application/json', group='oslo_policy'
+        )
         self.requests_mock.post('https://example.com/target', text='True')
 
         check = _external.HttpsCheck('https', '//example.com/%(name)s')
@@ -198,19 +209,22 @@ class HttpsCheckTestCase(base.PolicyBaseTestCase):
         self.assertTrue(check(target_dict, cred_dict, self.enforcer))
 
         last_request = self.requests_mock.last_request
-        self.assertEqual('application/json',
-                         last_request.headers['Content-Type'])
+        self.assertEqual(
+            'application/json', last_request.headers['Content-Type']
+        )
         self.assertEqual('POST', last_request.method)
-        self.assertEqual(dict(rule=None,
-                              target=target_dict,
-                              credentials=cred_dict),
-                         json.loads(last_request.body.decode('utf-8')))
+        self.assertEqual(
+            dict(rule=None, target=target_dict, credentials=cred_dict),
+            json.loads(last_request.body.decode('utf-8')),
+        )
 
     def test_https_accept_with_verify(self):
-        self.conf.set_override('remote_ssl_verify_server_crt', True,
-                               group='oslo_policy')
-        self.conf.set_override('remote_ssl_ca_crt_file', None,
-                               group='oslo_policy')
+        self.conf.set_override(
+            'remote_ssl_verify_server_crt', True, group='oslo_policy'
+        )
+        self.conf.set_override(
+            'remote_ssl_ca_crt_file', None, group='oslo_policy'
+        )
         self.requests_mock.post('https://example.com/target', text='True')
 
         check = _external.HttpsCheck('https', '//example.com/%(name)s')
@@ -222,16 +236,18 @@ class HttpsCheckTestCase(base.PolicyBaseTestCase):
         last_request = self.requests_mock.last_request
         self.assertEqual(True, last_request.verify)
         self.assertEqual('POST', last_request.method)
-        self.assertEqual(dict(rule=None,
-                              target=target_dict,
-                              credentials=cred_dict),
-                         self.decode_post_data(last_request.body))
+        self.assertEqual(
+            dict(rule=None, target=target_dict, credentials=cred_dict),
+            self.decode_post_data(last_request.body),
+        )
 
     def test_https_accept_with_verify_cert(self):
-        self.conf.set_override('remote_ssl_verify_server_crt', True,
-                               group='oslo_policy')
-        self.conf.set_override('remote_ssl_ca_crt_file', "ca.crt",
-                               group='oslo_policy')
+        self.conf.set_override(
+            'remote_ssl_verify_server_crt', True, group='oslo_policy'
+        )
+        self.conf.set_override(
+            'remote_ssl_ca_crt_file', 'ca.crt', group='oslo_policy'
+        )
         self.requests_mock.post('https://example.com/target', text='True')
 
         check = _external.HttpsCheck('https', '//example.com/%(name)s')
@@ -245,20 +261,24 @@ class HttpsCheckTestCase(base.PolicyBaseTestCase):
         last_request = self.requests_mock.last_request
         self.assertEqual('ca.crt', last_request.verify)
         self.assertEqual('POST', last_request.method)
-        self.assertEqual(dict(rule=None,
-                              target=target_dict,
-                              credentials=cred_dict),
-                         self.decode_post_data(last_request.body))
+        self.assertEqual(
+            dict(rule=None, target=target_dict, credentials=cred_dict),
+            self.decode_post_data(last_request.body),
+        )
 
     def test_https_accept_with_verify_and_client_certs(self):
-        self.conf.set_override('remote_ssl_verify_server_crt', True,
-                               group='oslo_policy')
-        self.conf.set_override('remote_ssl_ca_crt_file', "ca.crt",
-                               group='oslo_policy')
-        self.conf.set_override('remote_ssl_client_key_file', "client.key",
-                               group='oslo_policy')
-        self.conf.set_override('remote_ssl_client_crt_file', "client.crt",
-                               group='oslo_policy')
+        self.conf.set_override(
+            'remote_ssl_verify_server_crt', True, group='oslo_policy'
+        )
+        self.conf.set_override(
+            'remote_ssl_ca_crt_file', 'ca.crt', group='oslo_policy'
+        )
+        self.conf.set_override(
+            'remote_ssl_client_key_file', 'client.key', group='oslo_policy'
+        )
+        self.conf.set_override(
+            'remote_ssl_client_crt_file', 'client.crt', group='oslo_policy'
+        )
         self.requests_mock.post('https://example.com/target', text='True')
 
         check = _external.HttpsCheck('https', '//example.com/%(name)s')
@@ -275,13 +295,13 @@ class HttpsCheckTestCase(base.PolicyBaseTestCase):
         self.assertEqual('ca.crt', last_request.verify)
         self.assertEqual(('client.crt', 'client.key'), last_request.cert)
         self.assertEqual('POST', last_request.method)
-        self.assertEqual(dict(rule=None,
-                              target=target_dict,
-                              credentials=cred_dict),
-                         self.decode_post_data(last_request.body))
+        self.assertEqual(
+            dict(rule=None, target=target_dict, credentials=cred_dict),
+            self.decode_post_data(last_request.body),
+        )
 
     def test_https_reject(self):
-        self.requests_mock.post("https://example.com/target", text='other')
+        self.requests_mock.post('https://example.com/target', text='other')
 
         check = _external.HttpsCheck('https', '//example.com/%(name)s')
 
@@ -291,29 +311,29 @@ class HttpsCheckTestCase(base.PolicyBaseTestCase):
 
         last_request = self.requests_mock.last_request
         self.assertEqual('POST', last_request.method)
-        self.assertEqual(dict(rule=None,
-                              target=target_dict,
-                              credentials=cred_dict),
-                         self.decode_post_data(last_request.body))
+        self.assertEqual(
+            dict(rule=None, target=target_dict, credentials=cred_dict),
+            self.decode_post_data(last_request.body),
+        )
 
     def test_https_with_objects_in_target(self):
-        self.requests_mock.post("https://example.com/target", text='True')
+        self.requests_mock.post('https://example.com/target', text='True')
 
         check = _external.HttpsCheck('https', '//example.com/%(name)s')
-        target = {'a': object(),
-                  'name': 'target',
-                  'b': 'test data'}
-        self.assertTrue(check(target,
-                              dict(user='user', roles=['a', 'b', 'c']),
-                              self.enforcer))
+        target = {'a': object(), 'name': 'target', 'b': 'test data'}
+        self.assertTrue(
+            check(
+                target, dict(user='user', roles=['a', 'b', 'c']), self.enforcer
+            )
+        )
 
     def test_https_with_strings_in_target(self):
-        self.requests_mock.post("https://example.com/target", text='True')
+        self.requests_mock.post('https://example.com/target', text='True')
 
         check = _external.HttpsCheck('https', '//example.com/%(name)s')
-        target = {'a': 'some_string',
-                  'name': 'target',
-                  'b': 'test data'}
-        self.assertTrue(check(target,
-                              dict(user='user', roles=['a', 'b', 'c']),
-                              self.enforcer))
+        target = {'a': 'some_string', 'name': 'target', 'b': 'test data'}
+        self.assertTrue(
+            check(
+                target, dict(user='user', roles=['a', 'b', 'c']), self.enforcer
+            )
+        )

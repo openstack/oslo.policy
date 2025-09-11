@@ -101,23 +101,23 @@ class GenericCheckTestCase(base.PolicyBaseTestCase):
     def test_cred_mismatch(self):
         check = _checks.GenericCheck('name', '%(name)s')
 
-        self.assertFalse(check(dict(name='spam'),
-                               dict(name='ham'),
-                               self.enforcer))
+        self.assertFalse(
+            check(dict(name='spam'), dict(name='ham'), self.enforcer)
+        )
 
     def test_accept(self):
         check = _checks.GenericCheck('name', '%(name)s')
 
-        self.assertTrue(check(dict(name='spam'),
-                              dict(name='spam'),
-                              self.enforcer))
+        self.assertTrue(
+            check(dict(name='spam'), dict(name='spam'), self.enforcer)
+        )
 
     def test_no_key_match_in_target(self):
         check = _checks.GenericCheck('name', '%(name)s')
 
-        self.assertFalse(check(dict(name1='spam'),
-                               dict(name='spam'),
-                               self.enforcer))
+        self.assertFalse(
+            check(dict(name1='spam'), dict(name='spam'), self.enforcer)
+        )
 
     def test_constant_string_mismatch(self):
         check = _checks.GenericCheck("'spam'", '%(name)s')
@@ -170,43 +170,47 @@ class GenericCheckTestCase(base.PolicyBaseTestCase):
 
     def test_multiple_entry_in_list_accepted(self):
         check = _checks.GenericCheck('a.b.c.d', 'APPLES')
-        credentials = {'a': {'b': {'c': {'d': ['Bananas',
-                                               'APPLES',
-                                               'Grapes']}}}}
+        credentials = {
+            'a': {'b': {'c': {'d': ['Bananas', 'APPLES', 'Grapes']}}}
+        }
         self.assertTrue(check({}, credentials, self.enforcer))
 
     def test_multiple_entry_in_nested_list_accepted(self):
         check = _checks.GenericCheck('a.b.c.d', 'APPLES')
-        credentials = {'a': {'b': [{'c':
-                                    {'d': ['BANANAS', 'APPLES', 'GRAPES']}},
-                                   {}]}}
+        credentials = {
+            'a': {'b': [{'c': {'d': ['BANANAS', 'APPLES', 'GRAPES']}}, {}]}
+        }
         self.assertTrue(check({}, credentials, self.enforcer))
 
     def test_multiple_entries_one_matches(self):
         check = _checks.GenericCheck(
             'token.catalog.endpoints.id',
-            token_fixture.REGION_ONE_PUBLIC_KEYSTONE_ENDPOINT_ID)
+            token_fixture.REGION_ONE_PUBLIC_KEYSTONE_ENDPOINT_ID,
+        )
         credentials = token_fixture.PROJECT_SCOPED_TOKEN_FIXTURE
         self.assertTrue(check({}, credentials, self.enforcer))
 
     def test_generic_role_check_matches(self):
-        check = _checks.GenericCheck(
-            'token.roles.name', 'role1')
+        check = _checks.GenericCheck('token.roles.name', 'role1')
         credentials = token_fixture.PROJECT_SCOPED_TOKEN_FIXTURE
         self.assertTrue(check({}, credentials, self.enforcer))
 
     def test_generic_missing_role_does_not_matches(self):
-        check = _checks.GenericCheck(
-            'token.roles.name', 'missing')
+        check = _checks.GenericCheck('token.roles.name', 'missing')
         credentials = token_fixture.PROJECT_SCOPED_TOKEN_FIXTURE
         self.assertFalse(check({}, credentials, self.enforcer))
 
     def test_multiple_nested_lists_accepted(self):
         check = _checks.GenericCheck('a.b.c.d', 'APPLES')
-        credentials = {'a': {'b': [{'a': ''},
-                                   {'c':
-                                    {'d': ['BANANAS', 'APPLES', 'GRAPES']}},
-                                   {}]}}
+        credentials = {
+            'a': {
+                'b': [
+                    {'a': ''},
+                    {'c': {'d': ['BANANAS', 'APPLES', 'GRAPES']}},
+                    {},
+                ]
+            }
+        }
         self.assertTrue(check({}, credentials, self.enforcer))
 
     def test_entry_not_in_list_rejected(self):
@@ -288,7 +292,7 @@ class NotCheckTestCase(test_base.BaseTestCase):
 
         check = _checks.NotCheck(TestCheck())
 
-        self.assertFalse(check('target', 'cred', None, current_rule="a_rule"))
+        self.assertFalse(check('target', 'cred', None, current_rule='a_rule'))
         self.assertEqual(
             [('target', 'cred', None, 'a_rule')],
             results,
@@ -304,7 +308,7 @@ class NotCheckTestCase(test_base.BaseTestCase):
 
         check = _checks.NotCheck(TestCheck())
 
-        self.assertFalse(check('target', 'cred', None, current_rule="a_rule"))
+        self.assertFalse(check('target', 'cred', None, current_rule='a_rule'))
         self.assertEqual(
             [('target', 'cred', None)],
             results,
@@ -312,7 +316,6 @@ class NotCheckTestCase(test_base.BaseTestCase):
 
 
 class _BoolCheck(_checks.BaseCheck):
-
     def __init__(self, result):
         self.called = False
         self.result = result
@@ -385,7 +388,7 @@ class AndCheckTestCase(test_base.BaseTestCase):
 
         check = _checks.AndCheck([TestCheck()])
 
-        self.assertFalse(check('target', 'cred', None, current_rule="a_rule"))
+        self.assertFalse(check('target', 'cred', None, current_rule='a_rule'))
         self.assertEqual(
             [('target', 'cred', None, 'a_rule')],
             results,
@@ -401,7 +404,7 @@ class AndCheckTestCase(test_base.BaseTestCase):
 
         check = _checks.AndCheck([TestCheck()])
 
-        self.assertFalse(check('target', 'cred', None, current_rule="a_rule"))
+        self.assertFalse(check('target', 'cred', None, current_rule='a_rule'))
         self.assertEqual(
             [('target', 'cred', None)],
             results,
@@ -475,7 +478,7 @@ class OrCheckTestCase(test_base.BaseTestCase):
 
         check = _checks.OrCheck([TestCheck()])
 
-        self.assertFalse(check('target', 'cred', None, current_rule="a_rule"))
+        self.assertFalse(check('target', 'cred', None, current_rule='a_rule'))
         self.assertEqual(
             [('target', 'cred', None, 'a_rule')],
             results,
@@ -491,7 +494,7 @@ class OrCheckTestCase(test_base.BaseTestCase):
 
         check = _checks.OrCheck([TestCheck()])
 
-        self.assertFalse(check('target', 'cred', None, current_rule="a_rule"))
+        self.assertFalse(check('target', 'cred', None, current_rule='a_rule'))
         self.assertEqual(
             [('target', 'cred', None)],
             results,

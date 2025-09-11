@@ -99,17 +99,19 @@ class ParseState(metaclass=ParseStateMeta):
         """
 
         for reduction, methname in self.reducers:
-            if (len(self.tokens) >= len(reduction) and
-                    self.tokens[-len(reduction):] == reduction):
+            if (
+                len(self.tokens) >= len(reduction)
+                and self.tokens[-len(reduction) :] == reduction
+            ):
                 # Get the reduction method
                 meth = getattr(self, methname)
 
                 # Reduce the token stream
-                results = meth(*self.values[-len(reduction):])
+                results = meth(*self.values[-len(reduction) :])
 
                 # Update the tokens and values
-                self.tokens[-len(reduction):] = [r[0] for r in results]
-                self.values[-len(reduction):] = [r[1] for r in results]
+                self.tokens[-len(reduction) :] = [r[0] for r in results]
+                self.values[-len(reduction) :] = [r[1] for r in results]
 
                 # Check for any more reductions
                 return self.reduce()
@@ -304,8 +306,9 @@ def _parse_tokenize(rule):
             yield lowered, clean
         elif clean:
             # Not a special token, but not composed solely of ')'
-            if len(tok) >= 2 and ((tok[0], tok[-1]) in
-                                  [('"', '"'), ("'", "'")]):
+            if len(tok) >= 2 and (
+                (tok[0], tok[-1]) in [('"', '"'), ("'", "'")]
+            ):
                 # It's a quoted string
                 yield 'string', tok[1:-1]
             else:

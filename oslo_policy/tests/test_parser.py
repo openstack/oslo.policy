@@ -48,27 +48,37 @@ class ParseCheckTestCase(test_base.BaseTestCase):
         self.assertIsInstance(result, _checks.FalseCheck)
         mock_log.error.assert_called()
 
-    @mock.patch.object(_checks, 'registered_checks', {
-        'spam': mock.Mock(return_value='spam_check'),
-        None: mock.Mock(return_value='none_check'),
-    })
+    @mock.patch.object(
+        _checks,
+        'registered_checks',
+        {
+            'spam': mock.Mock(return_value='spam_check'),
+            None: mock.Mock(return_value='none_check'),
+        },
+    )
     def test_check(self):
         result = _parser._parse_check('spam:handler')
 
         self.assertEqual('spam_check', result)
-        _checks.registered_checks['spam'].assert_called_once_with('spam',
-                                                                  'handler')
+        _checks.registered_checks['spam'].assert_called_once_with(
+            'spam', 'handler'
+        )
         self.assertFalse(_checks.registered_checks[None].called)
 
-    @mock.patch.object(_checks, 'registered_checks', {
-        None: mock.Mock(return_value='none_check'),
-    })
+    @mock.patch.object(
+        _checks,
+        'registered_checks',
+        {
+            None: mock.Mock(return_value='none_check'),
+        },
+    )
     def test_check_default(self):
         result = _parser._parse_check('spam:handler')
 
         self.assertEqual('none_check', result)
-        _checks.registered_checks[None].assert_called_once_with('spam',
-                                                                'handler')
+        _checks.registered_checks[None].assert_called_once_with(
+            'spam', 'handler'
+        )
 
 
 class ParseListRuleTestCase(test_base.BaseTestCase):
@@ -125,8 +135,9 @@ class ParseListRuleTestCase(test_base.BaseTestCase):
 
     @mock.patch.object(_parser, '_parse_check', base.FakeCheck)
     def test_multi_multi(self):
-        result = _parser._parse_list_rule([['rule1', 'rule2'],
-                                          ['rule3', 'rule4']])
+        result = _parser._parse_list_rule(
+            [['rule1', 'rule2'], ['rule3', 'rule4']]
+        )
 
         self.assertIsInstance(result, _checks.OrCheck)
         self.assertEqual(2, len(result.rules))
@@ -134,24 +145,39 @@ class ParseListRuleTestCase(test_base.BaseTestCase):
             self.assertIsInstance(result.rules[i], _checks.AndCheck)
             self.assertEqual(2, len(result.rules[i].rules))
             for j, value in enumerate(values):
-                self.assertIsInstance(result.rules[i].rules[j],
-                                      base.FakeCheck)
+                self.assertIsInstance(result.rules[i].rules[j], base.FakeCheck)
                 self.assertEqual(value, result.rules[i].rules[j].result)
-        self.assertEqual('((rule1 and rule2) or (rule3 and rule4))',
-                         str(result))
+        self.assertEqual(
+            '((rule1 and rule2) or (rule3 and rule4))', str(result)
+        )
 
 
 class ParseTokenizeTestCase(test_base.BaseTestCase):
     @mock.patch.object(_parser, '_parse_check', lambda x: x)
     def test_tokenize(self):
-        exemplar = ("(( ( ((() And)) or ) (check:%(miss)s) not)) "
-                    "'a-string' \"another-string\"")
+        exemplar = (
+            '(( ( ((() And)) or ) (check:%(miss)s) not)) '
+            '\'a-string\' "another-string"'
+        )
         expected = [
-            ('(', '('), ('(', '('), ('(', '('), ('(', '('), ('(', '('),
-            ('(', '('), (')', ')'), ('and', 'And'),
-            (')', ')'), (')', ')'), ('or', 'or'), (')', ')'), ('(', '('),
-            ('check', 'check:%(miss)s'), (')', ')'), ('not', 'not'),
-            (')', ')'), (')', ')'),
+            ('(', '('),
+            ('(', '('),
+            ('(', '('),
+            ('(', '('),
+            ('(', '('),
+            ('(', '('),
+            (')', ')'),
+            ('and', 'And'),
+            (')', ')'),
+            (')', ')'),
+            ('or', 'or'),
+            (')', ')'),
+            ('(', '('),
+            ('check', 'check:%(miss)s'),
+            (')', ')'),
+            ('not', 'not'),
+            (')', ')'),
+            (')', ')'),
             ('string', 'a-string'),
             ('string', 'another-string'),
         ]
@@ -173,7 +199,6 @@ class ParseStateMetaTestCase(test_base.BaseTestCase):
 
     def test_parse_state_meta(self):
         class FakeState(metaclass=_parser.ParseStateMeta):
-
             @_parser.reducer('a', 'b', 'c')
             @_parser.reducer('d', 'e', 'f')
             def reduce1(self):
@@ -185,8 +210,7 @@ class ParseStateMetaTestCase(test_base.BaseTestCase):
 
         self.assertTrue(hasattr(FakeState, 'reducers'))
         for reduction, reducer in FakeState.reducers:
-            if (reduction == ['a', 'b', 'c'] or
-                    reduction == ['d', 'e', 'f']):
+            if reduction == ['a', 'b', 'c'] or reduction == ['d', 'e', 'f']:
                 self.assertEqual('reduce1', reducer)
             elif reduction == ['g', 'h', 'i']:
                 self.assertEqual('reduce2', reducer)
@@ -214,8 +238,9 @@ class ParseStateTestCase(test_base.BaseTestCase):
         self.assertEqual(['val2'], state.values)
         self.assertFalse(mock_meth.called)
 
-    @mock.patch.object(_parser.ParseState, 'reducers',
-                       [(['tok1', 'tok2'], 'meth')])
+    @mock.patch.object(
+        _parser.ParseState, 'reducers', [(['tok1', 'tok2'], 'meth')]
+    )
     @mock.patch.object(_parser.ParseState, 'meth', create=True)
     def test_reduce_short(self, mock_meth):
         state = _parser.ParseState()
@@ -228,10 +253,15 @@ class ParseStateTestCase(test_base.BaseTestCase):
         self.assertEqual(['val1'], state.values)
         self.assertFalse(mock_meth.called)
 
-    @mock.patch.object(_parser.ParseState, 'reducers',
-                       [(['tok1', 'tok2'], 'meth')])
-    @mock.patch.object(_parser.ParseState, 'meth', create=True,
-                       return_value=[('tok3', 'val3')])
+    @mock.patch.object(
+        _parser.ParseState, 'reducers', [(['tok1', 'tok2'], 'meth')]
+    )
+    @mock.patch.object(
+        _parser.ParseState,
+        'meth',
+        create=True,
+        return_value=[('tok3', 'val3')],
+    )
     def test_reduce_one(self, mock_meth):
         state = _parser.ParseState()
         state.tokens = ['tok1', 'tok2']
@@ -243,14 +273,26 @@ class ParseStateTestCase(test_base.BaseTestCase):
         self.assertEqual(['val3'], state.values)
         mock_meth.assert_called_once_with('val1', 'val2')
 
-    @mock.patch.object(_parser.ParseState, 'reducers', [
-        (['tok1', 'tok4'], 'meth2'),
-        (['tok2', 'tok3'], 'meth1'),
-    ])
-    @mock.patch.object(_parser.ParseState, 'meth1', create=True,
-                       return_value=[('tok4', 'val4')])
-    @mock.patch.object(_parser.ParseState, 'meth2', create=True,
-                       return_value=[('tok5', 'val5')])
+    @mock.patch.object(
+        _parser.ParseState,
+        'reducers',
+        [
+            (['tok1', 'tok4'], 'meth2'),
+            (['tok2', 'tok3'], 'meth1'),
+        ],
+    )
+    @mock.patch.object(
+        _parser.ParseState,
+        'meth1',
+        create=True,
+        return_value=[('tok4', 'val4')],
+    )
+    @mock.patch.object(
+        _parser.ParseState,
+        'meth2',
+        create=True,
+        return_value=[('tok5', 'val5')],
+    )
     def test_reduce_two(self, mock_meth2, mock_meth1):
         state = _parser.ParseState()
         state.tokens = ['tok1', 'tok2', 'tok3']
@@ -263,10 +305,15 @@ class ParseStateTestCase(test_base.BaseTestCase):
         mock_meth1.assert_called_once_with('val2', 'val3')
         mock_meth2.assert_called_once_with('val1', 'val4')
 
-    @mock.patch.object(_parser.ParseState, 'reducers',
-                       [(['tok1', 'tok2'], 'meth')])
-    @mock.patch.object(_parser.ParseState, 'meth', create=True,
-                       return_value=[('tok3', 'val3'), ('tok4', 'val4')])
+    @mock.patch.object(
+        _parser.ParseState, 'reducers', [(['tok1', 'tok2'], 'meth')]
+    )
+    @mock.patch.object(
+        _parser.ParseState,
+        'meth',
+        create=True,
+        return_value=[('tok3', 'val3'), ('tok4', 'val4')],
+    )
     def test_reduce_multi(self, mock_meth):
         state = _parser.ParseState()
         state.tokens = ['tok1', 'tok2']
@@ -350,7 +397,7 @@ class ParseStateTestCase(test_base.BaseTestCase):
         self.assertEqual([('or_expr', 'newcheck')], result)
         mock_expr.add_check.assert_called_once_with('check')
 
-    @mock.patch.object(_checks, 'NotCheck', lambda x: 'not %s' % x)
+    @mock.patch.object(_checks, 'NotCheck', lambda x: f'not {x}')
     def test_make_not_expr(self):
         state = _parser.ParseState()
 
@@ -365,8 +412,11 @@ class ParseTextRuleTestCase(test_base.BaseTestCase):
 
         self.assertIsInstance(result, _checks.TrueCheck)
 
-    @mock.patch.object(_parser, '_parse_tokenize',
-                       return_value=[('tok1', 'val1'), ('tok2', 'val2')])
+    @mock.patch.object(
+        _parser,
+        '_parse_tokenize',
+        return_value=[('tok1', 'val1'), ('tok2', 'val2')],
+    )
     @mock.patch.object(_parser.ParseState, 'shift')
     @mock.patch.object(_parser.ParseState, 'result', 'result')
     def test_shifts(self, mock_shift, mock_parse_tokenize):
@@ -375,7 +425,8 @@ class ParseTextRuleTestCase(test_base.BaseTestCase):
         self.assertEqual('result', result)
         mock_parse_tokenize.assert_called_once_with('test rule')
         mock_shift.assert_has_calls(
-            [mock.call('tok1', 'val1'), mock.call('tok2', 'val2')])
+            [mock.call('tok1', 'val1'), mock.call('tok2', 'val2')]
+        )
 
     @mock.patch.object(_parser, 'LOG', new=mock.Mock())
     @mock.patch.object(_parser, '_parse_tokenize', return_value=[])
@@ -446,17 +497,19 @@ class ParseTextRuleTestCase(test_base.BaseTestCase):
         self.assertEqual('((@ and !) or not @)', str(result))
 
     def test_A_and_B_or_C_with_group_1(self):
-        for expression in ['( @ ) and ! or @',
-                           '@ and ( ! ) or @',
-                           '@ and ! or ( @ )',
-                           '( @ ) and ! or ( @ )',
-                           '@ and ( ! ) or ( @ )',
-                           '( @ ) and ( ! ) or ( @ )',
-                           '( @ and ! ) or @',
-                           '( ( @ ) and ! ) or @',
-                           '( @ and ( ! ) ) or @',
-                           '( ( @ and ! ) ) or @',
-                           '( @ and ! or @ )']:
+        for expression in [
+            '( @ ) and ! or @',
+            '@ and ( ! ) or @',
+            '@ and ! or ( @ )',
+            '( @ ) and ! or ( @ )',
+            '@ and ( ! ) or ( @ )',
+            '( @ ) and ( ! ) or ( @ )',
+            '( @ and ! ) or @',
+            '( ( @ ) and ! ) or @',
+            '( @ and ( ! ) ) or @',
+            '( ( @ and ! ) ) or @',
+            '( @ and ! or @ )',
+        ]:
             result = _parser._parse_text_rule(expression)
             self.assertEqual('((@ and !) or @)', str(result))
 
@@ -465,12 +518,14 @@ class ParseTextRuleTestCase(test_base.BaseTestCase):
         self.assertEqual('(@ and (! or @))', str(result))
 
     def test_A_and_B_or_C_with_group_and_not_1(self):
-        for expression in ['not ( @ ) and ! or @',
-                           'not @ and ( ! ) or @',
-                           'not @ and ! or ( @ )',
-                           '( not @ ) and ! or @',
-                           '( not @ and ! ) or @',
-                           '( not @ and ! or @ )']:
+        for expression in [
+            'not ( @ ) and ! or @',
+            'not @ and ( ! ) or @',
+            'not @ and ! or ( @ )',
+            '( not @ ) and ! or @',
+            '( not @ and ! ) or @',
+            '( not @ and ! or @ )',
+        ]:
             result = _parser._parse_text_rule(expression)
             self.assertEqual('((not @ and !) or @)', str(result))
 
@@ -483,12 +538,14 @@ class ParseTextRuleTestCase(test_base.BaseTestCase):
         self.assertEqual('not ((@ and !) or @)', str(result))
 
     def test_A_and_B_or_C_with_group_and_not_4(self):
-        for expression in ['( @ ) and not ! or @',
-                           '@ and ( not ! ) or @',
-                           '@ and not ( ! ) or @',
-                           '@ and not ! or ( @ )',
-                           '( @ and not ! ) or @',
-                           '( @ and not ! or @ )']:
+        for expression in [
+            '( @ ) and not ! or @',
+            '@ and ( not ! ) or @',
+            '@ and not ( ! ) or @',
+            '@ and not ! or ( @ )',
+            '( @ and not ! ) or @',
+            '( @ and not ! or @ )',
+        ]:
             result = _parser._parse_text_rule(expression)
             self.assertEqual('((@ and not !) or @)', str(result))
 
@@ -501,12 +558,14 @@ class ParseTextRuleTestCase(test_base.BaseTestCase):
         self.assertEqual('(@ and not (! or @))', str(result))
 
     def test_A_and_B_or_C_with_group_and_not_7(self):
-        for expression in ['( @ ) and ! or not @',
-                           '@ and ( ! ) or not @',
-                           '@ and ! or not ( @ )',
-                           '@ and ! or ( not @ )',
-                           '( @ and ! ) or not @',
-                           '( @ and ! or not @ )']:
+        for expression in [
+            '( @ ) and ! or not @',
+            '@ and ( ! ) or not @',
+            '@ and ! or not ( @ )',
+            '@ and ! or ( not @ )',
+            '( @ and ! ) or not @',
+            '( @ and ! or not @ )',
+        ]:
             result = _parser._parse_text_rule(expression)
             self.assertEqual('((@ and !) or not @)', str(result))
 
@@ -518,8 +577,9 @@ class ParseTextRuleTestCase(test_base.BaseTestCase):
 class ParseRuleTestCase(test_base.BaseTestCase):
     @mock.patch.object(_parser, '_parse_text_rule', return_value='text rule')
     @mock.patch.object(_parser, '_parse_list_rule', return_value='list rule')
-    def test_parse_rule_string(self, mock_parse_list_rule,
-                               mock_parse_text_rule):
+    def test_parse_rule_string(
+        self, mock_parse_list_rule, mock_parse_text_rule
+    ):
         result = _parser.parse_rule('a string')
 
         self.assertEqual('text rule', result)

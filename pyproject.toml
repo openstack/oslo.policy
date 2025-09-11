@@ -50,6 +50,19 @@ https = "oslo_policy._external:HttpsCheck"
 [tool.setuptools]
 packages = ["oslo_policy"]
 
-[tool.bandit]
-exclude_dirs = ["tests"]
-skips = ['B113']
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.format]
+quote-style = "single"
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = ["E4", "E5", "E7", "E9", "F", "S", "UP"]
+ignore = [
+    # we only use asserts for type narrowing
+    "S101",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"oslo_policy/tests/*" = ["S"]

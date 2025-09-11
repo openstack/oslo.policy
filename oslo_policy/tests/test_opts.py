@@ -19,7 +19,6 @@ from oslo_policy import opts
 
 
 class OptsTestCase(test_base.BaseTestCase):
-
     def setUp(self):
         super().setUp()
         self.conf = cfg.ConfigOpts()
@@ -28,33 +27,29 @@ class OptsTestCase(test_base.BaseTestCase):
 
         def reset():
             opts._options = self.original_opts
+
         self.addCleanup(reset)
 
     def test_set_defaults_policy_file(self):
         opts._register(self.conf)
-        self.assertNotEqual('new-value.json',
-                            self.conf.oslo_policy.policy_file)
+        self.assertNotEqual(
+            'new-value.json', self.conf.oslo_policy.policy_file
+        )
         opts.set_defaults(self.conf, policy_file='new-value.json')
-        self.assertEqual('new-value.json',
-                         self.conf.oslo_policy.policy_file)
+        self.assertEqual('new-value.json', self.conf.oslo_policy.policy_file)
 
     def test_set_defaults_enforce_scope(self):
         opts._register(self.conf)
-        self.assertEqual(True,
-                         self.conf.oslo_policy.enforce_scope)
+        self.assertEqual(True, self.conf.oslo_policy.enforce_scope)
         opts.set_defaults(self.conf, enforce_scope=False)
-        self.assertEqual(False,
-                         self.conf.oslo_policy.enforce_scope)
+        self.assertEqual(False, self.conf.oslo_policy.enforce_scope)
 
     def test_set_defaults_two_opts(self):
         opts._register(self.conf)
-        self.assertEqual(True,
-                         self.conf.oslo_policy.enforce_scope)
-        self.assertEqual(True,
-                         self.conf.oslo_policy.enforce_new_defaults)
-        opts.set_defaults(self.conf, enforce_scope=False,
-                          enforce_new_defaults=False)
-        self.assertEqual(False,
-                         self.conf.oslo_policy.enforce_scope)
-        self.assertEqual(False,
-                         self.conf.oslo_policy.enforce_new_defaults)
+        self.assertEqual(True, self.conf.oslo_policy.enforce_scope)
+        self.assertEqual(True, self.conf.oslo_policy.enforce_new_defaults)
+        opts.set_defaults(
+            self.conf, enforce_scope=False, enforce_new_defaults=False
+        )
+        self.assertEqual(False, self.conf.oslo_policy.enforce_scope)
+        self.assertEqual(False, self.conf.oslo_policy.enforce_new_defaults)

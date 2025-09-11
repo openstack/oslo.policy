@@ -27,11 +27,11 @@ extension_checks = None
 def get_extensions():
     global extension_checks
     if extension_checks is None:
-        em = stevedore.ExtensionManager('oslo.policy.rule_checks',
-                                        invoke_on_load=False)
+        em = stevedore.ExtensionManager(
+            'oslo.policy.rule_checks', invoke_on_load=False
+        )
         extension_checks = {
-            extension.name: extension.plugin
-            for extension in em
+            extension.name: extension.plugin for extension in em
         }
     return extension_checks
 
@@ -147,7 +147,7 @@ class NotCheck(BaseCheck):
     def __str__(self):
         """Return a string representation of this check."""
 
-        return 'not %s' % self.rule
+        return f'not {self.rule}'
 
     def __call__(self, target, cred, enforcer, current_rule=None):
         """Check the policy.
@@ -165,7 +165,7 @@ class AndCheck(BaseCheck):
     def __str__(self):
         """Return a string representation of this check."""
 
-        return '(%s)' % ' and '.join(str(r) for r in self.rules)
+        return '({})'.format(' and '.join(str(r) for r in self.rules))
 
     def __call__(self, target, cred, enforcer, current_rule=None):
         """Check the policy.
@@ -200,7 +200,7 @@ class OrCheck(BaseCheck):
     def __str__(self):
         """Return a string representation of this check."""
 
-        return '(%s)' % ' or '.join(str(r) for r in self.rules)
+        return '({})'.format(' or '.join(str(r) for r in self.rules))
 
     def __call__(self, target, cred, enforcer, current_rule=None):
         """Check the policy.
@@ -294,7 +294,7 @@ class GenericCheck(Check):
     """
 
     def _find_in_dict(self, test_value, path_segments, match):
-        '''Searches for a match in the dictionary.
+        """Searches for a match in the dictionary.
 
         test_value is a reference inside the dictionary. Since the process is
         recursive, each call to _find_in_dict will be one level deeper.
@@ -307,7 +307,7 @@ class GenericCheck(Check):
         the check succeeds; The check only fails if the entry is not in any of
         the sublists.
 
-        '''
+        """
 
         if len(path_segments) == 0:
             return match == str(test_value)
@@ -325,7 +325,6 @@ class GenericCheck(Check):
             return self._find_in_dict(test_value, path_segments, match)
 
     def __call__(self, target, creds, enforcer, current_rule=None):
-
         try:
             match = self.match % target
         except KeyError:

@@ -40,28 +40,34 @@ def read_cached_file(cache, filename, force_reload=False):
         mtime = os.path.getmtime(filename)
     except OSError as err:
         msg = err.strerror
-        LOG.error('Config file not found %(filename)s: %(msg)s',
-                  {'filename': filename, 'msg': msg})
+        LOG.error(
+            'Config file not found %(filename)s: %(msg)s',
+            {'filename': filename, 'msg': msg},
+        )
         return True, {}
 
     cache_info = cache.setdefault(filename, {})
 
     if not cache_info or mtime > cache_info.get('mtime', 0):
-        LOG.debug("Reloading cached file %s", filename)
+        LOG.debug('Reloading cached file %s', filename)
         try:
             with open(filename) as fap:
                 cache_info['data'] = fap.read()
         except OSError as err:
             msg = err.strerror
             err_code = err.errno
-            LOG.error('IO error loading %(filename)s: %(msg)s',
-                      {'filename': filename, 'msg': msg})
+            LOG.error(
+                'IO error loading %(filename)s: %(msg)s',
+                {'filename': filename, 'msg': msg},
+            )
             if err_code == errno.EACCES:
                 raise cfg.ConfigFilesPermissionDeniedError((filename,))
         except OSError as err:
             msg = err.strerror
-            LOG.error('Config file not found %(filename)s: %(msg)s',
-                      {'filename': filename, 'msg': msg})
+            LOG.error(
+                'Config file not found %(filename)s: %(msg)s',
+                {'filename': filename, 'msg': msg},
+            )
             raise cfg.ConfigFilesNotFoundError((filename,))
         cache_info['mtime'] = mtime
         reloaded = True

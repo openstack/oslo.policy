@@ -28,7 +28,6 @@ from oslo_policy import policy
 
 
 class PolicyBaseTestCase(test_base.BaseTestCase):
-
     def setUp(self):
         super().setUp()
         self.conf = self.useFixture(config.Config()).conf

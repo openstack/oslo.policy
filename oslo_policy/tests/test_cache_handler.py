@@ -26,7 +26,6 @@ from oslo_policy import _cache_handler as _ch
 
 
 class CacheHandlerTest(test_base.BaseTestCase):
-
     def setUp(self):
         super().setUp()
         self.tmpdir = self.useFixture(fixtures.TempDir())
@@ -47,7 +46,8 @@ class CacheHandlerTest(test_base.BaseTestCase):
         self.assertFalse(reloaded)
 
         reloaded, data = _ch.read_cached_file(
-            file_cache, path, force_reload=True)
+            file_cache, path, force_reload=True
+        )
         self.assertEqual('test', data)
         self.assertTrue(reloaded)
 
@@ -78,7 +78,10 @@ class CacheHandlerTest(test_base.BaseTestCase):
         os.chmod(path, 000)
         self.assertRaises(
             oslo_config.cfg.ConfigFilesPermissionDeniedError,
-            _ch.read_cached_file, file_cache, path)
+            _ch.read_cached_file,
+            file_cache,
+            path,
+        )
         mock_log.error.assert_called_once()
 
     @mock.patch.object(_ch, 'LOG')

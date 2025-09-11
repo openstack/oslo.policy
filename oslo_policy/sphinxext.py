@@ -60,8 +60,13 @@ def _format_policy_rule(rule):
     if hasattr(rule, 'operations'):
         yield _indent(':Operations:')
         for operation in rule.operations:
-            yield _indent(_indent('- **{}** ``{}``'.format(
-                operation['method'], operation['path'])))
+            yield _indent(
+                _indent(
+                    '- **{}** ``{}``'.format(
+                        operation['method'], operation['path']
+                    )
+                )
+            )
 
     if hasattr(rule, 'scope_types') and rule.scope_types is not None:
         yield _indent(':Scope Types:')
@@ -97,7 +102,6 @@ def _format_policy(namespaces):
 
 
 class ShowPolicyDirective(rst.Directive):
-
     has_content = False
     option_spec = {
         'config-file': directives.unchanged,
@@ -111,15 +115,19 @@ class ShowPolicyDirective(rst.Directive):
 
         # if the config_file option was not defined, attempt to reuse the
         # 'oslo_policy.sphinxpolicygen' extension's setting
-        if not config_file and hasattr(env.config,
-                                       'policy_generator_config_file'):
+        if not config_file and hasattr(
+            env.config, 'policy_generator_config_file'
+        ):
             config_file = env.config.policy_generator_config_file
 
         # If we are given a file that isn't an absolute path, look for it
         # in the source directory if it doesn't exist.
         candidates = [
             config_file,
-            os.path.join(app.srcdir, config_file,),
+            os.path.join(
+                app.srcdir,
+                config_file,
+            ),
         ]
         for c in candidates:
             if os.path.isfile(c):
@@ -127,10 +135,10 @@ class ShowPolicyDirective(rst.Directive):
                 break
         else:
             raise ValueError(
-                'could not find config file in: %s' % str(candidates)
+                f'could not find config file in: {str(candidates)}'
             )
 
-        self.info('loading config file %s' % config_path)
+        self.info(f'loading config file {config_path}')
 
         conf = cfg.ConfigOpts()
         opts = generator.GENERATOR_OPTS + generator.RULE_OPTS
