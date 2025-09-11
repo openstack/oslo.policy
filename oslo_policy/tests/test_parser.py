@@ -60,10 +60,10 @@ class ParseCheckTestCase(test_base.BaseTestCase):
         result = _parser._parse_check('spam:handler')
 
         self.assertEqual('spam_check', result)
-        _checks.registered_checks['spam'].assert_called_once_with(
+        _checks.registered_checks['spam'].assert_called_once_with(  # type: ignore
             'spam', 'handler'
         )
-        self.assertFalse(_checks.registered_checks[None].called)
+        self.assertFalse(_checks.registered_checks[None].called)  # type: ignore
 
     @mock.patch.object(
         _checks,
@@ -76,7 +76,7 @@ class ParseCheckTestCase(test_base.BaseTestCase):
         result = _parser._parse_check('spam:handler')
 
         self.assertEqual('none_check', result)
-        _checks.registered_checks[None].assert_called_once_with(
+        _checks.registered_checks[None].assert_called_once_with(  # type: ignore
             'spam', 'handler'
         )
 

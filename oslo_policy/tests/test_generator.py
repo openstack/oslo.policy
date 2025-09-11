@@ -60,7 +60,10 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
         extensions = []
         for name, opts in OPTS.items():
             ext = stevedore.extension.Extension(
-                name=name, entry_point=None, plugin=None, obj=opts
+                name=name,
+                entry_point=None,  # type: ignore
+                plugin=None,  # type: ignore
+                obj=opts,
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
@@ -100,7 +103,10 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
         extensions = []
         for name, opts in OPTS.items():
             ext = stevedore.extension.Extension(
-                name=name, entry_point=None, plugin=None, obj=opts
+                name=name,
+                entry_point=None,  # type: ignore
+                plugin=None,  # type: ignore
+                obj=opts,
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
@@ -142,7 +148,10 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
         extensions = []
         for name, opts in OPTS.items():
             ext = stevedore.extension.Extension(
-                name=name, entry_point=None, plugin=None, obj=opts
+                name=name,
+                entry_point=None,  # type: ignore
+                plugin=None,  # type: ignore
+                obj=opts,
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
@@ -189,12 +198,12 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
         opts = {'rules': [rule]}
 
         extensions = []
-        for (
-            name,
-            opts,
-        ) in opts.items():
+        for name, obj in opts.items():
             ext = stevedore.extension.Extension(
-                name=name, entry_point=None, plugin=None, obj=opts
+                name=name,
+                entry_point=None,  # type: ignore
+                plugin=None,  # type: ignore
+                obj=obj,
             )
             extensions.append(ext)
 
@@ -240,9 +249,12 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
         opts = {'rules': [new_rule]}
 
         extensions = []
-        for name, opts in opts.items():
+        for name, obj in opts.items():
             ext = stevedore.extension.Extension(
-                name=name, entry_point=None, plugin=None, obj=opts
+                name=name,
+                entry_point=None,  # type: ignore
+                plugin=None,  # type: ignore
+                obj=obj,
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
@@ -299,9 +311,12 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
         opts = {'rules': [new_rule]}
 
         extensions = []
-        for name, opts in opts.items():
+        for name, obj in opts.items():
             ext = stevedore.extension.Extension(
-                name=name, entry_point=None, plugin=None, obj=opts
+                name=name,
+                entry_point=None,  # type: ignore
+                plugin=None,  # type: ignore
+                obj=obj,
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
@@ -337,7 +352,10 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
             )
         ]
         ext = stevedore.extension.Extension(
-            name='check_rule', entry_point=None, plugin=None, obj=rule
+            name='check_rule',
+            entry_point=None,  # type: ignore
+            plugin=None,  # type: ignore
+            obj=rule,
         )
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
             extensions=[ext], namespace='check_rule'
@@ -442,7 +460,10 @@ class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
         extensions = []
         for name, opts in OPTS.items():
             ext = stevedore.extension.Extension(
-                name=name, entry_point=None, plugin=None, obj=opts
+                name=name,
+                entry_point=None,  # type: ignore
+                plugin=None,  # type: ignore
+                obj=opts,
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
@@ -485,7 +506,10 @@ class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
         extensions = []
         for name, opts in OPTS.items():
             ext = stevedore.extension.Extension(
-                name=name, entry_point=None, plugin=None, obj=opts
+                name=name,
+                entry_point=None,  # type: ignore
+                plugin=None,  # type: ignore
+                obj=opts,
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
@@ -524,7 +548,10 @@ class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
         extensions = []
         for name, opts in OPTS.items():
             ext = stevedore.extension.Extension(
-                name=name, entry_point=None, plugin=None, obj=opts
+                name=name,
+                entry_point=None,  # type: ignore
+                plugin=None,  # type: ignore
+                obj=opts,
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
@@ -559,7 +586,10 @@ class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
         extensions = []
         for name, opts in OPTS.items():
             ext = stevedore.extension.Extension(
-                name=name, entry_point=None, plugin=None, obj=opts
+                name=name,
+                entry_point=None,  # type: ignore
+                plugin=None,  # type: ignore
+                obj=opts,
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
@@ -618,7 +648,10 @@ class GeneratePolicyTestCase(base.PolicyBaseTestCase):
         extensions = []
         for name, opts in OPTS.items():
             ext = stevedore.extension.Extension(
-                name=name, entry_point=None, plugin=None, obj=opts
+                name=name,
+                entry_point=None,  # type: ignore
+                plugin=None,  # type: ignore
+                obj=opts,
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
@@ -644,17 +677,22 @@ class GeneratePolicyTestCase(base.PolicyBaseTestCase):
         enforcer.register_default(policy.RuleDefault('foo', 'role:foo'))
 
         # Mock out stevedore to return the configured enforcer
-        ext = stevedore.extension.Extension(
-            name='testing', entry_point=None, plugin=None, obj=enforcer
+        enforcer_ext = stevedore.extension.Extension(
+            name='testing',
+            entry_point=None,  # type: ignore
+            plugin=None,  # type: ignore
+            obj=enforcer,
         )
-        test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=[ext], namespace='testing'
+        enforcer_mgr = (
+            stevedore.named.NamedExtensionManager.make_test_instance(
+                extensions=[enforcer_ext], namespace='testing'
+            )
         )
 
         # Generate a merged file
         merged_file = self.get_config_file_fullname('policy-merged.yaml')
         with mock.patch(
-            'stevedore.named.NamedExtensionManager', return_value=test_mgr
+            'stevedore.named.NamedExtensionManager', return_value=enforcer_mgr
         ) as mock_ext_mgr:
             generator._generate_policy(
                 namespace='testing', output_path=merged_file
@@ -687,7 +725,10 @@ class ListRedundantTestCase(base.PolicyBaseTestCase):
         extensions = []
         for name, opts in OPTS.items():
             ext = stevedore.extension.Extension(
-                name=name, entry_point=None, plugin=None, obj=opts
+                name=name,
+                entry_point=None,  # type: ignore
+                plugin=None,  # type: ignore
+                obj=opts,
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
@@ -726,16 +767,21 @@ class ListRedundantTestCase(base.PolicyBaseTestCase):
         )
 
         # Mock out stevedore to return the configured enforcer
-        ext = stevedore.extension.Extension(
-            name='testing', entry_point=None, plugin=None, obj=enforcer
+        enforcer_ext = stevedore.extension.Extension(
+            name='testing',
+            entry_point=None,  # type: ignore
+            plugin=None,  # type: ignore
+            obj=enforcer,
         )
-        test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=[ext], namespace='testing'
+        enforcer_mgr = (
+            stevedore.named.NamedExtensionManager.make_test_instance(
+                extensions=[enforcer_ext], namespace='testing'
+            )
         )
 
         stdout = self._capture_stdout()
         with mock.patch(
-            'stevedore.named.NamedExtensionManager', return_value=test_mgr
+            'stevedore.named.NamedExtensionManager', return_value=enforcer_mgr
         ) as mock_ext_mgr:
             generator._list_redundant(namespace='testing')
             mock_ext_mgr.assert_called_once_with(
@@ -788,8 +834,8 @@ class UpgradePolicyTestCase(base.PolicyBaseTestCase):
         self.extensions = []
         ext = stevedore.extension.Extension(
             name='test_upgrade',
-            entry_point=None,
-            plugin=None,
+            entry_point=None,  # type: ignore
+            plugin=None,  # type: ignore
             obj=[self.new_policy],
         )
         self.extensions.append(ext)
@@ -1025,8 +1071,8 @@ class ConvertJsonToYamlTestCase(base.PolicyBaseTestCase):
         self.extensions = []
         ext = stevedore.extension.Extension(
             name='test',
-            entry_point=None,
-            plugin=None,
+            entry_point=None,  # type: ignore
+            plugin=None,  # type: ignore
             obj=self.registered_policy,
         )
         self.extensions.append(ext)

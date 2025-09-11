@@ -10,9 +10,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from collections.abc import Generator, Sequence
+import importlib.metadata
 import logging
 import sys
 import textwrap
+from typing import Any, Literal
 import warnings
 import yaml
 
@@ -88,7 +91,9 @@ CONVERT_OPTS = [
 ]
 
 
-def get_policies_dict(namespaces):
+def get_policies_dict(
+    namespaces: Sequence[str],
+) -> dict[str, list[policy.RuleDefault]]:
     """Find the options available via the given namespaces.
 
     :param namespaces: a list of namespaces registered under
@@ -96,6 +101,7 @@ def get_policies_dict(namespaces):
     :returns: a dict of {namespace1: [rule_default_1, rule_default_2],
                          namespace2: [rule_default_3]...}
     """
+    mgr: stevedore.named.NamedExtensionManager[list[policy.RuleDefault]]
     mgr = stevedore.named.NamedExtensionManager(
         'oslo.policy.policies',
         names=namespaces,
@@ -104,16 +110,18 @@ def get_policies_dict(namespaces):
     )
     opts = {ep.name: ep.obj for ep in mgr}
 
-    return opts
+    # we know the values of this dict are non-None due to invoke_on_load=True
+    return opts  # type: ignore
 
 
-def _get_enforcer(namespace):
+def _get_enforcer(namespace: str) -> policy.Enforcer:
     """Find a policy.Enforcer via an entry point with the given namespace.
 
     :param namespace: a namespace under oslo.policy.enforcer where the desired
                       enforcer object can be found.
     :returns: a policy.Enforcer object
     """
+    mgr: stevedore.named.NamedExtensionManager[policy.Enforcer]
     mgr = stevedore.named.NamedExtensionManager(
         'oslo.policy.enforcer',
         names=[namespace],
@@ -124,10 +132,13 @@ def _get_enforcer(namespace):
         raise KeyError(f'Namespace "{namespace}" not found.')
     enforcer = mgr[namespace].obj
 
+    # we know this will always be non-None due to invoke_on_load=True
+    assert enforcer is not None  # narrow type
+
     return enforcer
 
 
-def _format_help_text(description):
+def _format_help_text(description: str | None) -> str:
     """Format a comment for a policy based on the description provided.
 
     :param description: A string with helpful text.
@@ -136,10 +147,10 @@ def _format_help_text(description):
     if not description:
         return '#'
 
-    formatted_lines = []
-    paragraph = []
+    formatted_lines: list[str] = []
+    paragraph: list[str] = []
 
-    def _wrap_paragraph(lines):
+    def _wrap_paragraph(lines: Sequence[str]) -> list[str]:
         return textwrap.wrap(
             ' '.join(lines), 70, initial_indent='# ', subsequent_indent='# '
         )
@@ -180,8 +191,11 @@ def _format_help_text(description):
 
 
 def _format_rule_default_yaml(
-    default, include_help=True, comment_rule=True, add_deprecated_rules=True
-):
+    default: policy.RuleDefault,
+    include_help: bool = True,
+    comment_rule: bool = True,
+    add_deprecated_rules: bool = True,
+) -> str:
     """Create a yaml node from policy.RuleDefault or policy.DocumentedRuleDefault.
 
     :param default: A policy.RuleDefault or policy.DocumentedRuleDefault object
@@ -204,7 +218,7 @@ def _format_rule_default_yaml(
                         path=operation['path'],
                     )
         intended_scope = ''
-        if getattr(default, 'scope_types', None) is not None:
+        if default.scope_types is not None:
             intended_scope = (
                 '# Intended scope(s): ' + ', '.join(default.scope_types) + '\n'
             )
@@ -260,7 +274,7 @@ def _format_rule_default_yaml(
     return text
 
 
-def _format_rule_default_json(default):
+def _format_rule_default_json(default: policy.RuleDefault) -> str:
     """Create a json node from policy.RuleDefault or policy.DocumentedRuleDefault.
 
     :param default: A policy.RuleDefault or policy.DocumentedRuleDefault object
@@ -270,8 +284,11 @@ def _format_rule_default_json(default):
 
 
 def _sort_and_format_by_section(
-    policies, output_format='yaml', include_help=True, exclude_deprecated=False
-):
+    policies: dict[str, list[policy.RuleDefault]],
+    output_format: Literal['yaml', 'json'] = 'yaml',
+    include_help: bool = True,
+    exclude_deprecated: bool = False,
+) -> Generator[str, None, None]:
     """Generate a list of policy section texts
 
     The text for a section will be created and returned one at a time. The
@@ -301,12 +318,12 @@ def _sort_and_format_by_section(
 
 
 def _generate_sample(
-    namespaces,
-    output_path=None,
-    output_format='yaml',
-    include_help=True,
-    exclude_deprecated=False,
-):
+    namespaces: list[str],
+    output_path: str | None = None,
+    output_format: Literal['yaml', 'json'] = 'yaml',
+    include_help: bool = True,
+    exclude_deprecated: bool = False,
+) -> None:
     """Generate a sample policy file.
 
     List all of the policies available via the namespace specified in the
@@ -348,7 +365,11 @@ def _generate_sample(
         output_file.close()
 
 
-def _generate_policy(namespace, output_path=None, exclude_deprecated=False):
+def _generate_policy(
+    namespace: str,
+    output_path: str | None = None,
+    exclude_deprecated: bool = False,
+) -> None:
     """Generate a policy file showing what will be used.
 
     This takes all registered policies and merges them with what's defined in
@@ -385,7 +406,7 @@ def _generate_policy(namespace, output_path=None, exclude_deprecated=False):
         output_file.close()
 
 
-def _list_redundant(namespace):
+def _list_redundant(namespace: str) -> None:
     """Generate a list of configured policies which match defaults.
 
     This checks all policies loaded from policy files and checks to see if they
@@ -408,7 +429,7 @@ def _list_redundant(namespace):
                 print(reg_rule)
 
 
-def _validate_policy(namespace):
+def _validate_policy(namespace: str) -> int:
     """Perform basic sanity checks on a policy file
 
     Checks for the following errors in the configured policy file:
@@ -466,7 +487,9 @@ def _validate_policy(namespace):
     return return_code
 
 
-def _convert_policy_json_to_yaml(namespace, policy_file, output_path=None):
+def _convert_policy_json_to_yaml(
+    namespace: str, policy_file: str, output_path: str | None = None
+) -> None:
     with open(policy_file) as rule_data:
         file_policies = jsonutils.loads(rule_data.read())
 
@@ -481,7 +504,7 @@ def _convert_policy_json_to_yaml(namespace, policy_file, output_path=None):
             # Some rules might be still RuleDefault object so let's prepare
             # empty 'operations' list and rule name as description for
             # those.
-            operations = [{'method': '', 'path': ''}]
+            operations: list[policy.Operation] = [{'method': '', 'path': ''}]
             if hasattr(default_rule, 'operations'):
                 operations = default_rule.operations
             # Converting JSON file rules to DocumentedRuleDefault rules so
@@ -535,11 +558,15 @@ def _convert_policy_json_to_yaml(namespace, policy_file, output_path=None):
         sys.stdout.writelines(yaml_format_rules)
 
 
-def on_load_failure_callback(*args, **kwargs):
+def on_load_failure_callback(
+    em: stevedore.ExtensionManager[Any],
+    ep: importlib.metadata.EntryPoint,
+    err: BaseException,
+) -> None:
     raise
 
 
-def _check_for_namespace_opt(conf):
+def _check_for_namespace_opt(conf: cfg.ConfigOpts) -> None:
     # NOTE(bnemec): This opt is required, but due to lp#1849518 we need to
     # make it optional while our consumers migrate to the new method of
     # parsing cli args. Making the arg itself optional and explicitly checking
@@ -550,7 +577,9 @@ def _check_for_namespace_opt(conf):
         raise cfg.RequiredOptError('namespace', 'DEFAULT')
 
 
-def generate_sample(args=None, conf=None):
+def generate_sample(
+    args: Sequence[str] | None = None, conf: cfg.ConfigOpts | None = None
+) -> None:
     logging.basicConfig(level=logging.WARN)
     # Allow the caller to pass in a local conf object for unit testing
     if conf is None:
@@ -567,7 +596,7 @@ def generate_sample(args=None, conf=None):
     )
 
 
-def generate_policy(args=None):
+def generate_policy(args: list[str] | None = None) -> None:
     logging.basicConfig(level=logging.WARN)
     conf = cfg.CONF
     conf.register_cli_opts(GENERATOR_OPTS + ENFORCER_OPTS)
@@ -577,7 +606,10 @@ def generate_policy(args=None):
     _generate_policy(conf.namespace, conf.output_file, conf.exclude_deprecated)
 
 
-def _upgrade_policies(policies, default_policies):
+def _upgrade_policies(
+    policies: dict[str, str],
+    default_policies: dict[str, list[policy.RuleDefault]],
+) -> None:
     old_policies_keys = list(policies.keys())
     for section in sorted(default_policies.keys()):
         rule_defaults = default_policies[section]
@@ -599,7 +631,9 @@ def _upgrade_policies(policies, default_policies):
                 )
 
 
-def upgrade_policy(args=None, conf=None):
+def upgrade_policy(
+    args: list[str] | None = None, conf: cfg.ConfigOpts | None = None
+) -> None:
     logging.basicConfig(level=logging.WARN)
     # Allow the caller to pass in a local conf object for unit testing
     if conf is None:
@@ -631,7 +665,7 @@ def upgrade_policy(args=None, conf=None):
             sys.stdout.write(jsonutils.dumps(policies, indent=4))
 
 
-def list_redundant(args=None):
+def list_redundant(args: list[str] | None = None) -> None:
     logging.basicConfig(level=logging.WARN)
     conf = cfg.CONF
     conf.register_cli_opts(ENFORCER_OPTS)
@@ -641,7 +675,7 @@ def list_redundant(args=None):
     _list_redundant(conf.namespace)
 
 
-def validate_policy(args=None):
+def validate_policy(args: list[str] | None = None) -> None:
     logging.basicConfig(level=logging.WARN)
     conf = cfg.CONF
     conf.register_cli_opts(ENFORCER_OPTS)
@@ -650,7 +684,9 @@ def validate_policy(args=None):
     sys.exit(_validate_policy(conf.namespace))
 
 
-def convert_policy_json_to_yaml(args=None, conf=None):
+def convert_policy_json_to_yaml(
+    args: list[str] | None = None, conf: cfg.ConfigOpts | None = None
+) -> None:
     logging.basicConfig(level=logging.WARN)
     # Allow the caller to pass in a local conf object for unit testing
     if conf is None:

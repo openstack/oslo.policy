@@ -16,13 +16,24 @@
 import errno
 import logging
 import os
+from typing import TypeAlias, TypedDict
 
 from oslo_config import cfg
 
 LOG = logging.getLogger(__name__)
 
 
-def read_cached_file(cache, filename, force_reload=False):
+class CacheEntry(TypedDict):
+    data: str
+    mtime: float
+
+
+CacheT: TypeAlias = dict[str, CacheEntry]
+
+
+def read_cached_file(
+    cache: CacheT, filename: str, force_reload: bool = False
+) -> tuple[bool, str]:
     """Read from a file if it has been modified.
 
     :param cache: dictionary to hold opaque cache.
@@ -44,9 +55,9 @@ def read_cached_file(cache, filename, force_reload=False):
             'Config file not found %(filename)s: %(msg)s',
             {'filename': filename, 'msg': msg},
         )
-        return True, {}
+        return True, ''
 
-    cache_info = cache.setdefault(filename, {})
+    cache_info = cache.setdefault(filename, {'data': '', 'mtime': 0})
 
     if not cache_info or mtime > cache_info.get('mtime', 0):
         LOG.debug('Reloading cached file %s', filename)
@@ -74,13 +85,12 @@ def read_cached_file(cache, filename, force_reload=False):
     return (reloaded, cache_info['data'])
 
 
-def delete_cached_file(cache, filename):
+def delete_cached_file(cache: CacheT, filename: str) -> None:
     """Delete cached file if present.
 
     :param cache: dictionary to hold opaque cache.
     :param filename: filename to delete
     """
-
     try:
         del cache[filename]
     except KeyError:

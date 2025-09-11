@@ -17,12 +17,17 @@
 import contextlib
 import copy
 import os
+from typing import Any, TYPE_CHECKING
+
 import requests
 from requests.exceptions import Timeout
 
 from oslo_policy import _checks
 from oslo_policy._i18n import _
 from oslo_serialization import jsonutils
+
+if TYPE_CHECKING:
+    from oslo_policy.policy import Enforcer
 
 
 class HttpCheck(_checks.Check):
@@ -32,7 +37,13 @@ class HttpCheck(_checks.Check):
     is exactly ``True``.
     """
 
-    def __call__(self, target, creds, enforcer, current_rule=None):
+    def __call__(
+        self,
+        target: _checks.TargetT,
+        creds: _checks.CredsT,
+        enforcer: 'Enforcer',
+        current_rule: str | None = None,
+    ) -> bool:
         timeout = enforcer.conf.oslo_policy.remote_timeout
 
         url = ('http:' + self.match) % target
@@ -43,12 +54,17 @@ class HttpCheck(_checks.Check):
             with contextlib.closing(
                 requests.post(url, json=json, data=data, timeout=timeout)
             ) as r:
-                return r.text.lstrip('"').rstrip('"') == 'True'
+                return bool(r.text.lstrip('"').rstrip('"') == 'True')
         except Timeout:
             raise RuntimeError('Timeout in REST API call')
 
     @staticmethod
-    def _construct_payload(creds, current_rule, enforcer, target):
+    def _construct_payload(
+        creds: _checks.CredsT,
+        current_rule: str | None,
+        enforcer: 'Enforcer',
+        target: _checks.TargetT,
+    ) -> tuple[dict[str, Any], None] | tuple[None, dict[str, Any]]:
         # Convert instances of object() in target temporarily to
         # empty dict to avoid circular reference detection
         # errors in jsonutils.dumps().
@@ -56,8 +72,7 @@ class HttpCheck(_checks.Check):
         for key in target.keys():
             element = target.get(key)
             if type(element) is object:
-                temp_target[key] = {}
-        data = json = None
+                temp_target[key] = {}  # type: ignore
         if (
             enforcer.conf.oslo_policy.remote_content_type
             == 'application/x-www-form-urlencoded'
@@ -67,13 +82,16 @@ class HttpCheck(_checks.Check):
                 'target': jsonutils.dumps(temp_target),
                 'credentials': jsonutils.dumps(creds),
             }
+            json = None
+            return data, json
         else:
+            data = None
             json = {
                 'rule': current_rule,
                 'target': temp_target,
                 'credentials': creds,
             }
-        return data, json
+            return data, json
 
 
 class HttpsCheck(HttpCheck):
@@ -83,7 +101,13 @@ class HttpsCheck(HttpCheck):
     is exactly ``True``.
     """
 
-    def __call__(self, target, creds, enforcer, current_rule=None):
+    def __call__(
+        self,
+        target: _checks.TargetT,
+        creds: _checks.CredsT,
+        enforcer: 'Enforcer',
+        current_rule: str | None = None,
+    ) -> bool:
         url = ('https:' + self.match) % target
 
         cert_file = enforcer.conf.oslo_policy.remote_ssl_client_crt_file
@@ -133,6 +157,6 @@ class HttpsCheck(HttpCheck):
                     timeout=timeout,
                 )
             ) as r:
-                return r.text.lstrip('"').rstrip('"') == 'True'
+                return bool(r.text.lstrip('"').rstrip('"') == 'True')
         except Timeout:
             raise RuntimeError('Timeout in REST API call')

@@ -59,7 +59,7 @@ class FieldCheck(_checks.Check):
         self.field = field
         self.value = value
 
-    def __call__(self, target, creds, enforcer, current_rule=None):
+    def __call__(self, target, cred, enforcer, current_rule=None):
         return True
 
 
@@ -739,7 +739,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         )
 
         self.enforcer.overwrite = False
-        self.enforcer._is_directory_updated = lambda x, y: True
+        self.enforcer._is_directory_updated = lambda x, y: True  # type: ignore
 
         # Call enforce(), it will load rules from
         # policy configuration files, to merge with
@@ -798,6 +798,8 @@ class EnforcerTest(base.PolicyBaseTestCase):
         rules = yaml.safe_load(str(self.enforcer.rules))
         rules['_dynamic_test_rule'] = 'role:test'
 
+        assert self.enforcer.policy_path is not None
+
         with open(self.enforcer.policy_path, 'w') as f:
             f.write(yaml.dump(rules))
 
@@ -830,22 +832,42 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual('is_admin:True', str(self.enforcer.rules['admin']))
 
     def test_enforcer_force_reload_false(self):
-        self.enforcer.set_rules({'test': 'test'})
+        rules = policy.Rules.from_dict({'service_api': 'role:service'}, None)
+        self.enforcer.set_rules(rules)
         self.enforcer.load_rules(force_reload=False)
-        self.assertIn('test', self.enforcer.rules)
+
+        self.assertEqual(1, len(self.enforcer.rules))
+        self.assertIn('service_api', self.enforcer.rules)
         self.assertNotIn('default', self.enforcer.rules)
         self.assertNotIn('admin', self.enforcer.rules)
 
     def test_enforcer_overwrite_rules(self):
-        self.enforcer.set_rules({'test': 'test'})
-        self.enforcer.set_rules({'test': 'test1'}, overwrite=True)
-        self.assertEqual({'test': 'test1'}, self.enforcer.rules)
+        rules = policy.Rules.from_dict({'service_api': 'role:service'}, None)
+        self.enforcer.set_rules(rules)
+        rules = policy.Rules.from_dict({'service_api': 'role:service1'}, None)
+        self.enforcer.set_rules(rules, overwrite=True)
+
+        self.assertEqual(1, len(self.enforcer.rules))
+        assert isinstance(
+            self.enforcer.rules['service_api'], _checks.RoleCheck
+        )
+        self.assertEqual(self.enforcer.rules['service_api'].match, 'service1')
 
     def test_enforcer_update_rules(self):
-        self.enforcer.set_rules({'test': 'test'})
-        self.enforcer.set_rules({'test1': 'test1'}, overwrite=False)
-        self.assertEqual(
-            {'test': 'test', 'test1': 'test1'}, self.enforcer.rules
+        rules = policy.Rules.from_dict({'service_api': 'role:service'}, None)
+        self.enforcer.set_rules(rules)
+        rules = policy.Rules.from_dict(
+            {'service_or_admin': 'rule:service_api or rule:context_is_admin'},
+            None,
+        )
+        self.enforcer.set_rules(rules, overwrite=False)
+
+        self.assertEqual(2, len(self.enforcer.rules))
+        assert isinstance(
+            self.enforcer.rules['service_api'], _checks.RoleCheck
+        )
+        assert isinstance(
+            self.enforcer.rules['service_or_admin'], _checks.OrCheck
         )
 
     def test_enforcer_with_default_policy_file(self):
@@ -906,6 +928,9 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.register_default(rule_original)
         self.assertEqual(
             self.enforcer.registered_rules['test'].check_str, 'role:owner'
+        )
+        assert isinstance(
+            self.enforcer.registered_rules['test'].check, _checks.RoleCheck
         )
         self.assertEqual(
             self.enforcer.registered_rules['test'].check.match, 'owner'
@@ -1953,6 +1978,7 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
             self.enforcer.enforce('new_rule', {}, {'roles': ['bang']})
         )
         # Verify that we didn't overwrite the new rule.
+        assert isinstance(self.enforcer.rules['new_rule'], _checks.RoleCheck)
         self.assertEqual('bang', self.enforcer.rules['new_rule'].match)
 
     def test_enforce_new_defaults_no_old_check_string(self):
@@ -2107,14 +2133,13 @@ class DocumentedRuleDefaultTestCase(base.PolicyBaseTestCase):
         )
 
     def test_operation_not_empty_list(self):
-        invalid_op = []
         self.assertRaises(
             policy.InvalidRuleDefault,
             policy.DocumentedRuleDefault,
             name='foo',
             check_str='rule:foo',
             description='foo_api',
-            operations=invalid_op,
+            operations=[],
         )
 
     def test_operation_must_be_list(self):

@@ -11,6 +11,7 @@
 #    under the License.
 
 import copy
+from typing import Any
 
 from oslo_config import cfg
 
@@ -126,7 +127,7 @@ _options = [
 ]
 
 
-def list_opts():
+def list_opts() -> list[tuple[str, list[cfg.Opt]]]:
     """Return a list of oslo.config options available in the library.
 
     The returned list includes all oslo.config options which may be registered
@@ -146,7 +147,7 @@ def list_opts():
     return [(_option_group, copy.deepcopy(_options))]
 
 
-def _register(conf):
+def _register(conf: cfg.ConfigOpts) -> None:
     """Register the policy options.
 
     We do this in a few places, so use a function to ensure it is done
@@ -155,17 +156,18 @@ def _register(conf):
     conf.register_opts(_options, group=_option_group)
 
 
-def set_defaults(conf, policy_file=None, **kwargs):
+def set_defaults(
+    conf: cfg.ConfigOpts,
+    policy_file: str | None = None,
+    **kwargs: Any,
+) -> None:
     """Set defaults for configuration variables.
 
     Overrides default options values.
 
     :param conf: Configuration object, managed by the caller.
-    :type conf: oslo.config.cfg.ConfigOpts
-
     :param policy_file: The base filename for the file that
                         defines policies.
-    :type policy_file: unicode
     :param kwargs: Any other configuration variable and their new
                    default value.
     """

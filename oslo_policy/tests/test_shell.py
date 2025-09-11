@@ -14,6 +14,7 @@
 #    under the License.
 
 import copy
+from typing import Any
 from unittest import mock
 
 from oslo_serialization import jsonutils
@@ -61,7 +62,7 @@ class CheckerTestCase(base.PolicyBaseTestCase):
         is_admin = False
         stdout = self._capture_stdout()
 
-        access_data = copy.deepcopy(
+        access_data: dict[str, Any] = copy.deepcopy(
             token_fixture.PROJECT_SCOPED_TOKEN_FIXTURE['token']
         )
         target = {
@@ -97,7 +98,7 @@ class CheckerTestCase(base.PolicyBaseTestCase):
         is_admin = False
         stdout = self._capture_stdout()
 
-        access_data = copy.deepcopy(
+        access_data: dict[str, Any] = copy.deepcopy(
             token_fixture.SYSTEM_SCOPED_TOKEN_FIXTURE['token']
         )
         access_data['roles'] = [role['name'] for role in access_data['roles']]
@@ -123,7 +124,7 @@ passed: sampleservice:scoped_rule
         is_admin = False
         stdout = self._capture_stdout()
 
-        access_data = copy.deepcopy(
+        access_data: dict[str, Any] = copy.deepcopy(
             token_fixture.PROJECT_SCOPED_TOKEN_FIXTURE['token']
         )
         access_data['roles'] = [role['name'] for role in access_data['roles']]
@@ -146,7 +147,7 @@ passed: sampleservice:scoped_rule
         is_admin = False
         stdout = self._capture_stdout()
 
-        access_data = copy.deepcopy(
+        access_data: dict[str, Any] = copy.deepcopy(
             token_fixture.PROJECT_SCOPED_TOKEN_FIXTURE['token']
         )
         access_data['roles'] = [role['name'] for role in access_data['roles']]
@@ -166,7 +167,8 @@ passed: sampleservice:sample_rule2
     def test_pass_rule_parameters_with_custom_target(self, call_mock):
         apply_rule = None
         is_admin = False
-        access_data = copy.deepcopy(
+
+        access_data: dict[str, Any] = copy.deepcopy(
             token_fixture.PROJECT_SCOPED_TOKEN_FIXTURE['token']
         )
         access_data['roles'] = [role['name'] for role in access_data['roles']]

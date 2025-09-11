@@ -16,18 +16,30 @@
 
 import abc
 import ast
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 import inspect
-from typing import Any
+from typing import Any, TypeAlias, TypeVar, TYPE_CHECKING, overload
 
+from oslo_context import context
 import stevedore
+from typing_extensions import Self
 
-registered_checks = {}
-extension_checks = None
+if TYPE_CHECKING:
+    from typing_extensions import Self
+
+    from oslo_policy.policy import Enforcer
+
+CredsT: TypeAlias = context.RequestContext | MutableMapping[str, Any]
+TargetT: TypeAlias = Mapping[str, Any]
+
+registered_checks: dict[str | None, 'type[Check]'] = {}
+extension_checks: dict[str, 'Callable[..., Check]'] | None = None
 
 
-def get_extensions():
+def get_extensions() -> dict[str, 'Callable[..., Check]']:
     global extension_checks
     if extension_checks is None:
+        em: stevedore.ExtensionManager[Check]
         em = stevedore.ExtensionManager(
             'oslo.policy.rule_checks', invoke_on_load=False
         )
@@ -37,7 +49,13 @@ def get_extensions():
     return extension_checks
 
 
-def _check(rule, target, creds, enforcer, current_rule):
+def _check(
+    rule: 'BaseCheck',
+    target: TargetT,
+    creds: MutableMapping[str, Any],
+    enforcer: 'Enforcer',
+    current_rule: str | None,
+) -> bool:
     """Evaluate the rule.
 
     This private method is meant to be used by the enforcer to call
@@ -60,30 +78,24 @@ def _check(rule, target, creds, enforcer, current_rule):
     function.
 
     :param rule: A check object.
-    :type rule: BaseCheck
     :param target: Attributes of the object of the operation.
-    :type target: dict
     :param creds: Attributes of the user performing the operation.
-    :type creds: dict
     :param enforcer: The Enforcer being used.
-    :type enforcer: Enforcer
     :param current_rule: The name of the policy being checked.
-    :type current_rule: str
-
     """
-    # Evaluate the rule
+    # Evaluate the rule so we can check if the rule argument must be included
+    # or not
     argspec = inspect.getfullargspec(rule.__call__)
-    rule_args = [target, creds, enforcer]
-    # Check if the rule argument must be included or not
     if len(argspec.args) > 4:
-        rule_args.append(current_rule)
-    return rule(*rule_args)
+        return rule(target, creds, enforcer, current_rule)
+    else:  # legacy code path
+        return rule(target, creds, enforcer)
 
 
 class BaseCheck(metaclass=abc.ABCMeta):
     """Abstract base class for Check classes."""
 
-    scope_types = None
+    scope_types: list[str] | None = None
 
     def __eq__(self, other: Any) -> bool:
         """Compare objects."""
@@ -92,50 +104,62 @@ class BaseCheck(metaclass=abc.ABCMeta):
         )
 
     @abc.abstractmethod
-    def __str__(self):
+    def __str__(self) -> str:
         """String representation of the Check tree rooted at this node."""
 
     @abc.abstractmethod
-    def __call__(self, target, creds, enforcer, current_rule=None):
+    def __call__(
+        self,
+        target: TargetT,
+        creds: MutableMapping[str, Any],
+        enforcer: 'Enforcer',
+        current_rule: str | None = None,
+    ) -> bool:
         """Triggers if instance of the class is called.
 
         Performs the check. Returns False to reject the access or a
         true value (not necessary True) to accept the access.
         """
 
-        pass
-
 
 class FalseCheck(BaseCheck):
     """A policy check that always returns ``False`` (disallow)."""
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of this check."""
-
         return '!'
 
-    def __call__(self, target, creds, enforcer, current_rule=None):
+    def __call__(
+        self,
+        target: TargetT,
+        creds: MutableMapping[str, Any],
+        enforcer: 'Enforcer',
+        current_rule: str | None = None,
+    ) -> bool:
         """Check the policy."""
-
         return False
 
 
 class TrueCheck(BaseCheck):
     """A policy check that always returns ``True`` (allow)."""
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of this check."""
-
         return '@'
 
-    def __call__(self, target, creds, enforcer, current_rule=None):
+    def __call__(
+        self,
+        target: TargetT,
+        creds: MutableMapping[str, Any],
+        enforcer: 'Enforcer',
+        current_rule: str | None = None,
+    ) -> bool:
         """Check the policy."""
-
         return True
 
 
 class Check(BaseCheck):
-    def __init__(self, kind, match):
+    def __init__(self, kind: str, match: str) -> None:
         self.kind = kind
         self.match = match
 
@@ -146,58 +170,65 @@ class Check(BaseCheck):
             and self.match == other.match
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of this check."""
-
         return f'{self.kind}:{self.match}'
 
 
 class NotCheck(BaseCheck):
-    def __init__(self, rule):
+    def __init__(self, rule: TrueCheck | FalseCheck | Check) -> None:
         self.rule = rule
 
     def __eq__(self, other: Any) -> bool:
         return type(self) is type(other) and self.rule == other.rule
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of this check."""
-
         return f'not {self.rule}'
 
-    def __call__(self, target, creds, enforcer, current_rule=None):
+    def __call__(
+        self,
+        target: TargetT,
+        creds: MutableMapping[str, Any],
+        enforcer: 'Enforcer',
+        current_rule: str | None = None,
+    ) -> bool:
         """Check the policy.
 
         Returns the logical inverse of the wrapped check.
         """
-
         return not _check(self.rule, target, creds, enforcer, current_rule)
 
 
 class AndCheck(BaseCheck):
-    def __init__(self, rules):
-        self.rules = rules
+    def __init__(self, rules: Sequence[BaseCheck]) -> None:
+        self.rules = list(rules)
 
     def __eq__(self, other: Any) -> bool:
         return type(self) is type(other) and self.rules == other.rules
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of this check."""
-
         return '({})'.format(' and '.join(str(r) for r in self.rules))
 
-    def __call__(self, target, creds, enforcer, current_rule=None):
+    def __call__(
+        self,
+        target: TargetT,
+        creds: MutableMapping[str, Any],
+        enforcer: 'Enforcer',
+        current_rule: str | None = None,
+    ) -> bool:
         """Check the policy.
 
         Requires that all rules accept in order to return True.
         """
-
         for rule in self.rules:
             if not _check(rule, target, creds, enforcer, current_rule):
                 return False
 
         return True
 
-    def add_check(self, rule):
+    def add_check(self, rule: BaseCheck) -> 'Self':
         """Adds rule to be tested.
 
         Allows addition of another rule to the list of rules that will
@@ -206,73 +237,96 @@ class AndCheck(BaseCheck):
         :returns: self
         :rtype: :class:`.AndCheck`
         """
-
         self.rules.append(rule)
         return self
 
 
 class OrCheck(BaseCheck):
-    def __init__(self, rules):
-        self.rules = rules
+    def __init__(self, rules: Sequence[BaseCheck]) -> None:
+        self.rules = list(rules)
 
     def __eq__(self, other: Any) -> bool:
         return type(self) is type(other) and self.rules == other.rules
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return a string representation of this check."""
-
         return '({})'.format(' or '.join(str(r) for r in self.rules))
 
-    def __call__(self, target, creds, enforcer, current_rule=None):
+    def __call__(
+        self,
+        target: TargetT,
+        creds: MutableMapping[str, Any],
+        enforcer: 'Enforcer',
+        current_rule: str | None = None,
+    ) -> bool:
         """Check the policy.
 
         Requires that at least one rule accept in order to return True.
         """
-
         for rule in self.rules:
             if _check(rule, target, creds, enforcer, current_rule):
                 return True
         return False
 
-    def add_check(self, rule):
+    def add_check(self, rule: BaseCheck) -> Self:
         """Adds rule to be tested.
 
         Allows addition of another rule to the list of rules that will
         be tested.  Returns the OrCheck object for convenience.
         """
-
         self.rules.append(rule)
         return self
 
-    def pop_check(self):
+    def pop_check(self) -> tuple[Self, BaseCheck]:
         """Pops the last check from the list and returns them
 
         :returns: self, the popped check
         :rtype: :class:`.OrCheck`, class:`.Check`
         """
-
         check = self.rules.pop()
         return self, check
 
 
-def register(name, func=None):
-    # Perform the actual decoration by registering the function or
-    # class.  Returns the function or class for compliance with the
-    # decorator interface.
-    def decorator(func):
+F = TypeVar('F', bound=type[Check])
+
+
+@overload
+def register(name: str | None, func: None = None) -> Callable[[F], F]: ...
+
+
+@overload
+def register(name: str | None, func: F) -> F: ...
+
+
+def register(name: str | None, func: F | None = None) -> F | Callable[[F], F]:
+    """Register a check class with the given name.
+
+    Can be used as:
+    - Direct call: register('spam', TestCheck)
+    - Decorator: @register('spam')
+    """
+
+    def decorator(func: F) -> F:
         registered_checks[name] = func
         return func
 
-    # If the function or class is given, do the registration
-    if func:
+    if func is not None:
+        # Direct call pattern: register('spam', TestCheck)
         return decorator(func)
 
+    # Decorator pattern: @register('spam')
     return decorator
 
 
 @register('rule')
 class RuleCheck(Check):
-    def __call__(self, target, creds, enforcer, current_rule=None):
+    def __call__(
+        self,
+        target: TargetT,
+        creds: MutableMapping[str, Any],
+        enforcer: 'Enforcer',
+        current_rule: str | None = None,
+    ) -> bool:
         try:
             return _check(
                 rule=enforcer.rules[self.match],
@@ -290,15 +344,23 @@ class RuleCheck(Check):
 class RoleCheck(Check):
     """Check that there is a matching role in the ``creds`` dict."""
 
-    def __call__(self, target, creds, enforcer, current_rule=None):
+    def __call__(
+        self,
+        target: TargetT,
+        creds: MutableMapping[str, Any],
+        enforcer: 'Enforcer',
+        current_rule: str | None = None,
+    ) -> bool:
         try:
             match = self.match % target
         except KeyError:
             # While doing RoleCheck if key not
             # present in Target return false
             return False
+
         if 'roles' in creds:
             return match.lower() in [x.lower() for x in creds['roles']]
+
         return False
 
 
@@ -314,7 +376,13 @@ class GenericCheck(Check):
         - 'Member':%(role.name)s
     """
 
-    def _find_in_dict(self, test_value, path_segments, match):
+    @classmethod
+    def _find_in_dict(
+        cls,
+        test_value: MutableMapping[str, Any],
+        path_segments: list[str],
+        match: str,
+    ) -> bool:
         """Searches for a match in the dictionary.
 
         test_value is a reference inside the dictionary. Since the process is
@@ -327,9 +395,7 @@ class GenericCheck(Check):
         checked for a match. If the value is found within any of the sub lists
         the check succeeds; The check only fails if the entry is not in any of
         the sublists.
-
         """
-
         if len(path_segments) == 0:
             return match == str(test_value)
         key, path_segments = path_segments[0], path_segments[1:]
@@ -339,13 +405,19 @@ class GenericCheck(Check):
             return False
         if isinstance(test_value, list):
             for val in test_value:
-                if self._find_in_dict(val, path_segments, match):
+                if cls._find_in_dict(val, path_segments, match):
                     return True
             return False
         else:
-            return self._find_in_dict(test_value, path_segments, match)
+            return cls._find_in_dict(test_value, path_segments, match)
 
-    def __call__(self, target, creds, enforcer, current_rule=None):
+    def __call__(
+        self,
+        target: TargetT,
+        creds: MutableMapping[str, Any],
+        enforcer: 'Enforcer',
+        current_rule: str | None = None,
+    ) -> bool:
         try:
             match = self.match % target
         except KeyError:

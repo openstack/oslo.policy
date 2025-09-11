@@ -220,16 +220,18 @@ by setting the ``policy_default_rule`` configuration setting to the
 desired rule name.
 """
 
-import collections.abc
+from collections.abc import Callable, MutableMapping, Sequence
 import copy
 import logging
 import os
+from typing import Any, TypeAlias, TypedDict, cast
 import warnings
 
 from oslo_config import cfg
 from oslo_context import context
 from oslo_serialization import jsonutils
 from oslo_utils import strutils
+from typing_extensions import Self
 import yaml
 
 from oslo_policy import _cache_handler
@@ -308,7 +310,12 @@ WARN_JSON = (
 class PolicyNotAuthorized(Exception):
     """Default exception raised for policy enforcement failure."""
 
-    def __init__(self, rule, target, creds):
+    def __init__(
+        self,
+        rule: _checks.BaseCheck | str,
+        target: _checks.TargetT,
+        creds: MutableMapping[str, Any],
+    ) -> None:
         msg = _('%(rule)s is disallowed by policy') % {'rule': rule}
         super().__init__(msg)
 
@@ -316,7 +323,12 @@ class PolicyNotAuthorized(Exception):
 class InvalidScope(Exception):
     """Raised when the scope of the request mismatches the policy scope."""
 
-    def __init__(self, rule, operation_scopes, token_scope):
+    def __init__(
+        self,
+        rule: '_checks.BaseCheck | RuleDefault',
+        operation_scopes: list[str],
+        token_scope: str,
+    ) -> None:
         msg = (
             f'{rule} requires a scope of {operation_scopes}, request '
             f'was made with {token_scope} scope.'
@@ -325,19 +337,19 @@ class InvalidScope(Exception):
 
 
 class DuplicatePolicyError(Exception):
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         msg = _('Policy %(name)s is already registered') % {'name': name}
         super().__init__(msg)
 
 
 class PolicyNotRegistered(Exception):
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         msg = _('Policy %(name)s has not been registered') % {'name': name}
         super().__init__(msg)
 
 
 class InvalidDefinitionError(Exception):
-    def __init__(self, names):
+    def __init__(self, names: list[str]) -> None:
         msg = _(
             'Policies %(names)s are not well defined. Check logs for '
             'more details.'
@@ -346,18 +358,20 @@ class InvalidDefinitionError(Exception):
 
 
 class InvalidRuleDefault(Exception):
-    def __init__(self, error):
+    def __init__(self, error: str) -> None:
         msg = _('Invalid policy rule default: %(error)s.') % {'error': error}
         super().__init__(msg)
 
 
 class InvalidContextObject(Exception):
-    def __init__(self, error):
+    def __init__(self, error: str) -> None:
         msg = _('Invalid context object: %(error)s.') % {'error': error}
         super().__init__(msg)
 
 
-def pick_default_policy_file(conf, fallback_to_json_file=True):
+def pick_default_policy_file(
+    conf: cfg.ConfigOpts, fallback_to_json_file: bool = True
+) -> str:
     # TODO(gmann): If service changed the default value of
     # CONF.oslo_policy.policy_file option to 'policy.yaml' then to avoid
     # breaking any deployment relying on default value, we need to add
@@ -373,7 +387,7 @@ def pick_default_policy_file(conf, fallback_to_json_file=True):
     ) and fallback_to_json_file:
         location = conf.get_location('policy_file', 'oslo_policy').location
         if conf.find_file(conf.oslo_policy.policy_file):
-            policy_file = conf.oslo_policy.policy_file
+            policy_file = cast(str | None, conf.oslo_policy.policy_file)
         elif location in [
             cfg.Locations.opt_default,
             cfg.Locations.set_default,
@@ -393,10 +407,10 @@ def pick_default_policy_file(conf, fallback_to_json_file=True):
         conf.oslo_policy.policy_file,
     )
     # Return overridden policy file
-    return conf.oslo_policy.policy_file
+    return cast(str, conf.oslo_policy.policy_file)
 
 
-def parse_file_contents(data):
+def parse_file_contents(data: str | bytes) -> dict[str, str]:
     """Parse the raw contents of a policy file.
 
     Parses the contents of a policy file which currently can be in either
@@ -426,11 +440,25 @@ def parse_file_contents(data):
     return parsed or {}
 
 
-class Rules(dict):
+class Rules(dict[str, _checks.BaseCheck]):
     """A store for rules. Handles the default_rule setting directly."""
 
+    def __init__(
+        self,
+        rules: MutableMapping[str, _checks.BaseCheck] | None = None,
+        default_rule: _checks.BaseCheck | str | None = None,
+    ) -> None:
+        """Initialize the Rules store."""
+
+        super().__init__(dict(rules or {}))
+        self.default_rule = default_rule
+
     @classmethod
-    def load(cls, data, default_rule=None):
+    def load(
+        cls,
+        data: str | bytes,
+        default_rule: _checks.BaseCheck | str | None = None,
+    ) -> Self:
         """Allow loading of YAML/JSON rule data.
 
         .. versionadded:: 1.5.0
@@ -444,7 +472,9 @@ class Rules(dict):
         return cls(rules, default_rule)
 
     @classmethod
-    def load_json(cls, data, default_rule=None):
+    def load_json(
+        cls, data: str, default_rule: _checks.BaseCheck | str | None = None
+    ) -> Self:
         """Allow loading of YAML/JSON rule data.
 
         .. warning::
@@ -459,7 +489,11 @@ class Rules(dict):
         return cls.load(data, default_rule)
 
     @classmethod
-    def from_dict(cls, rules_dict, default_rule=None):
+    def from_dict(
+        cls,
+        rules_dict: MutableMapping[str, str],
+        default_rule: _checks.BaseCheck | str | None = None,
+    ) -> Self:
         """Allow loading of rule data from a dictionary."""
 
         # Parse the rules stored in the dictionary
@@ -467,13 +501,7 @@ class Rules(dict):
 
         return cls(rules, default_rule)
 
-    def __init__(self, rules=None, default_rule=None):
-        """Initialize the Rules store."""
-
-        super().__init__(rules or {})
-        self.default_rule = default_rule
-
-    def __missing__(self, key):
+    def __missing__(self, key: str) -> _checks.BaseCheck | None:
         """Implements the default rule handling."""
 
         if isinstance(self.default_rule, dict):
@@ -494,7 +522,9 @@ class Rules(dict):
         elif isinstance(self.default_rule, str):
             return self[self.default_rule]
 
-    def __str__(self):
+        return None
+
+    def __str__(self) -> str:
         """Dumps a string representation of the rules."""
 
         # Start by building the canonical strings for the rules
@@ -527,16 +557,30 @@ class Enforcer:
         from config file.
     """
 
+    default_rule: _checks.BaseCheck | str | None
+    rules: Rules
+    registered_rules: dict[str, 'RuleDefault']
+    file_rules: dict[str, 'RuleDefault']
+    policy_path: str | None
+    policy_file: str
+    overwrite: bool
+
+    _need_check_rule: bool
+    # FIXME(stephenfin): This is actually a simpler type since only the mtime
+    # field is required. We could just use a dict of str to int
+    _policy_dir_mtimes: _cache_handler.CacheT
+    _file_cache: _cache_handler.CacheT
+
     def __init__(
         self,
-        conf,
-        policy_file=None,
-        rules=None,
-        default_rule=None,
-        use_conf=True,
-        overwrite=True,
-        fallback_to_json_file=True,
-    ):
+        conf: cfg.ConfigOpts,
+        policy_file: str | None = None,
+        rules: MutableMapping[str, _checks.BaseCheck] | None = None,
+        default_rule: _checks.BaseCheck | str | None = None,
+        use_conf: bool = True,
+        overwrite: bool = True,
+        fallback_to_json_file: bool = True,
+    ) -> None:
         self.conf = conf
         opts._register(conf)
 
@@ -553,8 +597,9 @@ class Enforcer:
             self.conf, fallback_to_json_file=fallback_to_json_file
         )
         self.use_conf = use_conf
-        self._need_check_rule = True
         self.overwrite = overwrite
+
+        self._need_check_rule = True
         self._policy_dir_mtimes = {}
         self._file_cache = {}
         self._informed_no_policy_file = False
@@ -571,7 +616,12 @@ class Enforcer:
         # this sometimes causes a lot of undefined warnings
         self.skip_undefined_check = False
 
-    def set_rules(self, rules, overwrite=True, use_conf=False):
+    def set_rules(
+        self,
+        rules: MutableMapping[str, _checks.BaseCheck],
+        overwrite: bool = True,
+        use_conf: bool = False,
+    ) -> None:
         """Create a new :class:`Rules` based on the provided dict of rules.
 
         :param rules: New rules to use.
@@ -592,7 +642,7 @@ class Enforcer:
         else:
             self.rules.update(rules)
 
-    def clear(self):
+    def clear(self) -> None:
         """Clears :class:`Enforcer` contents.
 
         This will clear this instances rules, policy's cache, file cache
@@ -609,7 +659,7 @@ class Enforcer:
         self.suppress_default_change_warnings = False
         self.suppress_deprecation_warnings = False
 
-    def load_rules(self, force_reload=False):
+    def load_rules(self, force_reload: bool = False) -> None:
         """Loads policy_path's rules.
 
         Policy file is cached and will be reloaded if modified.
@@ -706,7 +756,7 @@ class Enforcer:
                 self.check_rules()
                 self._need_check_rule = False
 
-    def check_rules(self, raise_on_violation=False):
+    def check_rules(self, raise_on_violation: bool = False) -> bool:
         """Look for rule definitions that are obviously incorrect."""
         undefined_checks = []
         cyclic_checks = []
@@ -735,7 +785,9 @@ class Enforcer:
 
         return not violation
 
-    def _emit_deprecated_for_removal_warning(self, default):
+    def _emit_deprecated_for_removal_warning(
+        self, default: 'RuleDefault'
+    ) -> None:
         # If the policy is being removed completely, we need to let operators
         # know that the policy is going to be silently ignored in the future
         # and they can remove it from their overrides since it isn't being
@@ -751,14 +803,17 @@ class Enforcer:
                 f'silently ignored in the future.'
             )
 
-    def _handle_deprecated_rule(self, default):
+    def _handle_deprecated_rule(
+        self, default: 'RuleDefault'
+    ) -> _checks.BaseCheck:
         """Handle cases where a policy rule has been deprecated.
 
         :param default: an instance of RuleDefault that contains an instance of
             DeprecatedRule
         """
-
         deprecated_rule = default.deprecated_rule
+        assert deprecated_rule is not None  # narrow type
+
         deprecated_reason = (
             deprecated_rule.deprecated_reason or default.deprecated_reason
         )
@@ -830,7 +885,7 @@ class Enforcer:
 
         return default.check
 
-    def _undefined_check(self, check):
+    def _undefined_check(self, check: _checks.BaseCheck) -> bool:
         """Check if a RuleCheck references an undefined rule."""
         if isinstance(check, RuleCheck):
             if check.match not in self.rules:
@@ -846,7 +901,11 @@ class Enforcer:
                     return True
         return False
 
-    def _cycle_check(self, check, seen=None):
+    def _cycle_check(
+        self,
+        check: _checks.BaseCheck,
+        seen: set[str] | None = None,
+    ) -> bool:
         """Check if RuleChecks cycle.
 
         Looking for something like::
@@ -883,11 +942,11 @@ class Enforcer:
         return False
 
     @staticmethod
-    def _is_directory_updated(cache, path):
+    def _is_directory_updated(cache: _cache_handler.CacheT, path: str) -> bool:
         # Get the current modified time and compare it to what is in
         # the cache and check if the new mtime is greater than what
         # is in the cache
-        mtime = 0
+        mtime = 0.0
         if os.path.exists(path):
             if not os.path.isdir(path):
                 raise ValueError(f'{path} is not a directory')
@@ -897,14 +956,18 @@ class Enforcer:
             ]
             # Pick the newest one, let's use its time.
             mtime = os.path.getmtime(max(files, key=os.path.getmtime))
-        cache_info = cache.setdefault(path, {})
-        if mtime > cache_info.get('mtime', 0):
+        cache_info = cache.setdefault(path, {'data': '', 'mtime': 0.0})
+        if mtime > cache_info.get('mtime', 0.0):
             cache_info['mtime'] = mtime
             return True
         return False
 
     @staticmethod
-    def _walk_through_policy_directory(path, func, *args):
+    def _walk_through_policy_directory(
+        path: str,
+        func: Callable[..., bool],
+        *args: Any,
+    ) -> None:
         if not os.path.isdir(path):
             raise ValueError(f'{path} is not a directory')
         # We do not iterate over sub-directories.
@@ -913,7 +976,7 @@ class Enforcer:
         for policy_file in [p for p in policy_files if not p.startswith('.')]:
             func(os.path.join(path, policy_file), *args)
 
-    def _record_file_rules(self, data, overwrite=False):
+    def _record_file_rules(self, data: str, overwrite: bool = False) -> None:
         """Store a copy of rules loaded from a file.
 
         It is useful to be able to distinguish between rules loaded from a file
@@ -946,7 +1009,9 @@ class Enforcer:
                 {'names': redundant_file_rules},
             )
 
-    def _load_policy_file(self, path, force_reload, overwrite=True):
+    def _load_policy_file(
+        self, path: str, force_reload: bool, overwrite: bool = True
+    ) -> bool:
         """Load policy rules from the specified policy file.
 
         :param path: A path of the policy file to load rules from.
@@ -966,7 +1031,7 @@ class Enforcer:
             LOG.debug('Reloaded policy file: %(path)s', {'path': path})
         return rules_changed
 
-    def _get_policy_path(self, path):
+    def _get_policy_path(self, path: str) -> str:
         """Locate the policy YAML/JSON data file/path.
 
         :param path: It's value can be a full path or related path. When
@@ -977,7 +1042,7 @@ class Enforcer:
         :returns: The policy path
         :raises: ConfigFilesNotFoundError if the file/path couldn't be located.
         """
-        policy_path = self.conf.find_file(path)
+        policy_path = cast(str | None, self.conf.find_file(path))
 
         if policy_path:
             return policy_path
@@ -986,14 +1051,14 @@ class Enforcer:
 
     def enforce(
         self,
-        rule,
-        target,
-        creds,
-        do_raise=False,
-        exc=None,
-        *args,
-        **kwargs,
-    ):
+        rule: _checks.BaseCheck | str,
+        target: _checks.TargetT,
+        creds: _checks.CredsT,
+        do_raise: bool = False,
+        exc: type[Exception] | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> bool:
         """Checks authorization of a rule against the target and credentials.
 
         :param rule: The rule to evaluate as a string or :class:`BaseCheck`.
@@ -1017,19 +1082,22 @@ class Enforcer:
         """
         self.load_rules()
 
+        creds_dict: MutableMapping[str, Any]
         if isinstance(creds, context.RequestContext):
-            creds = self._map_context_attributes_into_creds(creds)
+            creds_dict = self._map_context_attributes_into_creds(creds)
+        elif isinstance(creds, MutableMapping):
+            creds_dict = creds
         # NOTE(lbragstad): The oslo.context library exposes the ability to call
         # a method on RequestContext objects that converts attributes of the
         # context object to policy values. However, ``to_policy_values()``
         # doesn't actually return a dictionary, it's a subclass of
         # collections.abc.MutableMapping, which behaves like a dictionary but
         # doesn't pass the type check.
-        elif not isinstance(creds, collections.abc.MutableMapping):
+        elif not isinstance(creds, MutableMapping):
             msg = (
-                'Expected type oslo_context.context.RequestContext, dict, or  '
-                'the output of '
-                'oslo_context.context.RequestContext.to_policy_values but '
+                f'Expected type oslo_context.context.RequestContext, dict, '
+                f'or the output of '
+                f'oslo_context.context.RequestContext.to_policy_values but '
                 f'got {type(creds)} instead'
             )
             raise InvalidContextObject(msg)
@@ -1042,14 +1110,15 @@ class Enforcer:
         # support services who've been setting creds['system'], but we can do
         # that by making sure we populate it with what's in the context object
         # if it has a system_scope attribute.
-        if creds.get('system_scope'):
-            creds['system'] = creds.get('system_scope')
+        if creds_dict.get('system_scope'):
+            creds_dict['system'] = creds_dict.get('system_scope')
 
         if LOG.isEnabledFor(logging.DEBUG):
             try:
-                creds_dict = strutils.mask_dict_password(creds)
                 creds_msg = jsonutils.dumps(
-                    creds_dict, skipkeys=True, sort_keys=True
+                    strutils.mask_dict_password(creds_dict),
+                    skipkeys=True,
+                    sort_keys=True,
                 )
             except Exception as e:
                 creds_msg = f'cannot format data, exception: {e}'
@@ -1075,16 +1144,15 @@ class Enforcer:
         if isinstance(rule, _checks.BaseCheck):
             # If the thing we're given is a Check, we don't know the
             # name of the rule, so pass None for current_rule.
-            if rule.scope_types:
-                scope_valid = self._enforce_scope(
-                    creds, rule, do_raise=do_raise
-                )
-                if not scope_valid:
-                    return False
+            scope_valid = self._enforce_scope(
+                creds_dict, rule, do_raise=do_raise
+            )
+            if not scope_valid:
+                return False
             result = _checks._check(
                 rule=rule,
                 target=target,
-                creds=creds,
+                creds=creds_dict,
                 enforcer=self,
                 current_rule=None,
             )
@@ -1104,16 +1172,17 @@ class Enforcer:
                 #                 token.
 
                 registered_rule = self.registered_rules.get(rule)
-                if registered_rule and registered_rule.scope_types:
+                if registered_rule:
+                    # FIXME(stephenfin): Is registered_rule a rule or check?
                     scope_valid = self._enforce_scope(
-                        creds, registered_rule, do_raise=do_raise
+                        creds_dict, registered_rule, do_raise=do_raise
                     )
                     if not scope_valid:
                         return False
                 result = _checks._check(
                     rule=to_check,
                     target=target,
-                    creds=creds,
+                    creds=creds_dict,
                     enforcer=self,
                     current_rule=rule,
                 )
@@ -1123,11 +1192,19 @@ class Enforcer:
             if exc:
                 raise exc(*args, **kwargs)
 
-            raise PolicyNotAuthorized(rule, target, creds)
+            raise PolicyNotAuthorized(rule, target, creds_dict)
 
         return result
 
-    def _enforce_scope(self, creds, rule, do_raise=True):
+    def _enforce_scope(
+        self,
+        creds: MutableMapping[str, Any],
+        rule: '_checks.BaseCheck | RuleDefault',
+        do_raise: bool = True,
+    ) -> bool:
+        if not rule.scope_types:
+            return True
+
         # Check the scope of the operation against the possible scope
         # attributes provided in `creds`.
         if creds.get('system'):
@@ -1140,7 +1217,7 @@ class Enforcer:
             token_scope = 'project'  # noqa: S105
 
         result = True
-        if token_scope not in rule.scope_types:
+        if rule.scope_types and token_scope not in rule.scope_types:
             if self.conf.oslo_policy.enforce_scope:
                 if do_raise:
                     raise InvalidScope(rule, rule.scope_types, token_scope)
@@ -1153,23 +1230,25 @@ class Enforcer:
                 f'Policy {rule} failed scope check. The token '
                 f'used to make the request was {token_scope} '
                 f'scoped but the policy requires {rule.scope_types} '
-                'scope. This behavior may change in the future '
-                'where using the intended scope is required'
+                f'scope. This behavior may change in the future '
+                f'where using the intended scope is required'
             )
             warnings.warn(msg)
         return result
 
-    def _map_context_attributes_into_creds(self, context):
+    def _map_context_attributes_into_creds(
+        self, ctx: context.RequestContext
+    ) -> dict[str, Any]:
         creds = {}
         # port public context attributes into the creds dictionary so long as
         # the attribute isn't callable
-        context_values = context.to_policy_values()
+        context_values = ctx.to_policy_values()
         for k, v in context_values.items():
             creds[k] = v
 
         return creds
 
-    def register_default(self, default):
+    def register_default(self, default: 'RuleDefault') -> None:
         """Registers a RuleDefault.
 
         Adds a RuleDefault to the list of registered rules. Rules must be
@@ -1186,7 +1265,7 @@ class Enforcer:
         # in rule object values when running tests in parallel.
         self.registered_rules[default.name] = copy.deepcopy(default)
 
-    def register_defaults(self, defaults):
+    def register_defaults(self, defaults: Sequence['RuleDefault']) -> None:
         """Registers a list of RuleDefaults.
 
         Adds each RuleDefault to the list of registered rules. Rules must be
@@ -1198,8 +1277,15 @@ class Enforcer:
             self.register_default(default)
 
     def authorize(
-        self, rule, target, creds, do_raise=False, exc=None, *args, **kwargs
-    ):
+        self,
+        rule: str,
+        target: _checks.TargetT,
+        creds: _checks.CredsT,
+        do_raise: bool = False,
+        exc: type[Exception] | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> bool:
         """A wrapper around 'enforce' that checks for policy registration.
 
         To ensure that a policy being checked has been registered this method
@@ -1218,24 +1304,24 @@ class Enforcer:
 
 
 class _BaseRule:
-    def __init__(self, name, check_str):
+    def __init__(self, name: str, check_str: str):
         self._name = name
         self._check_str = check_str
         self._check = _parser.parse_rule(self.check_str)
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @property
-    def check_str(self):
+    def check_str(self) -> str:
         return self._check_str
 
     @property
-    def check(self):
+    def check(self) -> _checks.BaseCheck:
         return self._check
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'"{self.name}": "{self.check_str}"'
 
 
@@ -1281,19 +1367,19 @@ class RuleDefault(_BaseRule):
 
     def __init__(
         self,
-        name,
-        check_str,
-        description=None,
-        deprecated_rule=None,
-        deprecated_for_removal=False,
-        deprecated_reason=None,
-        deprecated_since=None,
-        scope_types=None,
-    ):
+        name: str,
+        check_str: str,
+        description: str | None = None,
+        deprecated_rule: 'DeprecatedRule | None' = None,
+        deprecated_for_removal: bool = False,
+        deprecated_reason: str | None = None,
+        deprecated_since: str | None = None,
+        scope_types: list[str] | None = None,
+    ) -> None:
         super().__init__(name, check_str)
 
         self._description = description
-        self._deprecated_rule = copy.deepcopy(deprecated_rule) or []
+        self._deprecated_rule = copy.deepcopy(deprecated_rule) or None
         self._deprecated_for_removal = deprecated_for_removal
         self._deprecated_reason = deprecated_reason
         self._deprecated_since = deprecated_since
@@ -1340,26 +1426,26 @@ class RuleDefault(_BaseRule):
         self.scope_types = scope_types
 
     @property
-    def description(self):
+    def description(self) -> str | None:
         return self._description
 
     @property
-    def deprecated_rule(self):
+    def deprecated_rule(self) -> 'DeprecatedRule | None':
         return self._deprecated_rule
 
     @property
-    def deprecated_for_removal(self):
+    def deprecated_for_removal(self) -> bool:
         return self._deprecated_for_removal
 
     @property
-    def deprecated_reason(self):
+    def deprecated_reason(self) -> str | None:
         return self._deprecated_reason
 
     @property
-    def deprecated_since(self):
+    def deprecated_since(self) -> str | None:
         return self._deprecated_since
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         """Equality operator.
 
         All check objects have a stable string representation. It is used for
@@ -1384,6 +1470,14 @@ class RuleDefault(_BaseRule):
         return False
 
 
+class Operation(TypedDict):
+    path: str
+    method: str
+
+
+OperationsT: TypeAlias = list[Operation]
+
+
 class DocumentedRuleDefault(RuleDefault):
     """A class for holding policy-in-code policy objects definitions
 
@@ -1404,18 +1498,20 @@ class DocumentedRuleDefault(RuleDefault):
             ]
     """
 
+    _description: str
+
     def __init__(
         self,
-        name,
-        check_str,
-        description,
-        operations,
-        deprecated_rule=None,
-        deprecated_for_removal=False,
-        deprecated_reason=None,
-        deprecated_since=None,
-        scope_types=None,
-    ):
+        name: str,
+        check_str: str,
+        description: str,
+        operations: OperationsT,
+        deprecated_rule: 'DeprecatedRule | None' = None,
+        deprecated_for_removal: bool = False,
+        deprecated_reason: str | None = None,
+        deprecated_since: str | None = None,
+        scope_types: list[str] | None = None,
+    ) -> None:
         super().__init__(
             name,
             check_str,
@@ -1447,11 +1543,11 @@ class DocumentedRuleDefault(RuleDefault):
                 raise InvalidRuleDefault('Operation contains > 2 keys')
 
     @property
-    def description(self):
+    def description(self) -> str:
         return self._description
 
     @property
-    def operations(self):
+    def operations(self) -> OperationsT:
         return self._operations
 
 
@@ -1628,9 +1724,9 @@ class DeprecatedRule(_BaseRule):
             )
 
     @property
-    def deprecated_reason(self):
+    def deprecated_reason(self) -> str | None:
         return self._deprecated_reason
 
     @property
-    def deprecated_since(self):
+    def deprecated_since(self) -> str | None:
         return self._deprecated_since

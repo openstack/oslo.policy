@@ -12,26 +12,33 @@
 
 import fixtures
 
+from oslo_policy import _checks
+from oslo_policy.policy import Enforcer
+
 __all__ = ['HttpCheckFixture', 'HttpsCheckFixture']
 
 
 class HttpCheckFixture(fixtures.Fixture):
     """Helps short circuit the external http call"""
 
-    def __init__(self, return_value=True):
+    def __init__(self, return_value: bool = True) -> None:
         """Initialize the fixture.
 
         :param return_value: True implies the policy check passed and False
                implies that the policy check failed
-        :type return_value: boolean
         """
         super().__init__()
         self.return_value = return_value
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
-        def mocked_call(target, creds, enforcer, rule):
+        def mocked_call(
+            target: _checks.TargetT,
+            creds: _checks.CredsT,
+            enforcer: Enforcer,
+            current_rule: str | None = None,
+        ) -> bool:
             return self.return_value
 
         self.useFixture(
@@ -45,20 +52,24 @@ class HttpCheckFixture(fixtures.Fixture):
 class HttpsCheckFixture(fixtures.Fixture):
     """Helps short circuit the external http call"""
 
-    def __init__(self, return_value=True):
+    def __init__(self, return_value: bool = True) -> None:
         """Initialize the fixture.
 
         :param return_value: True implies the policy check passed and False
                implies that the policy check failed
-        :type return_value: boolean
         """
         super().__init__()
         self.return_value = return_value
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
-        def mocked_call(target, creds, enforcer, rule):
+        def mocked_call(
+            target: _checks.TargetT,
+            creds: _checks.CredsT,
+            enforcer: Enforcer,
+            current_rule: str | None = None,
+        ) -> bool:
             return self.return_value
 
         self.useFixture(

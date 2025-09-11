@@ -13,18 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import collections.abc
-import sys
+from collections.abc import MutableMapping
+from typing import Any
 
 from oslo_serialization import jsonutils
 
 from oslo_config import cfg
+from oslo_policy import _checks
 from oslo_policy import opts
 from oslo_policy import policy
 
 
 class FakeEnforcer:
-    def __init__(self, rules, config):
+    def __init__(self, rules: policy.Rules, config: str | None) -> None:
         self.rules = rules
         self.conf = None
 
@@ -37,9 +38,20 @@ class FakeEnforcer:
             self.conf([f'--config-file={config}'])
 
 
-def _try_rule(key, rule, target, access_data, o):
+def _try_rule(
+    key: str,
+    rule: _checks.BaseCheck,
+    target: _checks.TargetT,
+    access_data: MutableMapping[str, Any],
+    o: FakeEnforcer,
+) -> None:
     try:
-        result = rule(target, access_data, o, current_rule=key)
+        result = rule(
+            target,
+            access_data,
+            o,  # type: ignore
+            current_rule=key,
+        )
         if result:
             print(f'passed: {key}')
         else:
@@ -49,17 +61,19 @@ def _try_rule(key, rule, target, access_data, o):
         print(f'exception: {rule}')
 
 
-def flatten(d, parent_key=''):
+def flatten(
+    d: MutableMapping[str, Any], parent_key: str = ''
+) -> dict[str, Any]:
     """Flatten a nested dictionary
 
     Converts a dictionary with nested values to a single level flat
     dictionary, with dotted notation for each key.
 
     """
-    items = []
+    items: list[tuple[str, Any]] = []
     for k, v in d.items():
         new_key = parent_key + '.' + k if parent_key else k
-        if isinstance(v, collections.abc.MutableMapping):
+        if isinstance(v, MutableMapping):
             items.extend(flatten(v, new_key).items())
         else:
             items.append((new_key, v))
@@ -67,13 +81,13 @@ def flatten(d, parent_key=''):
 
 
 def tool(
-    policy_file,
-    access_file,
-    apply_rule,
-    is_admin=False,
-    target_file=None,
-    enforcer_config=None,
-):
+    policy_file: str,
+    access_file: str,
+    apply_rule: str | None,
+    is_admin: bool = False,
+    target_file: str | None = None,
+    enforcer_config: str | None = None,
+) -> None:
     with open(access_file, 'rb', 0) as a:
         access = a.read()
 
@@ -114,7 +128,7 @@ def tool(
             _try_rule(key, rule, target_data, access_data, enforcer)
 
 
-def main():
+def main() -> None:
     conf = cfg.ConfigOpts()
 
     conf.register_cli_opt(
@@ -174,4 +188,4 @@ def main():
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    main()

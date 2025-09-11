@@ -18,6 +18,7 @@
 import os
 
 from oslo_config import cfg
+from sphinx import application
 from sphinx.util import logging
 
 from oslo_policy import generator
@@ -25,7 +26,7 @@ from oslo_policy import generator
 LOG = logging.getLogger(__name__)
 
 
-def generate_sample(app):
+def generate_sample(app: application.Sphinx) -> None:
     """Generate a sample policy file."""
 
     if not app.config.policy_generator_config_file:
@@ -51,12 +52,17 @@ def generate_sample(app):
         )
 
 
-def _get_default_basename(config_file):
+def _get_default_basename(config_file: str) -> str:
     return os.path.splitext(os.path.basename(config_file))[0]
 
 
-def _generate_sample(app, policy_file, base_name, exclude_deprecated):
-    def info(msg):
+def _generate_sample(
+    app: application.Sphinx,
+    policy_file: str,
+    base_name: str,
+    exclude_deprecated: bool,
+) -> None:
+    def info(msg: str) -> None:
         LOG.info(f'[{__name__}] {msg}')
 
     # If we are given a file that isn't an absolute path, look for it
@@ -99,7 +105,7 @@ def _generate_sample(app, policy_file, base_name, exclude_deprecated):
     generator.generate_sample(args=arguments, conf=conf)
 
 
-def setup(app):
+def setup(app: application.Sphinx) -> dict[str, bool]:
     app.add_config_value('policy_generator_config_file', None, 'env')
     app.add_config_value('sample_policy_basename', None, 'env')
     app.add_config_value('exclude_deprecated', False, 'env')
