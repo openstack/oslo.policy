@@ -21,29 +21,25 @@
       - ^test-requirements\.txt$
 
 - job:
-    name: cross-nova-tox-py312
-    parent: openstack-tox
-    nodeset: ubuntu-noble
+    name: cross-nova-tox-py313
+    parent: openstack-tox-py313
     description: |
       Run cross-project unit tests on nova.
     vars:
       zuul_work_dir: src/opendev.org/openstack/nova
-      tox_envlist: py312
     required-projects:
       - openstack/nova
       - openstack/oslo.policy
     irrelevant-files: *irrelevant-files
 
 - job:
-    name: cross-neutron-tox-py312
-    parent: openstack-tox
-    nodeset: ubuntu-noble
+    name: cross-neutron-tox-py313
+    parent: openstack-tox-py313
     description: |
       Run cross-project unit tests on neutron.
     timeout: 3600
     vars:
       zuul_work_dir: src/opendev.org/openstack/neutron
-      tox_envlist: py312
     required-projects:
       - openstack/neutron
       - openstack/oslo.policy
@@ -59,11 +55,11 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - cross-nova-tox-py312
+        - cross-nova-tox-py313
         - cross-nova-tox-functional
-        - cross-neutron-tox-py312
+        - cross-neutron-tox-py313
     gate:
       jobs:
-        - cross-nova-tox-py312
+        - cross-nova-tox-py313
         - cross-nova-tox-functional
-        - cross-neutron-tox-py312
+        - cross-neutron-tox-py313
