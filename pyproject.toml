@@ -49,3 +49,7 @@ https = "oslo_policy._external:HttpsCheck"
 
 [tool.setuptools]
 packages = ["oslo_policy"]
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+skips = ['B113']
