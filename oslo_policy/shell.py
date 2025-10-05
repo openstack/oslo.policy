@@ -34,7 +34,7 @@ class FakeEnforcer:
             for group, options in opts.list_opts():
                 self.conf.register_opts(options, group)
 
-            self.conf(["--config-file={}".format(config)])
+            self.conf([f"--config-file={config}"])
 
 
 def _try_rule(key, rule, target, access_data, o):

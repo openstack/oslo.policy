@@ -876,7 +876,7 @@ class Enforcer:
         mtime = 0
         if os.path.exists(path):
             if not os.path.isdir(path):
-                raise ValueError('{} is not a directory'.format(path))
+                raise ValueError(f'{path} is not a directory')
             # Make a list of all the files
             files = [path] + [os.path.join(path, file) for file in
                               os.listdir(path)]

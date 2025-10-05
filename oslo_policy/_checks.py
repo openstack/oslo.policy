@@ -137,7 +137,7 @@ class Check(BaseCheck):
     def __str__(self):
         """Return a string representation of this check."""
 
-        return '{}:{}'.format(self.kind, self.match)
+        return f'{self.kind}:{self.match}'
 
 
 class NotCheck(BaseCheck):

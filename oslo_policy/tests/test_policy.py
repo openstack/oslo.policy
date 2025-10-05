@@ -55,7 +55,7 @@ class FieldCheck(_checks.Check):
         # Process the match
         resource, field_value = match.split(':', 1)
         field, value = field_value.split('=', 1)
-        super().__init__(kind, '{}:{}:{}'.format(resource, field, value))
+        super().__init__(kind, f'{resource}:{field}:{value}')
         self.field = field
         self.value = value
 
