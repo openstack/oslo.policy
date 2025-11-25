@@ -66,7 +66,7 @@ Test all of Nova's policy with an admin token:
 .. code-block:: bash
 
    oslopolicy-checker \
-     --policy /opt/stack/nova/etc/nova/policy.json
+     --policy /opt/stack/nova/etc/nova/policy.yaml
      --access sample_data/auth_v3_token_admin.json
 
 Test the ``compute_extension:flavorextraspecs:index`` rule in Nova's policy
@@ -75,7 +75,7 @@ with the admin member token and ``is_admin`` set to ``True``:
 .. code-block:: bash
 
    oslopolicy-checker \
-     --policy /opt/stack/nova/etc/nova/policy.json \
+     --policy /opt/stack/nova/etc/nova/policy.yaml \
      --access sample_data/auth_v3_token_admin.json \
      --is_admin=true --rule compute_extension:flavorextraspecs:index
 
@@ -85,7 +85,7 @@ with the plain member token:
 .. code-block:: bash
 
    oslopolicy-checker \
-     --policy /opt/stack/nova/etc/nova/policy.json \
+     --policy /opt/stack/nova/etc/nova/policy.yaml \
      --access sample_data/auth_v3_token_member.json \
      --rule compute_extension:flavorextraspecs:index
 

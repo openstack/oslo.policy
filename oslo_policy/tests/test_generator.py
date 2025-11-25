@@ -51,12 +51,12 @@ OPTS = {
 }
 
 
-class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
+class GenerateSampleTestCase(base.PolicyBaseTestCase):
     def setUp(self):
         super().setUp()
         self.enforcer = policy.Enforcer(self.conf, policy_file='policy.yaml')
 
-    def test_generate_loadable_yaml(self):
+    def test_generate_loadable(self):
         extensions = []
         for name, opts in OPTS.items():
             ext = stevedore.extension.Extension(
@@ -451,161 +451,6 @@ We have some text...
             self.assertIn('Invalid policy description', str(warns[-1].message))
 
 
-class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
-    def setUp(self):
-        super().setUp()
-        self.enforcer = policy.Enforcer(self.conf, policy_file='policy.json')
-
-    def test_generate_loadable_json(self):
-        extensions = []
-        for name, opts in OPTS.items():
-            ext = stevedore.extension.Extension(
-                name=name,
-                entry_point=None,  # type: ignore
-                plugin=None,  # type: ignore
-                obj=opts,
-            )
-            extensions.append(ext)
-        test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=extensions, namespace='rules'
-        )
-
-        output_file = self.get_config_file_fullname('policy.json')
-        with mock.patch(
-            'stevedore.named.NamedExtensionManager', return_value=test_mgr
-        ) as mock_ext_mgr:
-            # generate sample-policy file with only rules
-            generator._generate_sample(
-                ['rules'],
-                output_file,
-                output_format='json',
-                include_help=False,
-            )
-            mock_ext_mgr.assert_called_once_with(
-                'oslo.policy.policies',
-                names=['rules'],
-                on_load_failure_callback=generator.on_load_failure_callback,
-                invoke_on_load=True,
-            )
-
-        self.enforcer.load_rules()
-
-        self.assertIn('owner', self.enforcer.rules)
-        self.assertIn('admin', self.enforcer.rules)
-        self.assertIn('admin_or_owner', self.enforcer.rules)
-        self.assertEqual(
-            'project_id:%(project_id)s', str(self.enforcer.rules['owner'])
-        )
-        self.assertEqual('is_admin:True', str(self.enforcer.rules['admin']))
-        self.assertEqual(
-            '(rule:admin or rule:owner)',
-            str(self.enforcer.rules['admin_or_owner']),
-        )
-
-    def test_expected_content(self):
-        extensions = []
-        for name, opts in OPTS.items():
-            ext = stevedore.extension.Extension(
-                name=name,
-                entry_point=None,  # type: ignore
-                plugin=None,  # type: ignore
-                obj=opts,
-            )
-            extensions.append(ext)
-        test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=extensions, namespace='rules'
-        )
-
-        expected = """{
-    "admin": "is_admin:True",
-    "owner": "project_id:%(project_id)s",
-    "shared": "field:networks:shared=True",
-    "admin_or_owner": "rule:admin or rule:owner"
-}
-"""
-        output_file = self.get_config_file_fullname('policy.json')
-        with mock.patch(
-            'stevedore.named.NamedExtensionManager', return_value=test_mgr
-        ) as mock_ext_mgr:
-            generator._generate_sample(
-                ['rules'],
-                output_path=output_file,
-                output_format='json',
-            )
-            mock_ext_mgr.assert_called_once_with(
-                'oslo.policy.policies',
-                names=['rules'],
-                on_load_failure_callback=generator.on_load_failure_callback,
-                invoke_on_load=True,
-            )
-
-        with open(output_file) as written_file:
-            written_policy = written_file.read()
-
-        self.assertEqual(expected, written_policy)
-
-    def test_expected_content_stdout(self):
-        extensions = []
-        for name, opts in OPTS.items():
-            ext = stevedore.extension.Extension(
-                name=name,
-                entry_point=None,  # type: ignore
-                plugin=None,  # type: ignore
-                obj=opts,
-            )
-            extensions.append(ext)
-        test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=extensions, namespace='rules'
-        )
-
-        expected = """{
-    "admin": "is_admin:True",
-    "owner": "project_id:%(project_id)s",
-    "shared": "field:networks:shared=True",
-    "admin_or_owner": "rule:admin or rule:owner"
-}
-"""
-        stdout = self._capture_stdout()
-        with mock.patch(
-            'stevedore.named.NamedExtensionManager', return_value=test_mgr
-        ) as mock_ext_mgr:
-            generator._generate_sample(
-                ['rules'], output_path=None, output_format='json'
-            )
-            mock_ext_mgr.assert_called_once_with(
-                'oslo.policy.policies',
-                names=['rules'],
-                on_load_failure_callback=generator.on_load_failure_callback,
-                invoke_on_load=True,
-            )
-
-        self.assertEqual(expected, stdout.getvalue())
-
-    @mock.patch.object(generator, 'LOG')
-    def test_generate_json_file_log_warning(self, mock_log):
-        extensions = []
-        for name, opts in OPTS.items():
-            ext = stevedore.extension.Extension(
-                name=name,
-                entry_point=None,  # type: ignore
-                plugin=None,  # type: ignore
-                obj=opts,
-            )
-            extensions.append(ext)
-        test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=extensions, namespace='rules'
-        )
-
-        output_file = self.get_config_file_fullname('policy.json')
-        with mock.patch(
-            'stevedore.named.NamedExtensionManager', return_value=test_mgr
-        ):
-            generator._generate_sample(
-                ['rules'], output_file, output_format='json'
-            )
-            mock_log.warning.assert_any_call(policy.WARN_JSON)
-
-
 class GeneratorRaiseErrorTestCase(testtools.TestCase):
     def test_generator_raises_error(self):
         """Verifies that errors from extension manager are not suppressed."""
@@ -814,10 +659,8 @@ class ListRedundantTestCase(base.PolicyBaseTestCase):
 class UpgradePolicyTestCase(base.PolicyBaseTestCase):
     def setUp(self):
         super().setUp()
-        policy_json_contents = jsonutils.dumps(
-            {'deprecated_name': 'rule:admin'}
-        )
-        self.create_config_file('policy.json', policy_json_contents)
+        policy_yaml_contents = yaml.dump({'deprecated_name': 'rule:admin'})
+        self.create_config_file('policy.yaml', policy_yaml_contents)
         deprecated_policy = policy.DeprecatedRule(
             name='deprecated_name',
             check_str='rule:admin',
@@ -842,7 +685,7 @@ class UpgradePolicyTestCase(base.PolicyBaseTestCase):
         # Just used for cli opt parsing
         self.local_conf = cfg.ConfigOpts()
 
-    def test_upgrade_policy_json_file(self):
+    def test_upgrade_policy_file(self):
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
             extensions=self.extensions, namespace='test_upgrade'
         )
@@ -852,62 +695,11 @@ class UpgradePolicyTestCase(base.PolicyBaseTestCase):
             testargs = [
                 'olsopolicy-policy-upgrade',
                 '--policy',
-                self.get_config_file_fullname('policy.json'),
-                '--namespace',
-                'test_upgrade',
-                '--output-file',
-                self.get_config_file_fullname('new_policy.json'),
-                '--format',
-                'json',
-            ]
-            with mock.patch('sys.argv', testargs):
-                generator.upgrade_policy(conf=self.local_conf)
-                new_file = self.get_config_file_fullname('new_policy.json')
-                with open(new_file) as fh:
-                    new_policy = jsonutils.loads(fh.read())
-                self.assertIsNotNone(new_policy.get('new_policy_name'))
-                self.assertIsNone(new_policy.get('deprecated_name'))
-
-    @mock.patch.object(generator, 'LOG')
-    def test_upgrade_policy_json_file_log_warning(self, mock_log):
-        test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=self.extensions, namespace='test_upgrade'
-        )
-        with mock.patch(
-            'stevedore.named.NamedExtensionManager', return_value=test_mgr
-        ):
-            testargs = [
-                'olsopolicy-policy-upgrade',
-                '--policy',
-                self.get_config_file_fullname('policy.json'),
-                '--namespace',
-                'test_upgrade',
-                '--output-file',
-                self.get_config_file_fullname('new_policy.json'),
-                '--format',
-                'json',
-            ]
-            with mock.patch('sys.argv', testargs):
-                generator.upgrade_policy(conf=self.local_conf)
-                mock_log.warning.assert_any_call(policy.WARN_JSON)
-
-    def test_upgrade_policy_yaml_file(self):
-        test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=self.extensions, namespace='test_upgrade'
-        )
-        with mock.patch(
-            'stevedore.named.NamedExtensionManager', return_value=test_mgr
-        ):
-            testargs = [
-                'olsopolicy-policy-upgrade',
-                '--policy',
-                self.get_config_file_fullname('policy.json'),
+                self.get_config_file_fullname('policy.yaml'),
                 '--namespace',
                 'test_upgrade',
                 '--output-file',
                 self.get_config_file_fullname('new_policy.yaml'),
-                '--format',
-                'yaml',
             ]
             with mock.patch('sys.argv', testargs):
                 generator.upgrade_policy(conf=self.local_conf)
@@ -917,7 +709,7 @@ class UpgradePolicyTestCase(base.PolicyBaseTestCase):
                 self.assertIsNotNone(new_policy.get('new_policy_name'))
                 self.assertIsNone(new_policy.get('deprecated_name'))
 
-    def test_upgrade_policy_json_stdout(self):
+    def test_upgrade_policy_stdout(self):
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
             extensions=self.extensions, namespace='test_upgrade'
         )
@@ -928,35 +720,9 @@ class UpgradePolicyTestCase(base.PolicyBaseTestCase):
             testargs = [
                 'olsopolicy-policy-upgrade',
                 '--policy',
-                self.get_config_file_fullname('policy.json'),
+                self.get_config_file_fullname('policy.yaml'),
                 '--namespace',
                 'test_upgrade',
-                '--format',
-                'json',
-            ]
-            with mock.patch('sys.argv', testargs):
-                generator.upgrade_policy(conf=self.local_conf)
-                expected = """{
-    "new_policy_name": "rule:admin"
-}"""
-                self.assertEqual(expected, stdout.getvalue())
-
-    def test_upgrade_policy_yaml_stdout(self):
-        test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=self.extensions, namespace='test_upgrade'
-        )
-        stdout = self._capture_stdout()
-        with mock.patch(
-            'stevedore.named.NamedExtensionManager', return_value=test_mgr
-        ):
-            testargs = [
-                'olsopolicy-policy-upgrade',
-                '--policy',
-                self.get_config_file_fullname('policy.json'),
-                '--namespace',
-                'test_upgrade',
-                '--format',
-                'yaml',
             ]
             with mock.patch('sys.argv', testargs):
                 generator.upgrade_policy(conf=self.local_conf)

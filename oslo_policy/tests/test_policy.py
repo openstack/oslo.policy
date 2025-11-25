@@ -19,7 +19,6 @@ import os
 from unittest import mock
 import yaml
 
-import fixtures
 from oslo_config import cfg
 from oslo_context import context
 from oslo_serialization import jsonutils
@@ -128,72 +127,6 @@ class RulesTestCase(test_base.BaseTestCase):
         self.assertIs(rule_c, rules['c'])
 
     @mock.patch.object(_parser, 'parse_rule', lambda x: x)
-    def test_load_json(self):
-        exemplar = jsonutils.dumps(
-            {
-                'admin_or_owner': [
-                    ['role:admin'],
-                    ['project_id:%(project_id)s'],
-                ],
-                'default': [],
-            }
-        )
-        rules = policy.Rules.load(exemplar, 'default')
-
-        self.assertEqual('default', rules.default_rule)
-        self.assertEqual(
-            {
-                'admin_or_owner': [
-                    ['role:admin'],
-                    ['project_id:%(project_id)s'],
-                ],
-                'default': [],
-            },
-            rules,
-        )
-
-    @mock.patch.object(_parser, 'parse_rule', lambda x: x)
-    def test_load_json_invalid_exc(self):
-        # When the JSON isn't valid, ValueError is raised on load.
-        exemplar = """{
-    "admin_or_owner": [["role:admin"], ["project_id:%(project_id)s"]],
-    "default": [
-}"""
-        self.assertRaises(ValueError, policy.Rules.load, exemplar, 'default')
-
-        # However, since change I43782d245d7652ba69613b26fe598ac79ec19929,
-        # policy.Rules.load() first tries loading with the really fast
-        # jsonutils.loads(), and if that fails, it tries loading with
-        # yaml.safe_load().  Since YAML is a superset of JSON, some strictly
-        # invalid JSON can be parsed correctly by policy.Rules.load() without
-        # raising an exception.  But that means that since 1.17.0, we've been
-        # accepting (strictly speaking) illegal JSON policy files, and for
-        # backward compatibility, we should continue to do so.  Thus the
-        # following are here to prevent regressions:
-
-        # JSON requires double quotes, but the YAML parser doesn't care
-        bad_but_acceptable = """{
-    'admin_or_owner': [["role:admin"], ["project_id:%(project_id)s"]],
-    'default': []
-}"""
-        self.assertTrue(policy.Rules.load(bad_but_acceptable, 'default'))
-
-        # JSON does not allow bare keys, but the YAML parser doesn't care
-        bad_but_acceptable = """{
-    admin_or_owner: [["role:admin"], ["project_id:%(project_id)s"]],
-    default: []
-}"""
-        self.assertTrue(policy.Rules.load(bad_but_acceptable, 'default'))
-
-        # JSON is picky about commas, but the YAML parser is more forgiving
-        # (Note the trailing , in the exemplar is invalid JSON.)
-        bad_but_acceptable = """{
-    admin_or_owner: [["role:admin"], ["project_id:%(project_id)s"]],
-    default: [],
-}"""
-        self.assertTrue(policy.Rules.load(bad_but_acceptable, 'default'))
-
-    @mock.patch.object(_parser, 'parse_rule', lambda x: x)
     def test_load_empty_data(self):
         result = policy.Rules.load('', 'default')
         self.assertEqual(result, {})
@@ -221,8 +154,7 @@ default: []
 
     @mock.patch.object(_parser, 'parse_rule', lambda x: x)
     def test_load_yaml_invalid_exc(self):
-        # When the JSON is seriously invalid, ValueError is raised on load().
-        # (See test_load_json_invalid_exc for what 'seriously invalid' means.)
+        # When the YAML is invalid, ValueError is raised on load().
         exemplar = """{
 # Define a custom rule.
 admin_or_owner: role:admin or project_id:%(project_id)s
@@ -261,12 +193,6 @@ default: [
         )
 
         self.assertEqual(exemplar, str(rules))
-
-    def test_load_json_deprecated(self):
-        with self.assertWarnsRegex(
-            DeprecationWarning, r'load_json\(\).*load\(\)'
-        ):
-            policy.Rules.load_json(jsonutils.dumps({'default': ''}))
 
 
 class EnforcerTest(base.PolicyBaseTestCase):
@@ -469,16 +395,6 @@ class EnforcerTest(base.PolicyBaseTestCase):
             'test_load_directory_caching_with_files_same_but_overwrite_false',
         )  # NOQA
         self._test_scenario_with_opts_registered(test)
-
-    @mock.patch.object(policy, 'LOG')
-    def test_load_json_file_log_warning(self, mock_log):
-        rules = jsonutils.dumps({'foo': 'rule:bar'})
-        # NOTE(tkajinam): This is ugly but an easy way to make the enforcer
-        #                 load a JSON-formatted file.
-        self.create_config_file('policy.yaml', rules)
-        self.enforcer.load_rules(True)
-
-        mock_log.warning.assert_any_call(policy.WARN_JSON)
 
     @mock.patch.object(policy, 'LOG')
     def test_warning_on_redundant_file_rules(self, mock_log):
@@ -2306,77 +2222,3 @@ class EnforcerCheckRulesTest(base.PolicyBaseTestCase):
         self.enforcer.load_rules(True)
 
         self.assertTrue(self.enforcer.check_rules())
-
-
-class PickPolicyFileTestCase(base.PolicyBaseTestCase):
-    def setUp(self):
-        super().setUp()
-        self.data = {'rule_admin': 'True', 'rule_admin2': 'is_admin:True'}
-        self.tmpdir = self.useFixture(fixtures.TempDir())
-        original_search_dirs = cfg._search_dirs
-
-        def fake_search_dirs(dirs, name):
-            dirs.append(self.tmpdir.path)
-            return original_search_dirs(dirs, name)
-
-        mock_search_dir = self.useFixture(
-            fixtures.MockPatch('oslo_config.cfg._search_dirs')
-        ).mock
-        mock_search_dir.side_effect = fake_search_dirs
-
-        mock_cfg_location = self.useFixture(
-            fixtures.MockPatchObject(self.conf, 'get_location')
-        ).mock
-        mock_cfg_location.return_value = cfg.LocationInfo(
-            cfg.Locations.set_default, 'None'
-        )
-
-    def test_no_fallback_to_json_file(self):
-        tmpfilename = 'policy.yaml'
-        self.conf.set_override('policy_file', tmpfilename, group='oslo_policy')
-        jsonfile = os.path.join(self.tmpdir.path, 'policy.json')
-        with open(jsonfile, 'w') as fh:
-            jsonutils.dump(self.data, fh)
-
-        selected_policy_file = policy.pick_default_policy_file(
-            self.conf, fallback_to_json_file=False
-        )
-        self.assertEqual(self.conf.oslo_policy.policy_file, tmpfilename)
-        self.assertEqual(selected_policy_file, tmpfilename)
-
-    def test_overridden_policy_file(self):
-        tmpfilename = 'nova-policy.yaml'
-        self.conf.set_override('policy_file', tmpfilename, group='oslo_policy')
-        selected_policy_file = policy.pick_default_policy_file(self.conf)
-        self.assertEqual(self.conf.oslo_policy.policy_file, tmpfilename)
-        self.assertEqual(selected_policy_file, tmpfilename)
-
-    def test_only_new_default_policy_file_exist(self):
-        tmpfilename = os.path.join(self.tmpdir.path, 'policy.yaml')
-        with open(tmpfilename, 'w') as fh:
-            yaml.dump(self.data, fh)
-
-        selected_policy_file = policy.pick_default_policy_file(self.conf)
-        self.assertEqual(self.conf.oslo_policy.policy_file, 'policy.yaml')
-        self.assertEqual(selected_policy_file, 'policy.yaml')
-
-    def test_only_old_default_policy_file_exist(self):
-        tmpfilename = os.path.join(self.tmpdir.path, 'policy.json')
-        with open(tmpfilename, 'w') as fh:
-            jsonutils.dump(self.data, fh)
-
-        selected_policy_file = policy.pick_default_policy_file(self.conf)
-        self.assertEqual(self.conf.oslo_policy.policy_file, 'policy.yaml')
-        self.assertEqual(selected_policy_file, 'policy.json')
-
-    def test_both_default_policy_file_exist(self):
-        tmpfilename1 = os.path.join(self.tmpdir.path, 'policy.json')
-        with open(tmpfilename1, 'w') as fh:
-            jsonutils.dump(self.data, fh)
-        tmpfilename2 = os.path.join(self.tmpdir.path, 'policy.yaml')
-        with open(tmpfilename2, 'w') as fh:
-            yaml.dump(self.data, fh)
-
-        selected_policy_file = policy.pick_default_policy_file(self.conf)
-        self.assertEqual(self.conf.oslo_policy.policy_file, 'policy.yaml')
-        self.assertEqual(selected_policy_file, 'policy.yaml')

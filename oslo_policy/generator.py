@@ -15,7 +15,7 @@ import importlib.metadata
 import logging
 import sys
 import textwrap
-from typing import Any, Literal
+from typing import Any
 import warnings
 import yaml
 
@@ -43,19 +43,6 @@ RULE_OPTS = [
         'namespace',
         help='Option namespace(s) under "oslo.policy.policies" in '
         'which to query for options.',
-    ),
-    cfg.StrOpt(
-        'format',
-        deprecated_for_removal=True,
-        deprecated_since='Victoria',
-        deprecated_reason="""
-``policy_file`` support for JSON formatted file is deprecated.
-So these tools also deprecate the support of generating or
-upgrading policy file in JSON format.
-""",
-        help='Desired format for the output.',
-        default='yaml',
-        choices=['json', 'yaml'],
     ),
 ]
 
@@ -274,18 +261,8 @@ def _format_rule_default_yaml(
     return text
 
 
-def _format_rule_default_json(default: policy.RuleDefault) -> str:
-    """Create a json node from policy.RuleDefault or policy.DocumentedRuleDefault.
-
-    :param default: A policy.RuleDefault or policy.DocumentedRuleDefault object
-    :returns: A string containing a json representation of the RuleDefault
-    """  # noqa: E501
-    return f'"{default.name}": "{default.check_str}"'
-
-
 def _sort_and_format_by_section(
     policies: dict[str, list[policy.RuleDefault]],
-    output_format: Literal['yaml', 'json'] = 'yaml',
     include_help: bool = True,
     exclude_deprecated: bool = False,
 ) -> Generator[str, None, None]:
@@ -299,28 +276,25 @@ def _sort_and_format_by_section(
 
     :param policies: A dict of {section1: [rule_default_1, rule_default_2],
                                 section2: [rule_default_3]}
-    :param output_format: The format of the file to output to.
+    :param include_help: True, generates a sample-policy file with help text
+                         along with rules in which everything is commented out.
+                         False, generates a sample-policy file with only rules.
     :param exclude_deprecated: If to exclude deprecated policy rule entries,
                                defaults to False.
     """
     for section in sorted(policies.keys()):
         rule_defaults = policies[section]
         for rule_default in rule_defaults:
-            if output_format == 'yaml':
-                yield _format_rule_default_yaml(
-                    rule_default,
-                    include_help=include_help,
-                    add_deprecated_rules=not exclude_deprecated,
-                )
-            elif output_format == 'json':
-                LOG.warning(policy.WARN_JSON)
-                yield _format_rule_default_json(rule_default)
+            yield _format_rule_default_yaml(
+                rule_default,
+                include_help=include_help,
+                add_deprecated_rules=not exclude_deprecated,
+            )
 
 
 def _generate_sample(
     namespaces: list[str],
     output_path: str | None = None,
-    output_format: Literal['yaml', 'json'] = 'yaml',
     include_help: bool = True,
     exclude_deprecated: bool = False,
 ) -> None:
@@ -333,7 +307,6 @@ def _generate_sample(
                        'oslo.policy.policies'. Stevedore will look here for
                        policy options.
     :param output_path: The path of a file to output to. stdout used if None.
-    :param output_format: The format of the file to output to.
     :param include_help: True, generates a sample-policy file with help text
                          along with rules in which everything is commented out.
                          False, generates a sample-policy file with only rules.
@@ -347,19 +320,12 @@ def _generate_sample(
     sections_text = []
     for section in _sort_and_format_by_section(
         policies,
-        output_format,
         include_help=include_help,
         exclude_deprecated=exclude_deprecated,
     ):
         sections_text.append(section)
 
-    if output_format == 'yaml':
-        output_file.writelines(sections_text)
-    elif output_format == 'json':
-        LOG.warning(policy.WARN_JSON)
-        output_file.writelines(
-            ('{\n    ', ',\n    '.join(sections_text), '\n}\n')
-        )
+    output_file.writelines(sections_text)
 
     if output_file != sys.stdout:
         output_file.close()
@@ -591,7 +557,6 @@ def generate_sample(
     _generate_sample(
         conf.namespace,
         output_path=conf.output_file,
-        output_format=conf.format,
         exclude_deprecated=conf.exclude_deprecated,
     )
 
@@ -650,19 +615,9 @@ def upgrade_policy(
 
     if conf.output_file:
         with open(conf.output_file, 'w') as fh:
-            if conf.format == 'yaml':
-                yaml.safe_dump(policies, fh, default_flow_style=False)
-            elif conf.format == 'json':
-                LOG.warning(policy.WARN_JSON)
-                jsonutils.dump(policies, fh, indent=4)
+            yaml.safe_dump(policies, fh, default_flow_style=False)
     else:
-        if conf.format == 'yaml':
-            sys.stdout.write(
-                yaml.safe_dump(policies, default_flow_style=False)
-            )
-        elif conf.format == 'json':
-            LOG.warning(policy.WARN_JSON)
-            sys.stdout.write(jsonutils.dumps(policies, indent=4))
+        sys.stdout.write(yaml.safe_dump(policies, default_flow_style=False))
 
 
 def list_redundant(args: list[str] | None = None) -> None:
@@ -688,6 +643,7 @@ def convert_policy_json_to_yaml(
     args: list[str] | None = None, conf: cfg.ConfigOpts | None = None
 ) -> None:
     logging.basicConfig(level=logging.WARN)
+    LOG.warning('The oslopolicy-convert-json-to-yaml tool is deprecated')
     # Allow the caller to pass in a local conf object for unit testing
     if conf is None:
         conf = cfg.CONF

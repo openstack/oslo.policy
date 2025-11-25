@@ -6,4 +6,3 @@
    :maxdepth: 2
 
    policy-yaml-file
-   policy-json-file

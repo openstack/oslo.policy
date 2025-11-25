@@ -2,6 +2,12 @@
 oslopolicy-convert-json-to-yaml
 ===============================
 
+.. warning::
+
+   The ``oslopolicy-convert-json-to-yaml`` tool is deprecated, and will be
+   removed in a future release, because json format of policy files is no
+   longer supported.
+
 .. program:: oslopolicy-convert-json-to-yaml
 
 Synopsis

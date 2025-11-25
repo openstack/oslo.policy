@@ -296,17 +296,6 @@ RuleCheck = _checks.RuleCheck
 """Recursively checks credentials based on the defined rules."""
 
 
-WARN_JSON = (
-    'JSON formatted policy_file support is deprecated since '
-    'Victoria release. You need to use YAML format which '
-    'will be default in future. You can use '
-    '``oslopolicy-convert-json-to-yaml`` tool to convert existing '
-    'JSON-formatted policy file to YAML-formatted in backward '
-    'compatible way: https://docs.openstack.org/oslo.policy/'
-    'latest/cli/oslopolicy-convert-json-to-yaml.html.'
-)
-
-
 class PolicyNotAuthorized(Exception):
     """Default exception raised for policy enforcement failure."""
 
@@ -369,74 +358,22 @@ class InvalidContextObject(Exception):
         super().__init__(msg)
 
 
-def pick_default_policy_file(
-    conf: cfg.ConfigOpts, fallback_to_json_file: bool = True
-) -> str:
-    # TODO(gmann): If service changed the default value of
-    # CONF.oslo_policy.policy_file option to 'policy.yaml' then to avoid
-    # breaking any deployment relying on default value, we need to add
-    # this is fallback logic to pick the old default policy file
-    # (policy.json) if exist. We can to remove this fallback logic once
-    # oslo_policy stop supporting the JSON formatted policy file.
-
-    new_default_policy_file = 'policy.yaml'
-    old_default_policy_file = 'policy.json'
-    policy_file = None
-    if (
-        conf.oslo_policy.policy_file == new_default_policy_file
-    ) and fallback_to_json_file:
-        location = conf.get_location('policy_file', 'oslo_policy').location
-        if conf.find_file(conf.oslo_policy.policy_file):
-            policy_file = cast(str | None, conf.oslo_policy.policy_file)
-        elif location in [
-            cfg.Locations.opt_default,
-            cfg.Locations.set_default,
-        ]:
-            LOG.debug('Searching old policy.json file.')
-            if conf.find_file(old_default_policy_file):
-                policy_file = old_default_policy_file
-        if policy_file:
-            LOG.debug(
-                'Picking default policy file: %s. Config location: %s',
-                policy_file,
-                location,
-            )
-            return policy_file
-    LOG.debug(
-        'No default policy file present, picking the configured one: %s.',
-        conf.oslo_policy.policy_file,
-    )
-    # Return overridden policy file
-    return cast(str, conf.oslo_policy.policy_file)
-
-
 def parse_file_contents(data: str | bytes) -> dict[str, str]:
     """Parse the raw contents of a policy file.
 
-    Parses the contents of a policy file which currently can be in either
-    yaml or json format. Both can be parsed as yaml.
+    Parses the contents of a policy file which currently can be in yaml format.
+    Both can be parsed as yaml.
 
     :param data: A string containing the contents of a policy file.
     :returns: A dict of the form ``{'policy_name1': 'policy1',
         'policy_name2': 'policy2,...}``
     """
     try:
-        # NOTE(snikitin): jsonutils.loads() is much faster than
-        # yaml.safe_load(). However jsonutils.loads() parses only JSON while
-        # yaml.safe_load() parses JSON and YAML. So here we try to parse data
-        # by jsonutils.loads() first. In case of failure yaml.safe_load()
-        # will be used instead.
-        parsed = jsonutils.loads(data)
-        # NOTE(gmann): If policy file is loaded in JSON format means
-        # policy_file is JSON formatted so log warning.
-        LOG.warning(WARN_JSON)
-    except ValueError:
-        try:
-            parsed = yaml.safe_load(data)
-        except yaml.YAMLError as e:
-            # For backwards-compatibility, convert yaml error to ValueError,
-            # which is what JSON loader raised.
-            raise ValueError(str(e))
+        parsed = yaml.safe_load(data)
+    except yaml.YAMLError as e:
+        # For backwards-compatibility, convert yaml error to ValueError,
+        # which is what JSON loader raised.
+        raise ValueError(str(e))
     return parsed or {}
 
 
@@ -459,7 +396,7 @@ class Rules(dict[str, _checks.BaseCheck]):
         data: str | bytes,
         default_rule: _checks.BaseCheck | str | None = None,
     ) -> Self:
-        """Allow loading of YAML/JSON rule data.
+        """Allow loading of YAML rule data.
 
         .. versionadded:: 1.5.0
 
@@ -470,23 +407,6 @@ class Rules(dict[str, _checks.BaseCheck]):
         rules = {k: _parser.parse_rule(v) for k, v in parsed_file.items()}
 
         return cls(rules, default_rule)
-
-    @classmethod
-    def load_json(
-        cls, data: str, default_rule: _checks.BaseCheck | str | None = None
-    ) -> Self:
-        """Allow loading of YAML/JSON rule data.
-
-        .. warning::
-            This method is deprecated as of the 1.5.0 release in favor of
-            :meth:`load` and may be removed in the 2.0 release.
-        """
-        warnings.warn(
-            'The load_json() method is deprecated as of the 1.5.0 release in '
-            'favor of load() and may be removed in the 2.0 release.',
-            DeprecationWarning,
-        )
-        return cls.load(data, default_rule)
 
     @classmethod
     def from_dict(
@@ -579,8 +499,14 @@ class Enforcer:
         default_rule: _checks.BaseCheck | str | None = None,
         use_conf: bool = True,
         overwrite: bool = True,
-        fallback_to_json_file: bool = True,
+        fallback_to_json_file: bool | None = None,
     ) -> None:
+        if fallback_to_json_file is not None:
+            warnings.warn(
+                'fallback_to_json_file is deprecated and has no effect.',
+                category=DeprecationWarning,
+            )
+
         self.conf = conf
         opts._register(conf)
 
@@ -593,9 +519,7 @@ class Enforcer:
 
         self.policy_path = None
 
-        self.policy_file = policy_file or pick_default_policy_file(
-            self.conf, fallback_to_json_file=fallback_to_json_file
-        )
+        self.policy_file = policy_file or conf.oslo_policy.policy_file
         self.use_conf = use_conf
         self.overwrite = overwrite
 
@@ -1032,7 +956,7 @@ class Enforcer:
         return rules_changed
 
     def _get_policy_path(self, path: str) -> str:
-        """Locate the policy YAML/JSON data file/path.
+        """Locate the policy YAML data file/path.
 
         :param path: It's value can be a full path or related path. When
             full path specified, this function just returns the full path. When

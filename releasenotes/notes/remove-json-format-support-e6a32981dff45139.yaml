@@ -1,0 +1,15 @@
+---
+upgrade:
+  - |
+    JSON format policy files are no longer supported. Use YAML format policy
+    files instead. Use the ``oslopolicy-convert-json-to-yaml`` tool to convert
+    existing JSON format policy files.
+
+  - |
+    The ``--format`` option of ``oslo-config-generator`` tool and
+    ``oslopolicy-policy-upgrade`` tool has been removed.
+
+deprecations:
+  - |
+    The ``oslopolicy-convert-json-to-yaml`` tool has been deprecated, and will
+    be removed in a future release.
