@@ -16,60 +16,19 @@
 
 import logging
 import re
+from collections.abc import Generator, Sequence
+from typing import TypeAlias
 
 from oslo_policy import _checks
 
-
 LOG = logging.getLogger(__name__)
 
-
-def reducer(*tokens):
-    """Decorator for reduction methods.
-
-    Arguments are a sequence of tokens, in order, which should trigger running
-    this reduction method.
-    """
-
-    def decorator(func):
-        # Make sure we have a list of reducer sequences
-        if not hasattr(func, 'reducers'):
-            func.reducers = []
-
-        # Add the tokens to the list of reducer sequences
-        func.reducers.append(list(tokens))
-
-        return func
-
-    return decorator
+TokenT: TypeAlias = str
+ValueT: TypeAlias = str | _checks.BaseCheck
+ReductionResultT: TypeAlias = list[tuple[TokenT, ValueT]]
 
 
-class ParseStateMeta(type):
-    """Metaclass for the :class:`.ParseState` class.
-
-    Facilitates identifying reduction methods.
-    """
-
-    def __new__(mcs, name, bases, cls_dict):
-        """Create the class.
-
-        Injects the 'reducers' list, a list of tuples matching token sequences
-        to the names of the corresponding reduction methods.
-        """
-
-        reducers = []
-
-        for key, value in cls_dict.items():
-            if not hasattr(value, 'reducers'):
-                continue
-            for reduction in value.reducers:
-                reducers.append((reduction, key))
-
-        cls_dict['reducers'] = reducers
-
-        return super().__new__(mcs, name, bases, cls_dict)
-
-
-class ParseState(metaclass=ParseStateMeta):
+class ParseState:
     """Implement the core of parsing the policy language.
 
     Uses a greedy reduction algorithm to reduce a sequence of tokens into
@@ -84,44 +43,79 @@ class ParseState(metaclass=ParseStateMeta):
         problem.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the ParseState."""
+        self.tokens: list[TokenT] = []
+        self.values: list[ValueT] = []
 
-        self.tokens = []
-        self.values = []
-
-    def reduce(self):
+    def reduce(self) -> None:
         """Perform a greedy reduction of the token stream.
 
-        If a reducer method matches, it will be executed, then the
-        :meth:`reduce` method will be called recursively to search for any more
-        possible reductions.
+        Uses pattern matching to efficiently find and apply reduction rules.
+        If a rule matches, it will be executed, then the method will be called
+        recursively to search for any more possible reductions.
         """
+        # Try 3-token patterns first
+        if len(self.tokens) >= 3:
+            match self.tokens[-3:]:
+                # Parenthesized expressions
+                case (
+                    ['(', 'check', ')']
+                    | ['(', 'and_expr', ')']
+                    | ['(', 'or_expr', ')']
+                ):
+                    results = self._wrap_check(*self.values[-3:])
+                    self.tokens[-3:] = [r[0] for r in results]
+                    self.values[-3:] = [r[1] for r in results]
+                    return self.reduce()
 
-        for reduction, methname in self.reducers:
-            if (
-                len(self.tokens) >= len(reduction)
-                and self.tokens[-len(reduction) :] == reduction
-            ):
-                # Get the reduction method
-                meth = getattr(self, methname)
+                # AND expressions
+                case ['check', 'and', 'check']:
+                    results = self._make_and_expr(*self.values[-3:])
+                    self.tokens[-3:] = [r[0] for r in results]
+                    self.values[-3:] = [r[1] for r in results]
+                    return self.reduce()
 
-                # Reduce the token stream
-                results = meth(*self.values[-len(reduction) :])
+                case ['and_expr', 'and', 'check']:
+                    results = self._extend_and_expr(*self.values[-3:])
+                    self.tokens[-3:] = [r[0] for r in results]
+                    self.values[-3:] = [r[1] for r in results]
+                    return self.reduce()
 
-                # Update the tokens and values
-                self.tokens[-len(reduction) :] = [r[0] for r in results]
-                self.values[-len(reduction) :] = [r[1] for r in results]
+                case ['or_expr', 'and', 'check']:
+                    results = self._mix_or_and_expr(*self.values[-3:])
+                    self.tokens[-3:] = [r[0] for r in results]
+                    self.values[-3:] = [r[1] for r in results]
+                    return self.reduce()
 
-                # Check for any more reductions
-                return self.reduce()
+                # OR expressions
+                case ['check', 'or', 'check'] | ['and_expr', 'or', 'check']:
+                    results = self._make_or_expr(*self.values[-3:])
+                    self.tokens[-3:] = [r[0] for r in results]
+                    self.values[-3:] = [r[1] for r in results]
+                    return self.reduce()
 
-    def shift(self, tok, value):
+                case ['or_expr', 'or', 'check']:
+                    results = self._extend_or_expr(*self.values[-3:])
+                    self.tokens[-3:] = [r[0] for r in results]
+                    self.values[-3:] = [r[1] for r in results]
+                    return self.reduce()
+
+        # Try 2-token patterns
+        if len(self.tokens) >= 2:
+            match self.tokens[-2:]:
+                # NOT expressions
+                case ['not', 'check']:
+                    results = self._make_not_expr(*self.values[-2:])
+                    self.tokens[-2:] = [r[0] for r in results]
+                    self.values[-2:] = [r[1] for r in results]
+                    return self.reduce()
+
+    def shift(self, tok: TokenT, value: ValueT) -> None:
         """Adds one more token to the state.
 
         Calls :meth:`reduce`.
         """
-
         self.tokens.append(tok)
         self.values.append(value)
 
@@ -129,77 +123,76 @@ class ParseState(metaclass=ParseStateMeta):
         self.reduce()
 
     @property
-    def result(self):
+    def result(self) -> _checks.BaseCheck:
         """Obtain the final result of the parse.
 
         :raises ValueError: If the parse failed to reduce to a single result.
         """
-
         if len(self.values) != 1:
             raise ValueError('Could not parse rule')
-        return self.values[0]
 
-    @reducer('(', 'check', ')')
-    @reducer('(', 'and_expr', ')')
-    @reducer('(', 'or_expr', ')')
-    def _wrap_check(self, _p1, check, _p2):
+        value = self.values[0]
+        if not isinstance(value, _checks.BaseCheck):
+            raise ValueError('Could not parse rule')
+
+        return value
+
+    def _wrap_check(
+        self, _p1: str, check: _checks.BaseCheck, _p2: str
+    ) -> ReductionResultT:
         """Turn parenthesized expressions into a 'check' token."""
-
         return [('check', check)]
 
-    @reducer('check', 'and', 'check')
-    def _make_and_expr(self, check1, _and, check2):
+    def _make_and_expr(
+        self, check1: _checks.BaseCheck, _and: str, check2: _checks.BaseCheck
+    ) -> ReductionResultT:
         """Create an 'and_expr'.
 
         Join two checks by the 'and' operator.
         """
-
         return [('and_expr', _checks.AndCheck([check1, check2]))]
 
-    @reducer('or_expr', 'and', 'check')
-    def _mix_or_and_expr(self, or_expr, _and, check):
+    def _mix_or_and_expr(
+        self, or_expr: _checks.OrCheck, _and: str, check: _checks.BaseCheck
+    ) -> ReductionResultT:
         """Modify the case 'A or B and C'"""
-
         or_expr, check1 = or_expr.pop_check()
         if isinstance(check1, _checks.AndCheck):
-            and_expr = check1
-            and_expr.add_check(check)
+            and_expr = check1.add_check(check)
         else:
             and_expr = _checks.AndCheck([check1, check])
         return [('or_expr', or_expr.add_check(and_expr))]
 
-    @reducer('and_expr', 'and', 'check')
-    def _extend_and_expr(self, and_expr, _and, check):
+    def _extend_and_expr(
+        self, and_expr: _checks.AndCheck, _and: str, check: _checks.BaseCheck
+    ) -> ReductionResultT:
         """Extend an 'and_expr' by adding one more check."""
-
         return [('and_expr', and_expr.add_check(check))]
 
-    @reducer('check', 'or', 'check')
-    @reducer('and_expr', 'or', 'check')
-    def _make_or_expr(self, check1, _or, check2):
+    def _make_or_expr(
+        self, check1: _checks.BaseCheck, _or: str, check2: _checks.BaseCheck
+    ) -> ReductionResultT:
         """Create an 'or_expr'.
 
         Join two checks by the 'or' operator.
         """
-
         return [('or_expr', _checks.OrCheck([check1, check2]))]
 
-    @reducer('or_expr', 'or', 'check')
-    def _extend_or_expr(self, or_expr, _or, check):
+    def _extend_or_expr(
+        self, or_expr: _checks.OrCheck, _or: str, check: _checks.BaseCheck
+    ) -> ReductionResultT:
         """Extend an 'or_expr' by adding one more check."""
-
         return [('or_expr', or_expr.add_check(check))]
 
-    @reducer('not', 'check')
-    def _make_not_expr(self, _not, check):
+    def _make_not_expr(
+        self, _not: str, check: _checks.BaseCheck
+    ) -> ReductionResultT:
         """Invert the result of another check."""
-
         return [('check', _checks.NotCheck(check))]
 
 
-def _parse_check(rule):
+def _parse_check(rule: str) -> _checks.BaseCheck:
     """Parse a single base check rule into an appropriate Check object."""
-
     # Handle the special checks
     if rule == '!':
         return _checks.FalseCheck()
@@ -226,18 +219,17 @@ def _parse_check(rule):
         return _checks.FalseCheck()
 
 
-def _parse_list_rule(rule):
+def _parse_list_rule(rule: Sequence[str | Sequence[str]]) -> _checks.BaseCheck:
     """Translates the old list-of-lists syntax into a tree of Check objects.
 
     Provided for backwards compatibility.
     """
-
     # Empty rule defaults to True
     if not rule:
         return _checks.TrueCheck()
 
     # Outer list is joined by "or"; inner list by "and"
-    or_list = []
+    or_list: list[_checks.BaseCheck] = []
     for inner_rule in rule:
         # Skip empty inner lists
         if not inner_rule:
@@ -269,16 +261,15 @@ def _parse_list_rule(rule):
 _tokenize_re = re.compile(r'\s+')
 
 
-def _parse_tokenize(rule):
+def _parse_tokenize(rule: str) -> Generator[tuple[TokenT, ValueT], None, None]:
     """Tokenizer for the policy language.
 
     Most of the single-character tokens are specified in the
-    _tokenize_re; however, parentheses need to be handled specially,
+    ``_tokenize_re``; however, parentheses need to be handled specially,
     because they can appear inside a check string.  Thankfully, those
     parentheses that appear inside a check string can never occur at
-    the very beginning or end ("%(variable)s" is the correct syntax).
+    the very beginning or end (``"%(variable)s"`` is the correct syntax).
     """
-
     for tok in _tokenize_re.split(rule):
         # Skip empty tokens
         if not tok or tok.isspace():
@@ -319,13 +310,12 @@ def _parse_tokenize(rule):
             yield ')', ')'
 
 
-def _parse_text_rule(rule):
+def _parse_text_rule(rule: str) -> _checks.BaseCheck:
     """Parses policy to the tree.
 
     Translates a policy written in the policy language into a tree of
     Check objects.
     """
-
     # Empty rule means always accept
     if not rule:
         return _checks.TrueCheck()
@@ -345,9 +335,8 @@ def _parse_text_rule(rule):
         return _checks.FalseCheck()
 
 
-def parse_rule(rule):
+def parse_rule(rule: str | Sequence[str | Sequence[str]]) -> _checks.BaseCheck:
     """Parses a policy rule into a tree of :class:`.Check` objects."""
-
     # If the rule is a string, it's in the policy language
     if isinstance(rule, str):
         return _parse_text_rule(rule)
