@@ -25,7 +25,6 @@ LOG = logging.getLogger(__name__)
 
 TokenT: TypeAlias = str
 ValueT: TypeAlias = str | _checks.BaseCheck
-ReductionResultT: TypeAlias = list[tuple[TokenT, ValueT]]
 
 
 class ParseState:
@@ -64,41 +63,65 @@ class ParseState:
                     | ['(', 'and_expr', ')']
                     | ['(', 'or_expr', ')']
                 ):
-                    results = self._wrap_check(*self.values[-3:])
-                    self.tokens[-3:] = [r[0] for r in results]
-                    self.values[-3:] = [r[1] for r in results]
+                    # Turn parenthesized expressions into a 'check' token
+                    check_val = self.values[-2]
+                    self.tokens[-3:] = ['check']
+                    self.values[-3:] = [check_val]
                     return self.reduce()
 
                 # AND expressions
                 case ['check', 'and', 'check']:
-                    results = self._make_and_expr(*self.values[-3:])
-                    self.tokens[-3:] = [r[0] for r in results]
-                    self.values[-3:] = [r[1] for r in results]
+                    # Create an 'and_expr' - join two checks by the 'and'
+                    # operator
+                    check1, check2 = self.values[-3], self.values[-1]
+                    and_check = _checks.AndCheck([check1, check2])
+                    self.tokens[-3:] = ['and_expr']
+                    self.values[-3:] = [and_check]
                     return self.reduce()
 
                 case ['and_expr', 'and', 'check']:
-                    results = self._extend_and_expr(*self.values[-3:])
-                    self.tokens[-3:] = [r[0] for r in results]
-                    self.values[-3:] = [r[1] for r in results]
+                    # Extend an 'and_expr' by adding one more check
+                    and_expr, check = self.values[-3], self.values[-1]
+                    assert isinstance(and_expr, _checks.AndCheck)
+                    assert isinstance(check, _checks.BaseCheck)
+                    extended_and = and_expr.add_check(check)
+                    self.tokens[-3:] = ['and_expr']
+                    self.values[-3:] = [extended_and]
                     return self.reduce()
 
                 case ['or_expr', 'and', 'check']:
-                    results = self._mix_or_and_expr(*self.values[-3:])
-                    self.tokens[-3:] = [r[0] for r in results]
-                    self.values[-3:] = [r[1] for r in results]
+                    # Modify the case 'A or B and C'
+                    or_expr, check = self.values[-3], self.values[-1]
+                    assert isinstance(or_expr, _checks.OrCheck)
+                    assert isinstance(check, _checks.BaseCheck)
+                    or_expr_check, check1 = or_expr.pop_check()
+                    if isinstance(check1, _checks.AndCheck):
+                        and_expr = check1.add_check(check)
+                    else:
+                        and_expr = _checks.AndCheck([check1, check])
+                    result_or = or_expr_check.add_check(and_expr)
+                    self.tokens[-3:] = ['or_expr']
+                    self.values[-3:] = [result_or]
                     return self.reduce()
 
                 # OR expressions
                 case ['check', 'or', 'check'] | ['and_expr', 'or', 'check']:
-                    results = self._make_or_expr(*self.values[-3:])
-                    self.tokens[-3:] = [r[0] for r in results]
-                    self.values[-3:] = [r[1] for r in results]
+                    # Create an 'or_expr' - join two checks by the 'or'
+                    # operator
+                    check1, check2 = self.values[-3], self.values[-1]
+                    or_check = _checks.OrCheck([check1, check2])
+                    self.tokens[-3:] = ['or_expr']
+                    self.values[-3:] = [or_check]
                     return self.reduce()
 
                 case ['or_expr', 'or', 'check']:
-                    results = self._extend_or_expr(*self.values[-3:])
-                    self.tokens[-3:] = [r[0] for r in results]
-                    self.values[-3:] = [r[1] for r in results]
+                    # Extend an 'or_expr' by adding one more check
+                    or_expr, check = self.values[-3], self.values[-1]
+                    assert isinstance(or_expr, _checks.OrCheck)
+                    assert isinstance(check, _checks.BaseCheck)
+                    extended_or = or_expr.add_check(check)
+                    self.tokens[-3:] = ['or_expr']
+                    self.values[-3:] = [extended_or]
                     return self.reduce()
 
         # Try 2-token patterns
@@ -106,9 +129,11 @@ class ParseState:
             match self.tokens[-2:]:
                 # NOT expressions
                 case ['not', 'check']:
-                    results = self._make_not_expr(*self.values[-2:])
-                    self.tokens[-2:] = [r[0] for r in results]
-                    self.values[-2:] = [r[1] for r in results]
+                    # Invert the result of another check
+                    check = self.values[-1]
+                    not_check = _checks.NotCheck(check)
+                    self.tokens[-2:] = ['check']
+                    self.values[-2:] = [not_check]
                     return self.reduce()
 
     def shift(self, tok: TokenT, value: ValueT) -> None:
@@ -136,59 +161,6 @@ class ParseState:
             raise ValueError('Could not parse rule')
 
         return value
-
-    def _wrap_check(
-        self, _p1: str, check: _checks.BaseCheck, _p2: str
-    ) -> ReductionResultT:
-        """Turn parenthesized expressions into a 'check' token."""
-        return [('check', check)]
-
-    def _make_and_expr(
-        self, check1: _checks.BaseCheck, _and: str, check2: _checks.BaseCheck
-    ) -> ReductionResultT:
-        """Create an 'and_expr'.
-
-        Join two checks by the 'and' operator.
-        """
-        return [('and_expr', _checks.AndCheck([check1, check2]))]
-
-    def _mix_or_and_expr(
-        self, or_expr: _checks.OrCheck, _and: str, check: _checks.BaseCheck
-    ) -> ReductionResultT:
-        """Modify the case 'A or B and C'"""
-        or_expr, check1 = or_expr.pop_check()
-        if isinstance(check1, _checks.AndCheck):
-            and_expr = check1.add_check(check)
-        else:
-            and_expr = _checks.AndCheck([check1, check])
-        return [('or_expr', or_expr.add_check(and_expr))]
-
-    def _extend_and_expr(
-        self, and_expr: _checks.AndCheck, _and: str, check: _checks.BaseCheck
-    ) -> ReductionResultT:
-        """Extend an 'and_expr' by adding one more check."""
-        return [('and_expr', and_expr.add_check(check))]
-
-    def _make_or_expr(
-        self, check1: _checks.BaseCheck, _or: str, check2: _checks.BaseCheck
-    ) -> ReductionResultT:
-        """Create an 'or_expr'.
-
-        Join two checks by the 'or' operator.
-        """
-        return [('or_expr', _checks.OrCheck([check1, check2]))]
-
-    def _extend_or_expr(
-        self, or_expr: _checks.OrCheck, _or: str, check: _checks.BaseCheck
-    ) -> ReductionResultT:
-        """Extend an 'or_expr' by adding one more check."""
-        return [('or_expr', or_expr.add_check(check))]
-
-    def _make_not_expr(
-        self, _not: str, check: _checks.BaseCheck
-    ) -> ReductionResultT:
-        """Invert the result of another check."""
-        return [('check', _checks.NotCheck(check))]
 
 
 def _parse_check(rule: str) -> _checks.BaseCheck:

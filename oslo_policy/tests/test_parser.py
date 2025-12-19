@@ -322,92 +322,212 @@ class ParseStateTestCase(test_base.BaseTestCase):
 
         self.assertRaises(ValueError, lambda: state.result)
 
-    def test_wrap_check(self):
+    def test_wrap_check_reduction(self):
+        """Test parenthesized expression reduction via token shifting."""
         state = _parser.ParseState()
         check = _checks.TrueCheck()
 
-        result = state._wrap_check('(', check, ')')
+        # Shift the tokens for a parenthesized expression
+        state.shift('(', '(')
+        state.shift('check', check)
+        state.shift(')', ')')
 
-        self.assertEqual([('check', check)], result)
+        # Should reduce to a single check token
+        self.assertEqual(['check'], state.tokens)
+        self.assertEqual([check], state.values)
+        self.assertEqual(check, state.result)
 
-    def test_make_and_expr(self):
+    def test_make_and_expr_reduction(self):
+        """Test AND expression creation via token shifting."""
         state = _parser.ParseState()
         check1 = _checks.TrueCheck()
         check2 = _checks.FalseCheck()
 
-        result = state._make_and_expr(check1, 'and', check2)
+        # Shift tokens for an AND expression
+        state.shift('check', check1)
+        state.shift('and', 'and')
+        state.shift('check', check2)
 
-        self.assertEqual(1, len(result))
-        token, value = result[0]
-        self.assertEqual('and_expr', token)
-        self.assertIsInstance(value, _checks.AndCheck)
-        assert isinstance(value, _checks.AndCheck)  # narrow type
-        self.assertEqual(2, len(value.rules))
-        self.assertEqual(check1, value.rules[0])
-        self.assertEqual(check2, value.rules[1])
+        # Should reduce to a single and_expr token
+        self.assertEqual(['and_expr'], state.tokens)
+        self.assertEqual(1, len(state.values))
+        result = state.values[0]
+        self.assertIsInstance(result, _checks.AndCheck)
+        assert isinstance(result, _checks.AndCheck)  # narrow type
+        self.assertEqual(2, len(result.rules))
+        self.assertEqual(check1, result.rules[0])
+        self.assertEqual(check2, result.rules[1])
 
-    def test_extend_and_expr(self):
+    def test_extend_and_expr_reduction(self):
+        """Test AND expression extension via token shifting."""
         state = _parser.ParseState()
         check1 = _checks.TrueCheck()
         check2 = _checks.FalseCheck()
-        and_expr = _checks.AndCheck([check1])
+        check3 = _checks.TrueCheck()
 
-        result = state._extend_and_expr(and_expr, 'and', check2)
+        # First create an and_expr
+        state.shift('check', check1)
+        state.shift('and', 'and')
+        state.shift('check', check2)
 
-        self.assertEqual(1, len(result))
-        token, value = result[0]
-        self.assertEqual('and_expr', token)
-        self.assertIsInstance(value, _checks.AndCheck)
-        assert isinstance(value, _checks.AndCheck)  # narrow type
-        self.assertEqual(2, len(value.rules))
-        self.assertEqual(check1, value.rules[0])
-        self.assertEqual(check2, value.rules[1])
+        # Should have an and_expr now
+        self.assertEqual(['and_expr'], state.tokens)
 
-    def test_make_or_expr(self):
+        # Now extend it with another check
+        state.shift('and', 'and')
+        state.shift('check', check3)
+
+        # Should still be a single and_expr token but with 3 checks
+        self.assertEqual(['and_expr'], state.tokens)
+        self.assertEqual(1, len(state.values))
+        result = state.values[0]
+        self.assertIsInstance(result, _checks.AndCheck)
+        assert isinstance(result, _checks.AndCheck)  # narrow type
+        self.assertEqual(3, len(result.rules))
+        self.assertEqual(check1, result.rules[0])
+        self.assertEqual(check2, result.rules[1])
+        self.assertEqual(check3, result.rules[2])
+
+    def test_make_or_expr_reduction(self):
+        """Test OR expression creation via token shifting."""
         state = _parser.ParseState()
         check1 = _checks.TrueCheck()
         check2 = _checks.FalseCheck()
 
-        result = state._make_or_expr(check1, 'or', check2)
+        # Shift tokens for an OR expression
+        state.shift('check', check1)
+        state.shift('or', 'or')
+        state.shift('check', check2)
 
-        self.assertEqual(1, len(result))
-        token, value = result[0]
-        self.assertEqual('or_expr', token)
-        self.assertIsInstance(value, _checks.OrCheck)
-        assert isinstance(value, _checks.OrCheck)  # narrow type
-        self.assertEqual(2, len(value.rules))
-        self.assertEqual(check1, value.rules[0])
-        self.assertEqual(check2, value.rules[1])
+        # Should reduce to a single or_expr token
+        self.assertEqual(['or_expr'], state.tokens)
+        self.assertEqual(1, len(state.values))
+        result = state.values[0]
+        self.assertIsInstance(result, _checks.OrCheck)
+        assert isinstance(result, _checks.OrCheck)  # narrow type
+        self.assertEqual(2, len(result.rules))
+        self.assertEqual(check1, result.rules[0])
+        self.assertEqual(check2, result.rules[1])
 
-    def test_extend_or_expr(self):
+    def test_extend_or_expr_reduction(self):
+        """Test OR expression extension via token shifting."""
         state = _parser.ParseState()
         check1 = _checks.TrueCheck()
         check2 = _checks.FalseCheck()
-        or_expr = _checks.OrCheck([check1])
+        check3 = _checks.TrueCheck()
 
-        result = state._extend_or_expr(or_expr, 'or', check2)
+        # First create an or_expr
+        state.shift('check', check1)
+        state.shift('or', 'or')
+        state.shift('check', check2)
 
-        self.assertEqual(1, len(result))
-        token, value = result[0]
-        self.assertEqual('or_expr', token)
-        self.assertIsInstance(value, _checks.OrCheck)
-        assert isinstance(value, _checks.OrCheck)  # narrow type
-        self.assertEqual(2, len(value.rules))
-        self.assertEqual(check1, value.rules[0])
-        self.assertEqual(check2, value.rules[1])
+        # Should have an or_expr now
+        self.assertEqual(['or_expr'], state.tokens)
 
-    def test_make_not_expr(self):
+        # Now extend it with another check
+        state.shift('or', 'or')
+        state.shift('check', check3)
+
+        # Should still be a single or_expr token but with 3 checks
+        self.assertEqual(['or_expr'], state.tokens)
+        self.assertEqual(1, len(state.values))
+        result = state.values[0]
+        self.assertIsInstance(result, _checks.OrCheck)
+        assert isinstance(result, _checks.OrCheck)  # narrow type
+        self.assertEqual(3, len(result.rules))
+        self.assertEqual(check1, result.rules[0])
+        self.assertEqual(check2, result.rules[1])
+        self.assertEqual(check3, result.rules[2])
+
+    def test_make_not_expr_reduction(self):
+        """Test NOT expression creation via token shifting."""
         state = _parser.ParseState()
         check = _checks.TrueCheck()
 
-        result = state._make_not_expr('not', check)
+        # Shift tokens for a NOT expression
+        state.shift('not', 'not')
+        state.shift('check', check)
 
-        self.assertEqual(1, len(result))
-        token, value = result[0]
-        self.assertEqual('check', token)
-        self.assertIsInstance(value, _checks.NotCheck)
-        assert isinstance(value, _checks.NotCheck)  # narrow type
-        self.assertEqual(check, value.rule)
+        # Should reduce to a single check token with NotCheck
+        self.assertEqual(['check'], state.tokens)
+        self.assertEqual(1, len(state.values))
+        result = state.values[0]
+        self.assertIsInstance(result, _checks.NotCheck)
+        assert isinstance(result, _checks.NotCheck)  # narrow type
+        self.assertEqual(check, result.rule)
+
+    def test_and_expr_with_or_reduction(self):
+        """Test OR expression with AND expression via token shifting."""
+        state = _parser.ParseState()
+        check1 = _checks.TrueCheck()
+        check2 = _checks.FalseCheck()
+        check3 = _checks.TrueCheck()
+
+        # Create and_expr first
+        state.shift('check', check1)
+        state.shift('and', 'and')
+        state.shift('check', check2)
+
+        # Should have an and_expr
+        self.assertEqual(['and_expr'], state.tokens)
+
+        # Now create an OR with it
+        state.shift('or', 'or')
+        state.shift('check', check3)
+
+        # Should reduce to a single or_expr token
+        self.assertEqual(['or_expr'], state.tokens)
+        self.assertEqual(1, len(state.values))
+        result = state.values[0]
+        self.assertIsInstance(result, _checks.OrCheck)
+        assert isinstance(result, _checks.OrCheck)  # narrow type
+        self.assertEqual(2, len(result.rules))
+        # First rule should be the AndCheck
+        self.assertIsInstance(result.rules[0], _checks.AndCheck)
+        # Second rule should be the simple check
+        self.assertEqual(check3, result.rules[1])
+
+    def test_or_expr_with_and_reduction(self):
+        """Test OR expression with AND precedence via token shifting.
+
+        This tests the case 'A or B and C' which should be parsed as 'A or (B
+        and C)'.
+        """
+        state = _parser.ParseState()
+        check1 = _checks.TrueCheck()
+        check2 = _checks.FalseCheck()
+        check3 = _checks.TrueCheck()
+
+        # Create or_expr first
+        state.shift('check', check1)
+        state.shift('or', 'or')
+        state.shift('check', check2)
+
+        # Should have an or_expr
+        self.assertEqual(['or_expr'], state.tokens)
+        initial_or = state.values[0]
+        self.assertIsInstance(initial_or, _checks.OrCheck)
+
+        # Now add AND with higher precedence which should modify the last check
+        state.shift('and', 'and')
+        state.shift('check', check3)
+
+        # Should still be a single or_expr token
+        self.assertEqual(['or_expr'], state.tokens)
+        self.assertEqual(1, len(state.values))
+        result = state.values[0]
+        self.assertIsInstance(result, _checks.OrCheck)
+        assert isinstance(result, _checks.OrCheck)  # narrow type
+        self.assertEqual(2, len(result.rules))
+        # First rule should be the simple check1
+        self.assertEqual(check1, result.rules[0])
+        # Second rule should be an AndCheck of check2 and check3
+        self.assertIsInstance(result.rules[1], _checks.AndCheck)
+        and_rule = result.rules[1]
+        assert isinstance(and_rule, _checks.AndCheck)  # narrow type
+        self.assertEqual(2, len(and_rule.rules))
+        self.assertEqual(check2, and_rule.rules[0])
+        self.assertEqual(check3, and_rule.rules[1])
 
 
 class ParseTextRuleTestCase(test_base.BaseTestCase):
