@@ -132,7 +132,7 @@ class FormatPolicyTest(base.BaseTestCase):
         )
 
     def test_with_scope_types(self):
-        operations = [
+        operations: list[policy.Operation] = [
             {'method': 'GET', 'path': '/foo'},
             {'method': 'POST', 'path': '/some'},
         ]

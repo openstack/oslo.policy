@@ -64,7 +64,7 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=extensions, namespace=['base_rules', 'rules']
+            extensions=extensions, namespace='rules'
         )
 
         output_file = self.get_config_file_fullname('policy.yaml')
@@ -73,11 +73,11 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
         ) as mock_ext_mgr:
             # generate sample-policy file with only rules
             generator._generate_sample(
-                ['base_rules', 'rules'], output_file, include_help=False
+                ['rules'], output_file, include_help=False
             )
             mock_ext_mgr.assert_called_once_with(
                 'oslo.policy.policies',
-                names=['base_rules', 'rules'],
+                names=['rules'],
                 on_load_failure_callback=generator.on_load_failure_callback,
                 invoke_on_load=True,
             )
@@ -104,7 +104,7 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=extensions, namespace=['base_rules', 'rules']
+            extensions=extensions, namespace='rules'
         )
 
         expected = """# Basic admin check
@@ -125,10 +125,10 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
         with mock.patch(
             'stevedore.named.NamedExtensionManager', return_value=test_mgr
         ) as mock_ext_mgr:
-            generator._generate_sample(['base_rules', 'rules'], output_file)
+            generator._generate_sample(['rules'], output_file)
             mock_ext_mgr.assert_called_once_with(
                 'oslo.policy.policies',
-                names=['base_rules', 'rules'],
+                names=['rules'],
                 on_load_failure_callback=generator.on_load_failure_callback,
                 invoke_on_load=True,
             )
@@ -146,7 +146,7 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=extensions, namespace=['base_rules', 'rules']
+            extensions=extensions, namespace='rules'
         )
 
         expected = """# Basic admin check
@@ -167,12 +167,10 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
         with mock.patch(
             'stevedore.named.NamedExtensionManager', return_value=test_mgr
         ) as mock_ext_mgr:
-            generator._generate_sample(
-                ['base_rules', 'rules'], output_file=None
-            )
+            generator._generate_sample(['rules'], output_file=None)
             mock_ext_mgr.assert_called_once_with(
                 'oslo.policy.policies',
-                names=['base_rules', 'rules'],
+                names=['rules'],
                 on_load_failure_callback=generator.on_load_failure_callback,
                 invoke_on_load=True,
             )
@@ -201,7 +199,7 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
             extensions.append(ext)
 
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=extensions, namespace=['rules']
+            extensions=extensions, namespace='rules'
         )
 
         expected = """# DEPRECATED
@@ -248,7 +246,7 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=extensions, namespace=['rules']
+            extensions=extensions, namespace='rules'
         )
 
         expected = """# Create a bar.
@@ -307,7 +305,7 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=extensions, namespace=['rules']
+            extensions=extensions, namespace='rules'
         )
 
         expected = """# Create a bar.
@@ -342,7 +340,7 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
             name='check_rule', entry_point=None, plugin=None, obj=rule
         )
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=[ext], namespace=['check_rule']
+            extensions=[ext], namespace='check_rule'
         )
 
         output_file = self.get_config_file_fullname('policy.yaml')
@@ -448,7 +446,7 @@ class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=extensions, namespace=['base_rules', 'rules']
+            extensions=extensions, namespace='rules'
         )
 
         output_file = self.get_config_file_fullname('policy.json')
@@ -457,14 +455,14 @@ class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
         ) as mock_ext_mgr:
             # generate sample-policy file with only rules
             generator._generate_sample(
-                ['base_rules', 'rules'],
+                ['rules'],
                 output_file,
                 output_format='json',
                 include_help=False,
             )
             mock_ext_mgr.assert_called_once_with(
                 'oslo.policy.policies',
-                names=['base_rules', 'rules'],
+                names=['rules'],
                 on_load_failure_callback=generator.on_load_failure_callback,
                 invoke_on_load=True,
             )
@@ -491,7 +489,7 @@ class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=extensions, namespace=['base_rules', 'rules']
+            extensions=extensions, namespace='rules'
         )
 
         expected = """{
@@ -506,13 +504,13 @@ class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
             'stevedore.named.NamedExtensionManager', return_value=test_mgr
         ) as mock_ext_mgr:
             generator._generate_sample(
-                ['base_rules', 'rules'],
+                ['rules'],
                 output_file=output_file,
                 output_format='json',
             )
             mock_ext_mgr.assert_called_once_with(
                 'oslo.policy.policies',
-                names=['base_rules', 'rules'],
+                names=['rules'],
                 on_load_failure_callback=generator.on_load_failure_callback,
                 invoke_on_load=True,
             )
@@ -530,7 +528,7 @@ class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=extensions, namespace=['base_rules', 'rules']
+            extensions=extensions, namespace='rules'
         )
 
         expected = """{
@@ -545,11 +543,11 @@ class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
             'stevedore.named.NamedExtensionManager', return_value=test_mgr
         ) as mock_ext_mgr:
             generator._generate_sample(
-                ['base_rules', 'rules'], output_file=None, output_format='json'
+                ['rules'], output_file=None, output_format='json'
             )
             mock_ext_mgr.assert_called_once_with(
                 'oslo.policy.policies',
-                names=['base_rules', 'rules'],
+                names=['rules'],
                 on_load_failure_callback=generator.on_load_failure_callback,
                 invoke_on_load=True,
             )
@@ -565,7 +563,7 @@ class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=extensions, namespace=['base_rules', 'rules']
+            extensions=extensions, namespace='rules'
         )
 
         output_file = self.get_config_file_fullname('policy.json')
@@ -573,7 +571,7 @@ class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
             'stevedore.named.NamedExtensionManager', return_value=test_mgr
         ):
             generator._generate_sample(
-                ['base_rules', 'rules'], output_file, output_format='json'
+                ['rules'], output_file, output_format='json'
             )
             mock_log.warning.assert_any_call(policy.WARN_JSON)
 
@@ -624,7 +622,7 @@ class GeneratePolicyTestCase(base.PolicyBaseTestCase):
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=extensions, namespace=['base_rules', 'rules']
+            extensions=extensions, namespace='rules'
         )
 
         # Write the policy file for an enforcer to load
@@ -634,7 +632,7 @@ class GeneratePolicyTestCase(base.PolicyBaseTestCase):
         ):
             # generate sample-policy file with only rules
             generator._generate_sample(
-                ['base_rules', 'rules'], sample_file, include_help=False
+                ['rules'], sample_file, include_help=False
             )
 
         enforcer = policy.Enforcer(self.conf, policy_file='policy-sample.yaml')
@@ -693,7 +691,7 @@ class ListRedundantTestCase(base.PolicyBaseTestCase):
             )
             extensions.append(ext)
         test_mgr = stevedore.named.NamedExtensionManager.make_test_instance(
-            extensions=extensions, namespace=['base_rules', 'rules']
+            extensions=extensions, namespace='rules'
         )
 
         # Write the policy file for an enforcer to load
@@ -703,7 +701,7 @@ class ListRedundantTestCase(base.PolicyBaseTestCase):
         ):
             # generate sample-policy file with only rules
             generator._generate_sample(
-                ['base_rules', 'rules'], sample_file, include_help=False
+                ['rules'], sample_file, include_help=False
             )
 
         enforcer = policy.Enforcer(self.conf, policy_file='policy-sample.yaml')

@@ -59,7 +59,7 @@ class FieldCheck(_checks.Check):
         self.field = field
         self.value = value
 
-    def __call__(self, target_dict, cred_dict, enforcer):
+    def __call__(self, target, cred, enforcer, current_rule=None):
         return True
 
 
@@ -77,32 +77,55 @@ class RulesTestCase(test_base.BaseTestCase):
         self.assertIsNone(rules.default_rule)
 
     def test_init(self):
-        rules = policy.Rules(dict(a=1, b=2, c=3), 'a')
+        rule_a = _checks.FalseCheck()
+        rule_b = _checks.TrueCheck()
+        rule_c = _checks.TrueCheck()
 
-        self.assertEqual(dict(a=1, b=2, c=3), rules)
+        rules = policy.Rules({'a': rule_a, 'b': rule_b, 'c': rule_c}, 'a')
+
+        self.assertEqual({'a': rule_a, 'b': rule_b, 'c': rule_c}, rules)
         self.assertEqual('a', rules.default_rule)
 
     def test_no_default(self):
-        rules = policy.Rules(dict(a=1, b=2, c=3))
+        rules = policy.Rules(
+            {
+                'a': _checks.FalseCheck(),
+                'b': _checks.FalseCheck(),
+                'c': _checks.FalseCheck(),
+            },
+        )
 
         self.assertRaises(KeyError, lambda: rules['d'])
 
     def test_missing_default(self):
-        rules = policy.Rules(dict(a=1, c=3), 'b')
+        rules = policy.Rules(
+            {'a': _checks.FalseCheck(), 'c': _checks.FalseCheck()},
+            'b',
+        )
 
         self.assertRaises(KeyError, lambda: rules['d'])
 
     def test_with_default(self):
-        rules = policy.Rules(dict(a=1, b=2, c=3), 'b')
+        rules = policy.Rules(
+            {
+                'a': _checks.FalseCheck(),
+                'b': _checks.FalseCheck(),
+                'c': _checks.FalseCheck(),
+            },
+            'b',
+        )
 
-        self.assertEqual(2, rules['d'])
+        self.assertIs(rules['b'], rules['d'])
 
     def test_retrieval(self):
-        rules = policy.Rules(dict(a=1, b=2, c=3), 'b')
+        rule_a = _checks.FalseCheck()
+        rule_b = _checks.FalseCheck()
+        rule_c = _checks.FalseCheck()
+        rules = policy.Rules({'a': rule_a, 'b': rule_b, 'c': rule_c}, 'b')
 
-        self.assertEqual(1, rules['a'])
-        self.assertEqual(2, rules['b'])
-        self.assertEqual(3, rules['c'])
+        self.assertIs(rule_a, rules['a'])
+        self.assertIs(rule_b, rules['b'])
+        self.assertIs(rule_c, rules['c'])
 
     @mock.patch.object(_parser, 'parse_rule', lambda x: x)
     def test_load_json(self):
@@ -119,10 +142,13 @@ class RulesTestCase(test_base.BaseTestCase):
 
         self.assertEqual('default', rules.default_rule)
         self.assertEqual(
-            dict(
-                admin_or_owner=[['role:admin'], ['project_id:%(project_id)s']],
-                default=[],
-            ),
+            {
+                'admin_or_owner': [
+                    ['role:admin'],
+                    ['project_id:%(project_id)s'],
+                ],
+                'default': [],
+            },
             rules,
         )
 
@@ -186,10 +212,10 @@ default: []
 
         self.assertEqual('default', rules.default_rule)
         self.assertEqual(
-            dict(
-                admin_or_owner='role:admin or project_id:%(project_id)s',
-                default=[],
-            ),
+            {
+                'admin_or_owner': 'role:admin or project_id:%(project_id)s',
+                'default': [],
+            },
             rules,
         )
 
@@ -215,13 +241,13 @@ default: [
 
     def test_str(self):
         exemplar = jsonutils.dumps(
-            {'admin_or_owner': 'role:admin or project_id:%(project_id)s'},
+            {'admin_or_owner': '(role:admin or project_id:%(project_id)s)'},
             indent=4,
         )
-        rules = policy.Rules(
-            dict(
-                admin_or_owner='role:admin or project_id:%(project_id)s',
-            )
+        rules = policy.Rules.from_dict(
+            {
+                'admin_or_owner': 'role:admin or project_id:%(project_id)s',
+            }
         )
 
         self.assertEqual(exemplar, str(rules))
@@ -229,9 +255,9 @@ default: [
     def test_str_true(self):
         exemplar = jsonutils.dumps({'admin_or_owner': ''}, indent=4)
         rules = policy.Rules(
-            dict(
-                admin_or_owner=_checks.TrueCheck(),
-            )
+            {
+                'admin_or_owner': _checks.TrueCheck(),
+            }
         )
 
         self.assertEqual(exemplar, str(rules))
@@ -240,7 +266,7 @@ default: [
         with self.assertWarnsRegex(
             DeprecationWarning, r'load_json\(\).*load\(\)'
         ):
-            policy.Rules.load_json(jsonutils.dumps({'default': ''}, 'default'))
+            policy.Rules.load_json(jsonutils.dumps({'default': ''}))
 
 
 class EnforcerTest(base.PolicyBaseTestCase):
@@ -602,7 +628,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
     @mock.patch.object(_cache_handler, 'delete_cached_file', mock.Mock())
     def test_clear(self):
         # Make sure the rules are reset
-        self.enforcer.rules = 'spam'
+        self.enforcer.rules = policy.Rules({}, None)
         self.enforcer.clear()
         self.assertEqual({}, self.enforcer.rules)
         self.assertIsNone(self.enforcer.default_rule)
@@ -842,10 +868,11 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.assertEqual(('raise_error.yaml',), e.config_files)
 
     def test_enforcer_set_rules(self):
+        rules: dict[str, _checks.BaseCheck] = {'test': _checks.FalseCheck()}
         self.enforcer.load_rules()
-        self.enforcer.set_rules({'test': 'test1'})
+        self.enforcer.set_rules(rules)
         self.enforcer.load_rules()
-        self.assertEqual({'test': 'test1'}, self.enforcer.rules)
+        self.assertEqual(rules, self.enforcer.rules)
 
     def test_enforcer_default_rule_name(self):
         enforcer = policy.Enforcer(self.conf, default_rule='foo_rule')
@@ -877,14 +904,22 @@ class EnforcerTest(base.PolicyBaseTestCase):
         )
 
         self.enforcer.register_default(rule_original)
-        self.enforcer.registered_rules['test']._check_str = 'role:admin'
-        self.enforcer.registered_rules['test']._check = 'role:admin'
+        self.assertEqual(
+            self.enforcer.registered_rules['test'].check_str, 'role:owner'
+        )
+        self.assertEqual(
+            self.enforcer.registered_rules['test'].check.match, 'owner'
+        )
 
+        self.enforcer.registered_rules['test']._check_str = 'role:admin'
+        self.enforcer.registered_rules['test']._check = _parser.parse_rule(
+            'role:admin'
+        )
         self.assertEqual(
             self.enforcer.registered_rules['test'].check_str, 'role:admin'
         )
         self.assertEqual(
-            self.enforcer.registered_rules['test'].check, 'role:admin'
+            self.enforcer.registered_rules['test'].check.match, 'admin'
         )
         self.assertEqual(rule_original.check_str, 'role:owner')
         self.assertEqual(rule_original.check.__str__(), 'role:owner')
@@ -923,8 +958,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.register_default(rule)
 
         request_context = context.RequestContext()
-        target_dict = {}
-        self.enforcer.enforce('fake_rule', target_dict, request_context)
+        self.enforcer.enforce('fake_rule', {}, request_context)
 
     def test_enforcer_accepts_subclassed_context_objects(self):
         rule = policy.RuleDefault(name='fake_rule', check_str='role:test')
@@ -934,8 +968,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
             pass
 
         request_context = SpecializedContext()
-        target_dict = {}
-        self.enforcer.enforce('fake_rule', target_dict, request_context)
+        self.enforcer.enforce('fake_rule', {}, request_context)
 
     def test_enforcer_rejects_non_context_objects(self):
         rule = policy.RuleDefault(name='fake_rule', check_str='role:test')
@@ -945,12 +978,11 @@ class EnforcerTest(base.PolicyBaseTestCase):
             pass
 
         request_context = InvalidContext()
-        target_dict = {}
         self.assertRaises(
             policy.InvalidContextObject,
             self.enforcer.enforce,
             'fake_rule',
-            target_dict,
+            {},
             request_context,
         )
 
@@ -961,8 +993,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.register_default(rule)
 
         request_context = context.RequestContext()
-        target_dict = {}
-        self.enforcer.enforce('fake_rule', target_dict, request_context)
+        self.enforcer.enforce('fake_rule', {}, request_context)
         map_mock.assert_called_once_with(request_context)
 
     def test_enforcer_consolidates_context_attributes_with_creds(self):
@@ -986,8 +1017,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
 
         request_context = context.RequestContext()
         policy_values = request_context.to_policy_values()
-        target_dict = {}
-        self.enforcer.enforce('fake_rule', target_dict, policy_values)
+        self.enforcer.enforce('fake_rule', {}, policy_values)
 
     def test_enforcer_understands_system_scope(self):
         self.conf.set_override('enforce_scope', True, group='oslo_policy')
@@ -997,8 +1027,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.register_default(rule)
 
         ctx = context.RequestContext(system_scope='all')
-        target_dict = {}
-        self.enforcer.enforce('fake_rule', target_dict, ctx)
+        self.enforcer.enforce('fake_rule', {}, ctx)
 
     def test_enforcer_understands_system_scope_creds_dict(self):
         self.conf.set_override('enforce_scope', True, group='oslo_policy')
@@ -1011,8 +1040,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         creds = ctx.to_dict()
         creds['system_scope'] = 'all'
 
-        target_dict = {}
-        self.enforcer.enforce('fake_rule', target_dict, creds)
+        self.enforcer.enforce('fake_rule', {}, creds)
 
     def test_enforcer_raises_invalid_scope_with_system_scope_type(self):
         self.conf.set_override('enforce_scope', True, group='oslo_policy')
@@ -1023,20 +1051,17 @@ class EnforcerTest(base.PolicyBaseTestCase):
 
         # model a domain-scoped token, which should fail enforcement
         ctx = context.RequestContext(domain_id='fake')
-        target_dict = {}
         self.assertRaises(
             policy.InvalidScope,
             self.enforcer.enforce,
             'fake_rule',
-            target_dict,
+            {},
             ctx,
             do_raise=True,
         )
         # and the same should return False if do_raise=False
         self.assertFalse(
-            self.enforcer.enforce(
-                'fake_rule', target_dict, ctx, do_raise=False
-            )
+            self.enforcer.enforce('fake_rule', {}, ctx, do_raise=False)
         )
 
         # model a project-scoped token, which should fail enforcement
@@ -1045,15 +1070,13 @@ class EnforcerTest(base.PolicyBaseTestCase):
             policy.InvalidScope,
             self.enforcer.enforce,
             'fake_rule',
-            target_dict,
+            {},
             ctx,
             True,
         )
         # and the same should return False if do_raise=False
         self.assertFalse(
-            self.enforcer.enforce(
-                'fake_rule', target_dict, ctx, do_raise=False
-            )
+            self.enforcer.enforce('fake_rule', {}, ctx, do_raise=False)
         )
 
     def test_enforcer_understands_domain_scope(self):
@@ -1064,8 +1087,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.register_default(rule)
 
         ctx = context.RequestContext(domain_id='fake')
-        target_dict = {}
-        self.enforcer.enforce('fake_rule', target_dict, ctx)
+        self.enforcer.enforce('fake_rule', {}, ctx)
 
     def test_enforcer_raises_invalid_scope_with_domain_scope_type(self):
         self.conf.set_override('enforce_scope', True, group='oslo_policy')
@@ -1076,20 +1098,17 @@ class EnforcerTest(base.PolicyBaseTestCase):
 
         # model a system-scoped token, which should fail enforcement
         ctx = context.RequestContext(system_scope='all')
-        target_dict = {}
         self.assertRaises(
             policy.InvalidScope,
             self.enforcer.enforce,
             'fake_rule',
-            target_dict,
+            {},
             ctx,
             True,
         )
         # and the same should return False if do_raise=False
         self.assertFalse(
-            self.enforcer.enforce(
-                'fake_rule', target_dict, ctx, do_raise=False
-            )
+            self.enforcer.enforce('fake_rule', {}, ctx, do_raise=False)
         )
 
         # model a project-scoped token, which should fail enforcement
@@ -1098,15 +1117,13 @@ class EnforcerTest(base.PolicyBaseTestCase):
             policy.InvalidScope,
             self.enforcer.enforce,
             'fake_rule',
-            target_dict,
+            {},
             ctx,
             True,
         )
         # and the same should return False if do_raise=False
         self.assertFalse(
-            self.enforcer.enforce(
-                'fake_rule', target_dict, ctx, do_raise=False
-            )
+            self.enforcer.enforce('fake_rule', {}, ctx, do_raise=False)
         )
 
     def test_enforcer_understands_project_scope(self):
@@ -1117,8 +1134,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.register_default(rule)
 
         ctx = context.RequestContext(project_id='fake')
-        target_dict = {}
-        self.enforcer.enforce('fake_rule', target_dict, ctx)
+        self.enforcer.enforce('fake_rule', {}, ctx)
 
     def test_enforcer_raises_invalid_scope_with_project_scope_type(self):
         self.conf.set_override('enforce_scope', True, group='oslo_policy')
@@ -1129,20 +1145,17 @@ class EnforcerTest(base.PolicyBaseTestCase):
 
         # model a system-scoped token, which should fail enforcement
         ctx = context.RequestContext(system_scope='all')
-        target_dict = {}
         self.assertRaises(
             policy.InvalidScope,
             self.enforcer.enforce,
             'fake_rule',
-            target_dict,
+            {},
             ctx,
             True,
         )
         # and the same should return False if do_raise=False
         self.assertFalse(
-            self.enforcer.enforce(
-                'fake_rule', target_dict, ctx, do_raise=False
-            )
+            self.enforcer.enforce('fake_rule', {}, ctx, do_raise=False)
         )
 
         # model a domain-scoped token, which should fail enforcement
@@ -1151,15 +1164,13 @@ class EnforcerTest(base.PolicyBaseTestCase):
             policy.InvalidScope,
             self.enforcer.enforce,
             'fake_rule',
-            target_dict,
+            {},
             ctx,
             True,
         )
         # and the same should return False if do_raise=False
         self.assertFalse(
-            self.enforcer.enforce(
-                'fake_rule', target_dict, ctx, do_raise=False
-            )
+            self.enforcer.enforce('fake_rule', {}, ctx, do_raise=False)
         )
 
     def test_enforce_scope_with_subclassed_checks_when_scope_not_set(self):
@@ -1226,25 +1237,22 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
 
     def test_check_explicit(self):
         rule = base.FakeCheck()
-        creds = {}
-        result = self.enforcer.enforce(rule, 'target', creds)
-        self.assertEqual(('target', creds, self.enforcer), result)
+        result = self.enforcer.enforce(rule, {'foo': 'bar'}, {})
+        self.assertEqual(({'foo': 'bar'}, {}, self.enforcer), result)
 
     def test_check_no_rules(self):
         # Clear the policy.yaml file created in setUp()
         self.create_config_file('policy.yaml', '{}')
         self.enforcer.default_rule = None
         self.enforcer.load_rules()
-        creds = {}
-        result = self.enforcer.enforce('rule', 'target', creds)
+        result = self.enforcer.enforce('rule', {'foo': 'bar'}, {})
         self.assertFalse(result)
 
     def test_check_with_rule(self):
-        self.enforcer.set_rules(dict(default=base.FakeCheck()))
-        creds = {}
-        result = self.enforcer.enforce('default', 'target', creds)
+        self.enforcer.set_rules({'default': base.FakeCheck()})
+        result = self.enforcer.enforce('default', {'foo': 'bar'}, {})
 
-        self.assertEqual(('target', creds, self.enforcer), result)
+        self.assertEqual(({'foo': 'bar'}, {}, self.enforcer), result)
 
     def test_check_rule_not_exist_not_empty_policy_file(self):
         # If the rule doesn't exist, then enforce() fails rather than KeyError.
@@ -1253,36 +1261,33 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
         self.create_config_file('policy.yaml', yaml.dump({'a_rule': []}))
         self.enforcer.default_rule = None
         self.enforcer.load_rules()
-        creds = {}
-        result = self.enforcer.enforce('rule', 'target', creds)
+        result = self.enforcer.enforce('rule', {'foo': 'bar'}, {})
         self.assertFalse(result)
 
     def test_check_raise_default(self):
         # When do_raise=True and exc is not used then PolicyNotAuthorized is
         # raised.
-        self.enforcer.set_rules(dict(default=_checks.FalseCheck()))
+        self.enforcer.set_rules({'default': _checks.FalseCheck()})
 
-        creds = {}
         self.assertRaisesRegex(
             policy.PolicyNotAuthorized,
             ' is disallowed by policy',
             self.enforcer.enforce,
             'rule',
             'target',
-            creds,
+            {},
             True,
         )
 
     def test_check_raise_custom_exception(self):
-        self.enforcer.set_rules(dict(default=_checks.FalseCheck()))
+        self.enforcer.set_rules({'default': _checks.FalseCheck()})
 
-        creds = {}
         exc = self.assertRaises(
             MyException,
             self.enforcer.enforce,
             'rule',
             'target',
-            creds,
+            {},
             True,
             MyException,
             'arg1',
@@ -1291,7 +1296,7 @@ class CheckFunctionTestCase(base.PolicyBaseTestCase):
             kw2='kwarg2',
         )
         self.assertEqual(('arg1', 'arg2'), exc.args)
-        self.assertEqual(dict(kw1='kwarg1', kw2='kwarg2'), exc.kwargs)
+        self.assertEqual({'kw1': 'kwarg1', 'kw2': 'kwarg2'}, exc.kwargs)
 
 
 class RegisterCheckTestCase(base.PolicyBaseTestCase):
@@ -1302,7 +1307,7 @@ class RegisterCheckTestCase(base.PolicyBaseTestCase):
 
         policy.register('spam', TestCheck)
 
-        self.assertEqual(dict(spam=TestCheck), _checks.registered_checks)
+        self.assertEqual({'spam': TestCheck}, _checks.registered_checks)
 
 
 class BaseCheckTypesTestCase(base.PolicyBaseTestCase):
@@ -1319,7 +1324,7 @@ class BaseCheckTypesTestCase(base.PolicyBaseTestCase):
             policy.RuleCheck,
         ):
 
-            class TestCheck(check_type):
+            class TestCheck(check_type):  # type: ignore
                 pass
 
             check_str = str(check_type)
@@ -2060,9 +2065,10 @@ class DocumentedRuleDefaultDeprecationTestCase(base.PolicyBaseTestCase):
         # Hacky way to check whether _handle_deprecated_rule was called again.
         # If a second call to load_rules doesn't overwrite our dummy rule then
         # we know it didn't call the deprecated rule function again.
-        enforcer.rules['foo:create_bar'] = 'foo:bar'
+        fake_check = _checks.FalseCheck()
+        enforcer.rules['foo:create_bar'] = fake_check
         enforcer.load_rules()
-        self.assertEqual('foo:bar', enforcer.rules['foo:create_bar'])
+        self.assertEqual(fake_check, enforcer.rules['foo:create_bar'])
 
 
 class DocumentedRuleDefaultTestCase(base.PolicyBaseTestCase):

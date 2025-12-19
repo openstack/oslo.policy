@@ -100,6 +100,7 @@ class ParseListRuleTestCase(test_base.BaseTestCase):
         result = _parser._parse_list_rule(['rule'])
 
         self.assertIsInstance(result, base.FakeCheck)
+        assert isinstance(result, base.FakeCheck)  # narrow type
         self.assertEqual('rule', result.result)
         self.assertEqual('rule', str(result))
 
@@ -108,6 +109,7 @@ class ParseListRuleTestCase(test_base.BaseTestCase):
         result = _parser._parse_list_rule([['rule']])
 
         self.assertIsInstance(result, base.FakeCheck)
+        assert isinstance(result, base.FakeCheck)  # narrow type
         self.assertEqual('rule', result.result)
         self.assertEqual('rule', str(result))
 
@@ -116,10 +118,13 @@ class ParseListRuleTestCase(test_base.BaseTestCase):
         result = _parser._parse_list_rule([['rule1', 'rule2']])
 
         self.assertIsInstance(result, _checks.AndCheck)
+        assert isinstance(result, _checks.AndCheck)  # narrow type
         self.assertEqual(2, len(result.rules))
         for i, value in enumerate(['rule1', 'rule2']):
-            self.assertIsInstance(result.rules[i], base.FakeCheck)
-            self.assertEqual(value, result.rules[i].result)
+            rule = result.rules[i]
+            self.assertIsInstance(rule, base.FakeCheck)
+            assert isinstance(rule, base.FakeCheck)  # narrow type
+            self.assertEqual(value, rule.result)
         self.assertEqual('(rule1 and rule2)', str(result))
 
     @mock.patch.object(_parser, '_parse_check', base.FakeCheck)
@@ -127,10 +132,13 @@ class ParseListRuleTestCase(test_base.BaseTestCase):
         result = _parser._parse_list_rule([['rule1'], ['rule2']])
 
         self.assertIsInstance(result, _checks.OrCheck)
+        assert isinstance(result, _checks.OrCheck)  # narrow type
         self.assertEqual(2, len(result.rules))
         for i, value in enumerate(['rule1', 'rule2']):
-            self.assertIsInstance(result.rules[i], base.FakeCheck)
-            self.assertEqual(value, result.rules[i].result)
+            rule = result.rules[i]
+            self.assertIsInstance(rule, base.FakeCheck)
+            assert isinstance(rule, base.FakeCheck)  # narrow type
+            self.assertEqual(value, rule.result)
         self.assertEqual('(rule1 or rule2)', str(result))
 
     @mock.patch.object(_parser, '_parse_check', base.FakeCheck)
@@ -140,13 +148,18 @@ class ParseListRuleTestCase(test_base.BaseTestCase):
         )
 
         self.assertIsInstance(result, _checks.OrCheck)
+        assert isinstance(result, _checks.OrCheck)  # narrow type
         self.assertEqual(2, len(result.rules))
         for i, values in enumerate([['rule1', 'rule2'], ['rule3', 'rule4']]):
-            self.assertIsInstance(result.rules[i], _checks.AndCheck)
-            self.assertEqual(2, len(result.rules[i].rules))
+            rule = result.rules[i]
+            self.assertIsInstance(rule, _checks.AndCheck)
+            assert isinstance(rule, _checks.AndCheck)  # narrow type
+            self.assertEqual(2, len(rule.rules))
             for j, value in enumerate(values):
-                self.assertIsInstance(result.rules[i].rules[j], base.FakeCheck)
-                self.assertEqual(value, result.rules[i].rules[j].result)
+                sub_rule = rule.rules[j]
+                assert isinstance(sub_rule, base.FakeCheck)  # narrow type
+                self.assertIsInstance(sub_rule, base.FakeCheck)
+                self.assertEqual(value, sub_rule.result)
         self.assertEqual(
             '((rule1 and rule2) or (rule3 and rule4))', str(result)
         )
