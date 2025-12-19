@@ -17,6 +17,7 @@
 import abc
 import ast
 import inspect
+from typing import Any
 
 import stevedore
 
@@ -84,11 +85,15 @@ class BaseCheck(metaclass=abc.ABCMeta):
 
     scope_types = None
 
+    def __eq__(self, other: Any) -> bool:
+        """Compare objects."""
+        return (
+            type(self) is type(other) and self.scope_types == other.scope_types
+        )
+
     @abc.abstractmethod
     def __str__(self):
         """String representation of the Check tree rooted at this node."""
-
-        pass
 
     @abc.abstractmethod
     def __call__(self, target, creds, enforcer, current_rule=None):
@@ -134,6 +139,13 @@ class Check(BaseCheck):
         self.kind = kind
         self.match = match
 
+    def __eq__(self, other: Any) -> bool:
+        return (
+            type(self) is type(other)
+            and self.kind == other.kind
+            and self.match == other.match
+        )
+
     def __str__(self):
         """Return a string representation of this check."""
 
@@ -143,6 +155,9 @@ class Check(BaseCheck):
 class NotCheck(BaseCheck):
     def __init__(self, rule):
         self.rule = rule
+
+    def __eq__(self, other: Any) -> bool:
+        return type(self) is type(other) and self.rule == other.rule
 
     def __str__(self):
         """Return a string representation of this check."""
@@ -161,6 +176,9 @@ class NotCheck(BaseCheck):
 class AndCheck(BaseCheck):
     def __init__(self, rules):
         self.rules = rules
+
+    def __eq__(self, other: Any) -> bool:
+        return type(self) is type(other) and self.rules == other.rules
 
     def __str__(self):
         """Return a string representation of this check."""
@@ -196,6 +214,9 @@ class AndCheck(BaseCheck):
 class OrCheck(BaseCheck):
     def __init__(self, rules):
         self.rules = rules
+
+    def __eq__(self, other: Any) -> bool:
+        return type(self) is type(other) and self.rules == other.rules
 
     def __str__(self):
         """Return a string representation of this check."""

@@ -17,14 +17,39 @@
 import logging
 import re
 from collections.abc import Generator, Sequence
-from typing import TypeAlias
+from typing import Any, Generic, TypeAlias, TypeVar
 
 from oslo_policy import _checks
 
 LOG = logging.getLogger(__name__)
 
+T = TypeVar('T')
 TokenT: TypeAlias = str
 ValueT: TypeAlias = str | _checks.BaseCheck
+
+
+class Token(Generic[T]):
+    def __init__(self, value: T) -> None:
+        self.value = value
+
+    def __repr__(self) -> str:
+        return f'<{self.__class__.__qualname__}({self.value})'
+
+    def __eq__(self, other: Any) -> bool:
+        return type(self) is type(other) and self.value == other.value
+
+
+# fmt: off
+class CheckToken(Token[_checks.BaseCheck]): ...
+class AndExprToken(Token[_checks.AndCheck]): ...
+class OrExprToken(Token[_checks.OrCheck]): ...
+class AndToken(Token[str]): ...
+class OrToken(Token[str]): ...
+class NotToken(Token[str]): ...
+class LeftParamToken(Token[str]): ...
+class RightParamToken(Token[str]): ...
+class StringToken(Token[str]): ...
+# fmt: on
 
 
 class ParseState:
@@ -44,8 +69,7 @@ class ParseState:
 
     def __init__(self) -> None:
         """Initialize the ParseState."""
-        self.tokens: list[TokenT] = []
-        self.values: list[ValueT] = []
+        self.stack: list[Token[Any]] = []
 
     def reduce(self) -> None:
         """Perform a greedy reduction of the token stream.
@@ -55,94 +79,85 @@ class ParseState:
         recursively to search for any more possible reductions.
         """
         # Try 3-token patterns first
-        if len(self.tokens) >= 3:
-            match self.tokens[-3:]:
+        if len(self.stack) >= 3:
+            token_a, token_b, token_c = self.stack[-3:]
+            match [token_a, token_b, token_c]:
                 # Parenthesized expressions
                 case (
-                    ['(', 'check', ')']
-                    | ['(', 'and_expr', ')']
-                    | ['(', 'or_expr', ')']
+                    [LeftParamToken(), CheckToken(), RightParamToken()]
+                    | [LeftParamToken(), AndExprToken(), RightParamToken()]
+                    | [LeftParamToken(), OrExprToken(), RightParamToken()]
                 ):
                     # Turn parenthesized expressions into a 'check' token
-                    check_val = self.values[-2]
-                    self.tokens[-3:] = ['check']
-                    self.values[-3:] = [check_val]
+                    self.stack[-3:] = [CheckToken(token_b.value)]
                     return self.reduce()
 
                 # AND expressions
-                case ['check', 'and', 'check']:
+                case [CheckToken(), AndToken(), CheckToken()]:
                     # Create an 'and_expr' - join two checks by the 'and'
                     # operator
-                    check1, check2 = self.values[-3], self.values[-1]
+                    check1, check2 = token_a.value, token_c.value
                     and_check = _checks.AndCheck([check1, check2])
-                    self.tokens[-3:] = ['and_expr']
-                    self.values[-3:] = [and_check]
+                    self.stack[-3:] = [AndExprToken(and_check)]
                     return self.reduce()
 
-                case ['and_expr', 'and', 'check']:
+                case [AndExprToken(), AndToken(), CheckToken()]:
                     # Extend an 'and_expr' by adding one more check
-                    and_expr, check = self.values[-3], self.values[-1]
-                    assert isinstance(and_expr, _checks.AndCheck)
-                    assert isinstance(check, _checks.BaseCheck)
+                    and_expr, check = token_a.value, token_c.value
                     extended_and = and_expr.add_check(check)
-                    self.tokens[-3:] = ['and_expr']
-                    self.values[-3:] = [extended_and]
+                    self.stack[-3:] = [AndExprToken(extended_and)]
                     return self.reduce()
 
-                case ['or_expr', 'and', 'check']:
+                case [OrExprToken(), AndToken(), CheckToken()]:
                     # Modify the case 'A or B and C'
-                    or_expr, check = self.values[-3], self.values[-1]
-                    assert isinstance(or_expr, _checks.OrCheck)
-                    assert isinstance(check, _checks.BaseCheck)
+                    or_expr, check = token_a.value, token_c.value
                     or_expr_check, check1 = or_expr.pop_check()
                     if isinstance(check1, _checks.AndCheck):
                         and_expr = check1.add_check(check)
                     else:
                         and_expr = _checks.AndCheck([check1, check])
                     result_or = or_expr_check.add_check(and_expr)
-                    self.tokens[-3:] = ['or_expr']
-                    self.values[-3:] = [result_or]
+                    self.stack[-3:] = [OrExprToken(result_or)]
                     return self.reduce()
 
                 # OR expressions
-                case ['check', 'or', 'check'] | ['and_expr', 'or', 'check']:
+                case [CheckToken(), OrToken(), CheckToken()] | [
+                    AndExprToken(),
+                    OrToken(),
+                    CheckToken(),
+                ]:
                     # Create an 'or_expr' - join two checks by the 'or'
                     # operator
-                    check1, check2 = self.values[-3], self.values[-1]
+                    check1, check2 = token_a.value, token_c.value
                     or_check = _checks.OrCheck([check1, check2])
-                    self.tokens[-3:] = ['or_expr']
-                    self.values[-3:] = [or_check]
+                    self.stack[-3:] = [OrExprToken(or_check)]
                     return self.reduce()
 
-                case ['or_expr', 'or', 'check']:
+                case [OrExprToken(), OrToken(), CheckToken()]:
                     # Extend an 'or_expr' by adding one more check
-                    or_expr, check = self.values[-3], self.values[-1]
-                    assert isinstance(or_expr, _checks.OrCheck)
-                    assert isinstance(check, _checks.BaseCheck)
+                    or_expr, check = token_a.value, token_c.value
                     extended_or = or_expr.add_check(check)
-                    self.tokens[-3:] = ['or_expr']
-                    self.values[-3:] = [extended_or]
+                    self.stack[-3:] = [OrExprToken(extended_or)]
                     return self.reduce()
 
         # Try 2-token patterns
-        if len(self.tokens) >= 2:
-            match self.tokens[-2:]:
+        if len(self.stack) >= 2:
+            token_a, token_b = self.stack[-2:]
+            match self.stack[-2:]:
                 # NOT expressions
-                case ['not', 'check']:
+                case [NotToken(), CheckToken()]:
                     # Invert the result of another check
-                    check = self.values[-1]
+                    check = token_b.value
                     not_check = _checks.NotCheck(check)
-                    self.tokens[-2:] = ['check']
-                    self.values[-2:] = [not_check]
+                    self.stack[-2:] = [CheckToken(not_check)]
                     return self.reduce()
 
-    def shift(self, tok: TokenT, value: ValueT) -> None:
+    def shift(self, token: Token[Any]) -> None:
         """Adds one more token to the state.
 
         Calls :meth:`reduce`.
         """
-        self.tokens.append(tok)
-        self.values.append(value)
+        self.stack.append(token)
 
         # Do a greedy reduce...
         self.reduce()
@@ -153,11 +168,13 @@ class ParseState:
 
         :raises ValueError: If the parse failed to reduce to a single result.
         """
-        if len(self.values) != 1:
+        if len(self.stack) != 1:
             raise ValueError('Could not parse rule')
 
-        value = self.values[0]
+        value = self.stack[0].value
         if not isinstance(value, _checks.BaseCheck):
+            # we should never get here since we should have reduced out any
+            # string tokens
             raise ValueError('Could not parse rule')
 
         return value
@@ -233,7 +250,7 @@ def _parse_list_rule(rule: Sequence[str | Sequence[str]]) -> _checks.BaseCheck:
 _tokenize_re = re.compile(r'\s+')
 
 
-def _parse_tokenize(rule: str) -> Generator[tuple[TokenT, ValueT], None, None]:
+def _parse_tokenize(rule: str) -> Generator[Token[Any], None, None]:
     """Tokenizer for the policy language.
 
     Most of the single-character tokens are specified in the
@@ -250,7 +267,8 @@ def _parse_tokenize(rule: str) -> Generator[tuple[TokenT, ValueT], None, None]:
         # Handle leading parens on the token
         clean = tok.lstrip('(')
         for i in range(len(tok) - len(clean)):
-            yield '(', '('
+            # yes, the value argument is redundant but meh
+            yield LeftParamToken('(')
 
         # If it was only parentheses, continue
         if not clean:
@@ -265,21 +283,26 @@ def _parse_tokenize(rule: str) -> Generator[tuple[TokenT, ValueT], None, None]:
         # Yield the cleaned token
         lowered = clean.lower()
         if lowered in ('and', 'or', 'not'):
-            # Special tokens
-            yield lowered, clean
+            match lowered:
+                case 'and':
+                    yield AndToken(clean)
+                case 'or':
+                    yield OrToken(clean)
+                case 'not':
+                    yield NotToken(clean)
         elif clean:
             # Not a special token, but not composed solely of ')'
             if len(tok) >= 2 and (
                 (tok[0], tok[-1]) in [('"', '"'), ("'", "'")]
             ):
-                # It's a quoted string
-                yield 'string', tok[1:-1]
+                # It's a quoted string: drop the quotes
+                yield StringToken(tok[1:-1])
             else:
-                yield 'check', _parse_check(clean)
+                yield CheckToken(_parse_check(clean))
 
         # Yield the trailing parens
         for i in range(trail):
-            yield ')', ')'
+            yield RightParamToken(')')
 
 
 def _parse_text_rule(rule: str) -> _checks.BaseCheck:
@@ -294,8 +317,8 @@ def _parse_text_rule(rule: str) -> _checks.BaseCheck:
 
     # Parse the token stream
     state = ParseState()
-    for tok, value in _parse_tokenize(rule):
-        state.shift(tok, value)
+    for token in _parse_tokenize(rule):
+        state.shift(token)
 
     try:
         return state.result

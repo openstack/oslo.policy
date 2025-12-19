@@ -166,36 +166,36 @@ class ParseListRuleTestCase(test_base.BaseTestCase):
 
 
 class ParseTokenizeTestCase(test_base.BaseTestCase):
-    @mock.patch.object(_parser, '_parse_check', lambda x: x)
     def test_tokenize(self):
         exemplar = (
-            '(( ( ((() And)) or ) (check:%(miss)s) not)) '
+            '(( ( ((() And)) or ) (rule:context_is_admin) not)) '
             '\'a-string\' "another-string"'
         )
-        expected = [
-            ('(', '('),
-            ('(', '('),
-            ('(', '('),
-            ('(', '('),
-            ('(', '('),
-            ('(', '('),
-            (')', ')'),
-            ('and', 'And'),
-            (')', ')'),
-            (')', ')'),
-            ('or', 'or'),
-            (')', ')'),
-            ('(', '('),
-            ('check', 'check:%(miss)s'),
-            (')', ')'),
-            ('not', 'not'),
-            (')', ')'),
-            (')', ')'),
-            ('string', 'a-string'),
-            ('string', 'another-string'),
-        ]
 
         result = list(_parser._parse_tokenize(exemplar))
+
+        expected = [
+            _parser.LeftParamToken('('),
+            _parser.LeftParamToken('('),
+            _parser.LeftParamToken('('),
+            _parser.LeftParamToken('('),
+            _parser.LeftParamToken('('),
+            _parser.LeftParamToken('('),
+            _parser.RightParamToken(')'),
+            _parser.AndToken('And'),
+            _parser.RightParamToken(')'),
+            _parser.RightParamToken(')'),
+            _parser.OrToken('or'),
+            _parser.RightParamToken(')'),
+            _parser.LeftParamToken('('),
+            _parser.CheckToken(_checks.RuleCheck('rule', 'context_is_admin')),
+            _parser.RightParamToken(')'),
+            _parser.NotToken('not'),
+            _parser.RightParamToken(')'),
+            _parser.RightParamToken(')'),
+            _parser.StringToken('a-string'),
+            _parser.StringToken('another-string'),
+        ]
 
         self.assertEqual(expected, result)
 
@@ -204,46 +204,54 @@ class ParseStateTestCase(test_base.BaseTestCase):
     def test_init(self):
         state = _parser.ParseState()
 
-        self.assertEqual([], state.tokens)
-        self.assertEqual([], state.values)
+        self.assertEqual([], state.stack)
 
     def test_reduce_no_match(self):
         """Test that reduce() does nothing when no patterns match."""
         state = _parser.ParseState()
-        state.tokens = ['unknown_token']
-        state.values = ['unknown_value']
+        # Create a token that won't match any reduction pattern
+        unknown_token = _parser.StringToken('unknown_value')
+        state.stack = [unknown_token]
 
         state.reduce()
 
         # Should remain unchanged
-        self.assertEqual(['unknown_token'], state.tokens)
-        self.assertEqual(['unknown_value'], state.values)
+        self.assertEqual([unknown_token], state.stack)
 
     def test_reduce_parentheses(self):
         """Test reduction of parenthesized check."""
         state = _parser.ParseState()
         check = _checks.TrueCheck()
-        state.tokens = ['(', 'check', ')']
-        state.values = ['(', check, ')']
+        state.stack = [
+            _parser.LeftParamToken('('),
+            _parser.CheckToken(check),
+            _parser.RightParamToken(')'),
+        ]
 
         state.reduce()
 
-        self.assertEqual(['check'], state.tokens)
-        self.assertEqual([check], state.values)
+        self.assertEqual(1, len(state.stack))
+        result_token = state.stack[0]
+        self.assertIsInstance(result_token, _parser.CheckToken)
+        self.assertEqual(check, result_token.value)
 
     def test_reduce_and_check(self):
         """Test reduction of AND expression with two checks."""
         state = _parser.ParseState()
         check1 = _checks.TrueCheck()
         check2 = _checks.FalseCheck()
-        state.tokens = ['check', 'and', 'check']
-        state.values = [check1, 'and', check2]
+        state.stack = [
+            _parser.CheckToken(check1),
+            _parser.AndToken('and'),
+            _parser.CheckToken(check2),
+        ]
 
         state.reduce()
 
-        self.assertEqual(['and_expr'], state.tokens)
-        self.assertEqual(1, len(state.values))
-        result = state.values[0]
+        self.assertEqual(1, len(state.stack))
+        result_token = state.stack[0]
+        self.assertIsInstance(result_token, _parser.AndExprToken)
+        result = result_token.value
         self.assertIsInstance(result, _checks.AndCheck)
         assert isinstance(result, _checks.AndCheck)  # narrow type
         self.assertEqual(2, len(result.rules))
@@ -255,14 +263,18 @@ class ParseStateTestCase(test_base.BaseTestCase):
         state = _parser.ParseState()
         check1 = _checks.TrueCheck()
         check2 = _checks.FalseCheck()
-        state.tokens = ['check', 'or', 'check']
-        state.values = [check1, 'or', check2]
+        state.stack = [
+            _parser.CheckToken(check1),
+            _parser.OrToken('or'),
+            _parser.CheckToken(check2),
+        ]
 
         state.reduce()
 
-        self.assertEqual(['or_expr'], state.tokens)
-        self.assertEqual(1, len(state.values))
-        result = state.values[0]
+        self.assertEqual(1, len(state.stack))
+        result_token = state.stack[0]
+        self.assertIsInstance(result_token, _parser.OrExprToken)
+        result = result_token.value
         self.assertIsInstance(result, _checks.OrCheck)
         assert isinstance(result, _checks.OrCheck)  # narrow type
         self.assertEqual(2, len(result.rules))
@@ -273,14 +285,14 @@ class ParseStateTestCase(test_base.BaseTestCase):
         """Test reduction of NOT expression."""
         state = _parser.ParseState()
         check = _checks.TrueCheck()
-        state.tokens = ['not', 'check']
-        state.values = ['not', check]
+        state.stack = [_parser.NotToken('not'), _parser.CheckToken(check)]
 
         state.reduce()
 
-        self.assertEqual(['check'], state.tokens)
-        self.assertEqual(1, len(state.values))
-        result = state.values[0]
+        self.assertEqual(1, len(state.stack))
+        result_token = state.stack[0]
+        self.assertIsInstance(result_token, _parser.CheckToken)
+        result = result_token.value
         self.assertIsInstance(result, _checks.NotCheck)
         assert isinstance(result, _checks.NotCheck)  # narrow type
         self.assertEqual(check, result.rule)
@@ -289,10 +301,10 @@ class ParseStateTestCase(test_base.BaseTestCase):
         state = _parser.ParseState()
 
         with mock.patch.object(_parser.ParseState, 'reduce') as mock_reduce:
-            state.shift('token', 'value')
+            token = _parser.StringToken('value')
+            state.shift(token)
 
-            self.assertEqual(['token'], state.tokens)
-            self.assertEqual(['value'], state.values)
+            self.assertEqual([token], state.stack)
             mock_reduce.assert_called_once_with()
 
     def test_result_empty(self):
@@ -302,23 +314,25 @@ class ParseStateTestCase(test_base.BaseTestCase):
 
     def test_result_unreduced(self):
         state = _parser.ParseState()
-        state.tokens = ['tok1', 'tok2']
-        state.values = ['val1', 'val2']
+        state.stack = [
+            _parser.StringToken('val1'),
+            _parser.StringToken('val2'),
+        ]
 
         self.assertRaises(ValueError, lambda: state.result)
 
     def test_result(self):
         state = _parser.ParseState()
         check = _checks.TrueCheck()
-        state.tokens = ['token']
-        state.values = [check]
+        state.stack = [_parser.CheckToken(check)]
 
         self.assertEqual(check, state.result)
 
     def test_result_invalid_value(self):
+        """Test expression that does not resolve to check."""
         state = _parser.ParseState()
-        state.tokens = ['token']
-        state.values = ['not_a_check']  # String instead of BaseCheck
+        # We can't reduce a StringToken down to a proper Check
+        state.stack = [_parser.StringToken('not_a_check')]
 
         self.assertRaises(ValueError, lambda: state.result)
 
@@ -328,13 +342,15 @@ class ParseStateTestCase(test_base.BaseTestCase):
         check = _checks.TrueCheck()
 
         # Shift the tokens for a parenthesized expression
-        state.shift('(', '(')
-        state.shift('check', check)
-        state.shift(')', ')')
+        state.shift(_parser.LeftParamToken('('))
+        state.shift(_parser.CheckToken(check))
+        state.shift(_parser.RightParamToken(')'))
 
         # Should reduce to a single check token
-        self.assertEqual(['check'], state.tokens)
-        self.assertEqual([check], state.values)
+        self.assertEqual(1, len(state.stack))
+        result_token = state.stack[0]
+        self.assertIsInstance(result_token, _parser.CheckToken)
+        self.assertEqual(check, result_token.value)
         self.assertEqual(check, state.result)
 
     def test_make_and_expr_reduction(self):
@@ -344,14 +360,15 @@ class ParseStateTestCase(test_base.BaseTestCase):
         check2 = _checks.FalseCheck()
 
         # Shift tokens for an AND expression
-        state.shift('check', check1)
-        state.shift('and', 'and')
-        state.shift('check', check2)
+        state.shift(_parser.CheckToken(check1))
+        state.shift(_parser.AndToken('and'))
+        state.shift(_parser.CheckToken(check2))
 
         # Should reduce to a single and_expr token
-        self.assertEqual(['and_expr'], state.tokens)
-        self.assertEqual(1, len(state.values))
-        result = state.values[0]
+        self.assertEqual(1, len(state.stack))
+        result_token = state.stack[0]
+        self.assertIsInstance(result_token, _parser.AndExprToken)
+        result = result_token.value
         self.assertIsInstance(result, _checks.AndCheck)
         assert isinstance(result, _checks.AndCheck)  # narrow type
         self.assertEqual(2, len(result.rules))
@@ -366,21 +383,23 @@ class ParseStateTestCase(test_base.BaseTestCase):
         check3 = _checks.TrueCheck()
 
         # First create an and_expr
-        state.shift('check', check1)
-        state.shift('and', 'and')
-        state.shift('check', check2)
+        state.shift(_parser.CheckToken(check1))
+        state.shift(_parser.AndToken('and'))
+        state.shift(_parser.CheckToken(check2))
 
         # Should have an and_expr now
-        self.assertEqual(['and_expr'], state.tokens)
+        self.assertEqual(1, len(state.stack))
+        self.assertIsInstance(state.stack[0], _parser.AndExprToken)
 
         # Now extend it with another check
-        state.shift('and', 'and')
-        state.shift('check', check3)
+        state.shift(_parser.AndToken('and'))
+        state.shift(_parser.CheckToken(check3))
 
         # Should still be a single and_expr token but with 3 checks
-        self.assertEqual(['and_expr'], state.tokens)
-        self.assertEqual(1, len(state.values))
-        result = state.values[0]
+        self.assertEqual(1, len(state.stack))
+        result_token = state.stack[0]
+        self.assertIsInstance(result_token, _parser.AndExprToken)
+        result = result_token.value
         self.assertIsInstance(result, _checks.AndCheck)
         assert isinstance(result, _checks.AndCheck)  # narrow type
         self.assertEqual(3, len(result.rules))
@@ -395,14 +414,15 @@ class ParseStateTestCase(test_base.BaseTestCase):
         check2 = _checks.FalseCheck()
 
         # Shift tokens for an OR expression
-        state.shift('check', check1)
-        state.shift('or', 'or')
-        state.shift('check', check2)
+        state.shift(_parser.CheckToken(check1))
+        state.shift(_parser.OrToken('or'))
+        state.shift(_parser.CheckToken(check2))
 
         # Should reduce to a single or_expr token
-        self.assertEqual(['or_expr'], state.tokens)
-        self.assertEqual(1, len(state.values))
-        result = state.values[0]
+        self.assertEqual(1, len(state.stack))
+        result_token = state.stack[0]
+        self.assertIsInstance(result_token, _parser.OrExprToken)
+        result = result_token.value
         self.assertIsInstance(result, _checks.OrCheck)
         assert isinstance(result, _checks.OrCheck)  # narrow type
         self.assertEqual(2, len(result.rules))
@@ -417,21 +437,23 @@ class ParseStateTestCase(test_base.BaseTestCase):
         check3 = _checks.TrueCheck()
 
         # First create an or_expr
-        state.shift('check', check1)
-        state.shift('or', 'or')
-        state.shift('check', check2)
+        state.shift(_parser.CheckToken(check1))
+        state.shift(_parser.OrToken('or'))
+        state.shift(_parser.CheckToken(check2))
 
         # Should have an or_expr now
-        self.assertEqual(['or_expr'], state.tokens)
+        self.assertEqual(1, len(state.stack))
+        self.assertIsInstance(state.stack[0], _parser.OrExprToken)
 
         # Now extend it with another check
-        state.shift('or', 'or')
-        state.shift('check', check3)
+        state.shift(_parser.OrToken('or'))
+        state.shift(_parser.CheckToken(check3))
 
         # Should still be a single or_expr token but with 3 checks
-        self.assertEqual(['or_expr'], state.tokens)
-        self.assertEqual(1, len(state.values))
-        result = state.values[0]
+        self.assertEqual(1, len(state.stack))
+        result_token = state.stack[0]
+        self.assertIsInstance(result_token, _parser.OrExprToken)
+        result = result_token.value
         self.assertIsInstance(result, _checks.OrCheck)
         assert isinstance(result, _checks.OrCheck)  # narrow type
         self.assertEqual(3, len(result.rules))
@@ -445,13 +467,14 @@ class ParseStateTestCase(test_base.BaseTestCase):
         check = _checks.TrueCheck()
 
         # Shift tokens for a NOT expression
-        state.shift('not', 'not')
-        state.shift('check', check)
+        state.shift(_parser.NotToken('not'))
+        state.shift(_parser.CheckToken(check))
 
         # Should reduce to a single check token with NotCheck
-        self.assertEqual(['check'], state.tokens)
-        self.assertEqual(1, len(state.values))
-        result = state.values[0]
+        self.assertEqual(1, len(state.stack))
+        result_token = state.stack[0]
+        self.assertIsInstance(result_token, _parser.CheckToken)
+        result = result_token.value
         self.assertIsInstance(result, _checks.NotCheck)
         assert isinstance(result, _checks.NotCheck)  # narrow type
         self.assertEqual(check, result.rule)
@@ -464,21 +487,23 @@ class ParseStateTestCase(test_base.BaseTestCase):
         check3 = _checks.TrueCheck()
 
         # Create and_expr first
-        state.shift('check', check1)
-        state.shift('and', 'and')
-        state.shift('check', check2)
+        state.shift(_parser.CheckToken(check1))
+        state.shift(_parser.AndToken('and'))
+        state.shift(_parser.CheckToken(check2))
 
         # Should have an and_expr
-        self.assertEqual(['and_expr'], state.tokens)
+        self.assertEqual(1, len(state.stack))
+        self.assertIsInstance(state.stack[0], _parser.AndExprToken)
 
         # Now create an OR with it
-        state.shift('or', 'or')
-        state.shift('check', check3)
+        state.shift(_parser.OrToken('or'))
+        state.shift(_parser.CheckToken(check3))
 
         # Should reduce to a single or_expr token
-        self.assertEqual(['or_expr'], state.tokens)
-        self.assertEqual(1, len(state.values))
-        result = state.values[0]
+        self.assertEqual(1, len(state.stack))
+        result_token = state.stack[0]
+        self.assertIsInstance(result_token, _parser.OrExprToken)
+        result = result_token.value
         self.assertIsInstance(result, _checks.OrCheck)
         assert isinstance(result, _checks.OrCheck)  # narrow type
         self.assertEqual(2, len(result.rules))
@@ -499,23 +524,26 @@ class ParseStateTestCase(test_base.BaseTestCase):
         check3 = _checks.TrueCheck()
 
         # Create or_expr first
-        state.shift('check', check1)
-        state.shift('or', 'or')
-        state.shift('check', check2)
+        state.shift(_parser.CheckToken(check1))
+        state.shift(_parser.OrToken('or'))
+        state.shift(_parser.CheckToken(check2))
 
         # Should have an or_expr
-        self.assertEqual(['or_expr'], state.tokens)
-        initial_or = state.values[0]
+        self.assertEqual(1, len(state.stack))
+        result_token = state.stack[0]
+        self.assertIsInstance(result_token, _parser.OrExprToken)
+        initial_or = result_token.value
         self.assertIsInstance(initial_or, _checks.OrCheck)
 
         # Now add AND with higher precedence which should modify the last check
-        state.shift('and', 'and')
-        state.shift('check', check3)
+        state.shift(_parser.AndToken('and'))
+        state.shift(_parser.CheckToken(check3))
 
         # Should still be a single or_expr token
-        self.assertEqual(['or_expr'], state.tokens)
-        self.assertEqual(1, len(state.values))
-        result = state.values[0]
+        self.assertEqual(1, len(state.stack))
+        final_token = state.stack[0]
+        self.assertIsInstance(final_token, _parser.OrExprToken)
+        result = final_token.value
         self.assertIsInstance(result, _checks.OrCheck)
         assert isinstance(result, _checks.OrCheck)  # narrow type
         self.assertEqual(2, len(result.rules))
@@ -536,21 +564,20 @@ class ParseTextRuleTestCase(test_base.BaseTestCase):
 
         self.assertIsInstance(result, _checks.TrueCheck)
 
-    @mock.patch.object(
-        _parser,
-        '_parse_tokenize',
-        return_value=[('tok1', 'val1'), ('tok2', 'val2')],
-    )
     @mock.patch.object(_parser.ParseState, 'shift')
     @mock.patch.object(_parser.ParseState, 'result', 'result')
-    def test_shifts(self, mock_shift, mock_parse_tokenize):
-        result = _parser._parse_text_rule('test rule')
+    def test_shifts(self, mock_shift):
+        # Create mock tokens
+        token1 = _parser.StringToken('val1')
+        token2 = _parser.StringToken('val2')
 
-        self.assertEqual('result', result)
-        mock_parse_tokenize.assert_called_once_with('test rule')
-        mock_shift.assert_has_calls(
-            [mock.call('tok1', 'val1'), mock.call('tok2', 'val2')]
-        )
+        with mock.patch.object(
+            _parser, '_parse_tokenize', return_value=[token1, token2]
+        ):
+            result = _parser._parse_text_rule('test rule')
+
+            self.assertEqual('result', result)
+            mock_shift.assert_has_calls([mock.call(token1), mock.call(token2)])
 
     @mock.patch.object(_parser, 'LOG', new=mock.Mock())
     @mock.patch.object(_parser, '_parse_tokenize', return_value=[])
