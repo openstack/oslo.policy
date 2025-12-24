@@ -302,7 +302,7 @@ def _sort_and_format_by_section(
 
 def _generate_sample(
     namespaces,
-    output_file=None,
+    output_path=None,
     output_format='yaml',
     include_help=True,
     exclude_deprecated=False,
@@ -315,7 +315,7 @@ def _generate_sample(
     :param namespaces: a list of namespaces registered under
                        'oslo.policy.policies'. Stevedore will look here for
                        policy options.
-    :param output_file: The path of a file to output to. stdout used if None.
+    :param output_path: The path of a file to output to. stdout used if None.
     :param output_format: The format of the file to output to.
     :param include_help: True, generates a sample-policy file with help text
                          along with rules in which everything is commented out.
@@ -325,7 +325,7 @@ def _generate_sample(
     """
     policies = get_policies_dict(namespaces)
 
-    output_file = open(output_file, 'w') if output_file else sys.stdout
+    output_file = open(output_path, 'w') if output_path else sys.stdout
 
     sections_text = []
     for section in _sort_and_format_by_section(
@@ -348,14 +348,14 @@ def _generate_sample(
         output_file.close()
 
 
-def _generate_policy(namespace, output_file=None, exclude_deprecated=False):
+def _generate_policy(namespace, output_path=None, exclude_deprecated=False):
     """Generate a policy file showing what will be used.
 
     This takes all registered policies and merges them with what's defined in
     a policy file and outputs the result. That result is the effective policy
     that will be honored by policy checks.
 
-    :param output_file: The path of a file to output to. stdout used if None.
+    :param output_path: The path of a file to output to. stdout used if None.
     :param exclude_deprecated: If to exclude deprecated policy rule entries,
                                defaults to False.
     """
@@ -374,7 +374,7 @@ def _generate_policy(namespace, output_file=None, exclude_deprecated=False):
     ]
     policies = {'rules': file_rules + registered_rules}
 
-    output_file = open(output_file, 'w') if output_file else sys.stdout
+    output_file = open(output_path, 'w') if output_path else sys.stdout
 
     for section in _sort_and_format_by_section(
         policies, include_help=False, exclude_deprecated=exclude_deprecated
@@ -466,7 +466,7 @@ def _validate_policy(namespace):
     return return_code
 
 
-def _convert_policy_json_to_yaml(namespace, policy_file, output_file=None):
+def _convert_policy_json_to_yaml(namespace, policy_file, output_path=None):
     with open(policy_file) as rule_data:
         file_policies = jsonutils.loads(rule_data.read())
 
@@ -528,8 +528,8 @@ def _convert_policy_json_to_yaml(namespace, policy_file, output_file=None):
         rule_text = f'"{file_rule}": "{check_str}"\n'
         yaml_format_rules.append(rule_text)
 
-    if output_file:
-        with open(output_file, 'w') as fh:
+    if output_path:
+        with open(output_path, 'w') as fh:
             fh.writelines(yaml_format_rules)
     else:
         sys.stdout.writelines(yaml_format_rules)
@@ -561,7 +561,7 @@ def generate_sample(args=None, conf=None):
     _check_for_namespace_opt(conf)
     _generate_sample(
         conf.namespace,
-        output_file=conf.output_file,
+        output_path=conf.output_file,
         output_format=conf.format,
         exclude_deprecated=conf.exclude_deprecated,
     )

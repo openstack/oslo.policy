@@ -167,7 +167,7 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
         with mock.patch(
             'stevedore.named.NamedExtensionManager', return_value=test_mgr
         ) as mock_ext_mgr:
-            generator._generate_sample(['rules'], output_file=None)
+            generator._generate_sample(['rules'], output_path=None)
             mock_ext_mgr.assert_called_once_with(
                 'oslo.policy.policies',
                 names=['rules'],
@@ -213,7 +213,7 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
         with mock.patch(
             'stevedore.named.NamedExtensionManager', return_value=test_mgr
         ) as mock_ext_mgr:
-            generator._generate_sample(['rules'], output_file=None)
+            generator._generate_sample(['rules'], output_path=None)
             mock_ext_mgr.assert_called_once_with(
                 'oslo.policy.policies',
                 names=['rules'],
@@ -272,7 +272,7 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
         with mock.patch(
             'stevedore.named.NamedExtensionManager', return_value=test_mgr
         ) as mock_ext_mgr:
-            generator._generate_sample(['rules'], output_file=None)
+            generator._generate_sample(['rules'], output_path=None)
             mock_ext_mgr.assert_called_once_with(
                 'oslo.policy.policies',
                 names=['rules'],
@@ -321,7 +321,7 @@ class GenerateSampleYAMLTestCase(base.PolicyBaseTestCase):
         with mock.patch(
             'stevedore.named.NamedExtensionManager', return_value=test_mgr
         ) as mock_ext_mgr:
-            generator._generate_sample(['rules'], output_file=None)
+            generator._generate_sample(['rules'], output_path=None)
             mock_ext_mgr.assert_called_once_with(
                 'oslo.policy.policies',
                 names=['rules'],
@@ -505,7 +505,7 @@ class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
         ) as mock_ext_mgr:
             generator._generate_sample(
                 ['rules'],
-                output_file=output_file,
+                output_path=output_file,
                 output_format='json',
             )
             mock_ext_mgr.assert_called_once_with(
@@ -543,7 +543,7 @@ class GenerateSampleJSONTestCase(base.PolicyBaseTestCase):
             'stevedore.named.NamedExtensionManager', return_value=test_mgr
         ) as mock_ext_mgr:
             generator._generate_sample(
-                ['rules'], output_file=None, output_format='json'
+                ['rules'], output_path=None, output_format='json'
             )
             mock_ext_mgr.assert_called_once_with(
                 'oslo.policy.policies',
@@ -657,7 +657,7 @@ class GeneratePolicyTestCase(base.PolicyBaseTestCase):
             'stevedore.named.NamedExtensionManager', return_value=test_mgr
         ) as mock_ext_mgr:
             generator._generate_policy(
-                namespace='testing', output_file=merged_file
+                namespace='testing', output_path=merged_file
             )
             mock_ext_mgr.assert_called_once_with(
                 'oslo.policy.enforcer',
