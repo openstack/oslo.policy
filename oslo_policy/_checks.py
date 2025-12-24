@@ -91,7 +91,7 @@ class BaseCheck(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def __call__(self, target, cred, enforcer, current_rule=None):
+    def __call__(self, target, creds, enforcer, current_rule=None):
         """Triggers if instance of the class is called.
 
         Performs the check. Returns False to reject the access or a
@@ -109,7 +109,7 @@ class FalseCheck(BaseCheck):
 
         return '!'
 
-    def __call__(self, target, cred, enforcer, current_rule=None):
+    def __call__(self, target, creds, enforcer, current_rule=None):
         """Check the policy."""
 
         return False
@@ -123,7 +123,7 @@ class TrueCheck(BaseCheck):
 
         return '@'
 
-    def __call__(self, target, cred, enforcer, current_rule=None):
+    def __call__(self, target, creds, enforcer, current_rule=None):
         """Check the policy."""
 
         return True
@@ -149,13 +149,13 @@ class NotCheck(BaseCheck):
 
         return f'not {self.rule}'
 
-    def __call__(self, target, cred, enforcer, current_rule=None):
+    def __call__(self, target, creds, enforcer, current_rule=None):
         """Check the policy.
 
         Returns the logical inverse of the wrapped check.
         """
 
-        return not _check(self.rule, target, cred, enforcer, current_rule)
+        return not _check(self.rule, target, creds, enforcer, current_rule)
 
 
 class AndCheck(BaseCheck):
@@ -167,14 +167,14 @@ class AndCheck(BaseCheck):
 
         return '({})'.format(' and '.join(str(r) for r in self.rules))
 
-    def __call__(self, target, cred, enforcer, current_rule=None):
+    def __call__(self, target, creds, enforcer, current_rule=None):
         """Check the policy.
 
         Requires that all rules accept in order to return True.
         """
 
         for rule in self.rules:
-            if not _check(rule, target, cred, enforcer, current_rule):
+            if not _check(rule, target, creds, enforcer, current_rule):
                 return False
 
         return True
@@ -202,14 +202,14 @@ class OrCheck(BaseCheck):
 
         return '({})'.format(' or '.join(str(r) for r in self.rules))
 
-    def __call__(self, target, cred, enforcer, current_rule=None):
+    def __call__(self, target, creds, enforcer, current_rule=None):
         """Check the policy.
 
         Requires that at least one rule accept in order to return True.
         """
 
         for rule in self.rules:
-            if _check(rule, target, cred, enforcer, current_rule):
+            if _check(rule, target, creds, enforcer, current_rule):
                 return True
         return False
 

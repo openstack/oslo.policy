@@ -289,8 +289,8 @@ class NotCheckTestCase(base.PolicyBaseTestCase):
         results = []
 
         class TestCheck(_checks.Check):
-            def __call__(self, target, cred, enforcer, current_rule=None):
-                results.append((target, cred, enforcer, current_rule))
+            def __call__(self, target, creds, enforcer, current_rule=None):
+                results.append((target, creds, enforcer, current_rule))
                 return True
 
         check = _checks.NotCheck(TestCheck('kind', 'match'))
@@ -305,8 +305,8 @@ class NotCheckTestCase(base.PolicyBaseTestCase):
         results = []
 
         class TestCheck:
-            def __call__(self, target, cred, enforcer):
-                results.append((target, cred, enforcer))
+            def __call__(self, target, creds, enforcer):
+                results.append((target, creds, enforcer))
                 return True
 
         # this is for the legacy path, and our type hints specifically don't
@@ -385,8 +385,8 @@ class AndCheckTestCase(base.PolicyBaseTestCase):
         results = []
 
         class TestCheck(_checks.Check):
-            def __call__(self, target, cred, enforcer, current_rule=None):
-                results.append((target, cred, enforcer, current_rule))
+            def __call__(self, target, creds, enforcer, current_rule=None):
+                results.append((target, creds, enforcer, current_rule))
                 return False
 
         check = _checks.AndCheck([TestCheck('kind', 'match')])
@@ -401,8 +401,8 @@ class AndCheckTestCase(base.PolicyBaseTestCase):
         results = []
 
         class TestCheck:
-            def __call__(self, target, cred, enforcer):
-                results.append((target, cred, enforcer))
+            def __call__(self, target, creds, enforcer):
+                results.append((target, creds, enforcer))
                 return False
 
         # this is for the legacy path, and our type hints specifically don't
@@ -478,8 +478,8 @@ class OrCheckTestCase(base.PolicyBaseTestCase):
         results = []
 
         class TestCheck(_checks.Check):
-            def __call__(self, target, cred, enforcer, current_rule=None):
-                results.append((target, cred, enforcer, current_rule))
+            def __call__(self, target, creds, enforcer, current_rule=None):
+                results.append((target, creds, enforcer, current_rule))
                 return False
 
         check = _checks.OrCheck([TestCheck('kind', 'match')])
@@ -494,8 +494,8 @@ class OrCheckTestCase(base.PolicyBaseTestCase):
         results = []
 
         class TestCheck:
-            def __call__(self, target, cred, enforcer):
-                results.append((target, cred, enforcer))
+            def __call__(self, target, creds, enforcer):
+                results.append((target, creds, enforcer))
                 return False
 
         # this is a test for the legacy path: our type hints explicitly do not

@@ -31,7 +31,7 @@ class HttpCheckFixture(fixtures.Fixture):
     def setUp(self):
         super().setUp()
 
-        def mocked_call(target, cred, enforcer, rule):
+        def mocked_call(target, creds, enforcer, rule):
             return self.return_value
 
         self.useFixture(
@@ -58,7 +58,7 @@ class HttpsCheckFixture(fixtures.Fixture):
     def setUp(self):
         super().setUp()
 
-        def mocked_call(target, cred, enforcer, rule):
+        def mocked_call(target, creds, enforcer, rule):
             return self.return_value
 
         self.useFixture(

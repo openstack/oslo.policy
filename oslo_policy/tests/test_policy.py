@@ -59,7 +59,7 @@ class FieldCheck(_checks.Check):
         self.field = field
         self.value = value
 
-    def __call__(self, target, cred, enforcer, current_rule=None):
+    def __call__(self, target, creds, enforcer, current_rule=None):
         return True
 
 
