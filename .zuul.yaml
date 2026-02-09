@@ -10,6 +10,7 @@
       - openstack/nova
       - openstack/oslo.policy
     irrelevant-files: &irrelevant-files
+      - ^\.gitignore$
       - ^\.gitreview$
       - ^.*\.rst$
       - ^doc/.*$
