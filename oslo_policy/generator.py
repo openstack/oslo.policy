@@ -546,7 +546,7 @@ def _check_for_namespace_opt(conf: cfg.ConfigOpts) -> None:
 def generate_sample(
     args: Sequence[str] | None = None, conf: cfg.ConfigOpts | None = None
 ) -> None:
-    logging.basicConfig(level=logging.WARN)
+    logging.basicConfig(level=logging.WARNING)
     # Allow the caller to pass in a local conf object for unit testing
     if conf is None:
         conf = cfg.CONF
@@ -562,7 +562,7 @@ def generate_sample(
 
 
 def generate_policy(args: list[str] | None = None) -> None:
-    logging.basicConfig(level=logging.WARN)
+    logging.basicConfig(level=logging.WARNING)
     conf = cfg.CONF
     conf.register_cli_opts(GENERATOR_OPTS + ENFORCER_OPTS)
     conf.register_opts(GENERATOR_OPTS + ENFORCER_OPTS)
@@ -599,7 +599,7 @@ def _upgrade_policies(
 def upgrade_policy(
     args: list[str] | None = None, conf: cfg.ConfigOpts | None = None
 ) -> None:
-    logging.basicConfig(level=logging.WARN)
+    logging.basicConfig(level=logging.WARNING)
     # Allow the caller to pass in a local conf object for unit testing
     if conf is None:
         conf = cfg.CONF
@@ -621,7 +621,7 @@ def upgrade_policy(
 
 
 def list_redundant(args: list[str] | None = None) -> None:
-    logging.basicConfig(level=logging.WARN)
+    logging.basicConfig(level=logging.WARNING)
     conf = cfg.CONF
     conf.register_cli_opts(ENFORCER_OPTS)
     conf.register_opts(ENFORCER_OPTS)
@@ -631,7 +631,7 @@ def list_redundant(args: list[str] | None = None) -> None:
 
 
 def validate_policy(args: list[str] | None = None) -> None:
-    logging.basicConfig(level=logging.WARN)
+    logging.basicConfig(level=logging.WARNING)
     conf = cfg.CONF
     conf.register_cli_opts(ENFORCER_OPTS)
     conf.register_opts(ENFORCER_OPTS)
@@ -642,7 +642,7 @@ def validate_policy(args: list[str] | None = None) -> None:
 def convert_policy_json_to_yaml(
     args: list[str] | None = None, conf: cfg.ConfigOpts | None = None
 ) -> None:
-    logging.basicConfig(level=logging.WARN)
+    logging.basicConfig(level=logging.WARNING)
     LOG.warning('The oslopolicy-convert-json-to-yaml tool is deprecated')
     # Allow the caller to pass in a local conf object for unit testing
     if conf is None:
