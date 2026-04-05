@@ -49,6 +49,7 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
         self.assertTrue(check(target_dict, cred_dict, self.enforcer))
 
         last_request = self.requests_mock.last_request
+        assert last_request is not None
         self.assertEqual(
             'application/x-www-form-urlencoded',
             last_request.headers['Content-Type'],
@@ -72,6 +73,7 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
         self.assertTrue(check(target_dict, cred_dict, self.enforcer))
 
         last_request = self.requests_mock.last_request
+        assert last_request is not None
         self.assertEqual(
             'application/json', last_request.headers['Content-Type']
         )
@@ -91,6 +93,7 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
         self.assertFalse(check(target_dict, cred_dict, self.enforcer))
 
         last_request = self.requests_mock.last_request
+        assert last_request is not None
         self.assertEqual('POST', last_request.method)
         self.assertEqual(
             dict(target=target_dict, credentials=cred_dict, rule=None),
@@ -132,6 +135,7 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
         )
 
         last_request = self.requests_mock.last_request
+        assert last_request is not None
         self.assertEqual('POST', last_request.method)
         self.assertEqual(
             dict(target=target_dict, credentials=cred_dict, rule=current_rule),
@@ -151,6 +155,7 @@ class HttpCheckTestCase(base.PolicyBaseTestCase):
         )
 
         last_request = self.requests_mock.last_request
+        assert last_request is not None
         self.assertEqual('POST', last_request.method)
         self.assertEqual(
             dict(target=target_dict, credentials=cred_dict, rule=current_rule),
@@ -186,6 +191,7 @@ class HttpsCheckTestCase(base.PolicyBaseTestCase):
         self.assertTrue(check(target_dict, cred_dict, self.enforcer))
 
         last_request = self.requests_mock.last_request
+        assert last_request is not None
         self.assertEqual(
             'application/x-www-form-urlencoded',
             last_request.headers['Content-Type'],
@@ -209,6 +215,7 @@ class HttpsCheckTestCase(base.PolicyBaseTestCase):
         self.assertTrue(check(target_dict, cred_dict, self.enforcer))
 
         last_request = self.requests_mock.last_request
+        assert last_request is not None
         self.assertEqual(
             'application/json', last_request.headers['Content-Type']
         )
@@ -234,6 +241,7 @@ class HttpsCheckTestCase(base.PolicyBaseTestCase):
         self.assertTrue(check(target_dict, cred_dict, self.enforcer))
 
         last_request = self.requests_mock.last_request
+        assert last_request is not None
         self.assertEqual(True, last_request.verify)
         self.assertEqual('POST', last_request.method)
         self.assertEqual(
@@ -259,6 +267,7 @@ class HttpsCheckTestCase(base.PolicyBaseTestCase):
             self.assertTrue(check(target_dict, cred_dict, self.enforcer))
 
         last_request = self.requests_mock.last_request
+        assert last_request is not None
         self.assertEqual('ca.crt', last_request.verify)
         self.assertEqual('POST', last_request.method)
         self.assertEqual(
@@ -292,6 +301,7 @@ class HttpsCheckTestCase(base.PolicyBaseTestCase):
                 self.assertTrue(check(target_dict, cred_dict, self.enforcer))
 
         last_request = self.requests_mock.last_request
+        assert last_request is not None
         self.assertEqual('ca.crt', last_request.verify)
         self.assertEqual(('client.crt', 'client.key'), last_request.cert)
         self.assertEqual('POST', last_request.method)
@@ -310,6 +320,7 @@ class HttpsCheckTestCase(base.PolicyBaseTestCase):
         self.assertFalse(check(target_dict, cred_dict, self.enforcer))
 
         last_request = self.requests_mock.last_request
+        assert last_request is not None
         self.assertEqual('POST', last_request.method)
         self.assertEqual(
             dict(rule=None, target=target_dict, credentials=cred_dict),
