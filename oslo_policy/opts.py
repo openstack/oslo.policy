@@ -26,27 +26,6 @@ _option_group = 'oslo_policy'
 
 _options = [
     cfg.BoolOpt(
-        'enforce_scope',
-        default=True,
-        deprecated_for_removal=True,
-        deprecated_reason='This configuration was added temporarily '
-        'to facilitate a smooth transition to the '
-        'new RBAC. OpenStack will always enforce '
-        'scope checks. This configuration option '
-        'is deprecated and will be removed in the '
-        '2025.2 cycle.',
-        help=_(
-            'This option controls whether or not to enforce scope '
-            'when evaluating policies. If ``True``, the scope of '
-            'the token used in the request is compared to the '
-            '``scope_types`` of the policy being enforced. If the '
-            'scopes do not match, an ``InvalidScope`` exception '
-            'will be raised. If ``False``, a message will be '
-            'logged informing operators that policies are being '
-            'invoked with mismatching scope.'
-        ),
-    ),
-    cfg.BoolOpt(
         'enforce_new_defaults',
         default=True,
         help=_(
@@ -55,10 +34,7 @@ _options = [
             '``True``, the old deprecated defaults are not going '
             'to be evaluated. This means if any existing token is '
             'allowed for old defaults but is disallowed for new '
-            'defaults, it will be disallowed. It is encouraged to '
-            'enable this flag along with the ``enforce_scope`` '
-            'flag so that you can get the benefits of new defaults '
-            'and ``scope_type`` together. If ``False``, the '
+            'defaults, it will be disallowed. If ``False``, the '
             "deprecated policy check string is logically OR'd "
             'with the new policy check string, allowing for a '
             'graceful upgrade experience between releases with '

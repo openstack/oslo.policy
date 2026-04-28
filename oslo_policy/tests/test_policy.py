@@ -961,7 +961,6 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.enforce('fake_rule', {}, policy_values)
 
     def test_enforcer_understands_system_scope(self):
-        self.conf.set_override('enforce_scope', True, group='oslo_policy')
         rule = policy.RuleDefault(
             name='fake_rule', check_str='role:test', scope_types=['system']
         )
@@ -971,7 +970,6 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.enforce('fake_rule', {}, ctx)
 
     def test_enforcer_understands_system_scope_creds_dict(self):
-        self.conf.set_override('enforce_scope', True, group='oslo_policy')
         rule = policy.RuleDefault(
             name='fake_rule', check_str='role:test', scope_types=['system']
         )
@@ -984,7 +982,6 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.enforce('fake_rule', {}, creds)
 
     def test_enforcer_raises_invalid_scope_with_system_scope_type(self):
-        self.conf.set_override('enforce_scope', True, group='oslo_policy')
         rule = policy.RuleDefault(
             name='fake_rule', check_str='role:test', scope_types=['system']
         )
@@ -1021,7 +1018,6 @@ class EnforcerTest(base.PolicyBaseTestCase):
         )
 
     def test_enforcer_understands_domain_scope(self):
-        self.conf.set_override('enforce_scope', True, group='oslo_policy')
         rule = policy.RuleDefault(
             name='fake_rule', check_str='role:test', scope_types=['domain']
         )
@@ -1031,7 +1027,6 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.enforce('fake_rule', {}, ctx)
 
     def test_enforcer_raises_invalid_scope_with_domain_scope_type(self):
-        self.conf.set_override('enforce_scope', True, group='oslo_policy')
         rule = policy.RuleDefault(
             name='fake_rule', check_str='role:test', scope_types=['domain']
         )
@@ -1068,7 +1063,6 @@ class EnforcerTest(base.PolicyBaseTestCase):
         )
 
     def test_enforcer_understands_project_scope(self):
-        self.conf.set_override('enforce_scope', True, group='oslo_policy')
         rule = policy.RuleDefault(
             name='fake_rule', check_str='role:test', scope_types=['project']
         )
@@ -1078,7 +1072,6 @@ class EnforcerTest(base.PolicyBaseTestCase):
         self.enforcer.enforce('fake_rule', {}, ctx)
 
     def test_enforcer_raises_invalid_scope_with_project_scope_type(self):
-        self.conf.set_override('enforce_scope', True, group='oslo_policy')
         rule = policy.RuleDefault(
             name='fake_rule', check_str='role:test', scope_types=['project']
         )
@@ -1115,14 +1108,12 @@ class EnforcerTest(base.PolicyBaseTestCase):
         )
 
     def test_enforce_scope_with_subclassed_checks_when_scope_not_set(self):
-        self.conf.set_override('enforce_scope', True, group='oslo_policy')
         rule = _checks.TrueCheck()
         rule.scope_types = None
         ctx = context.RequestContext(system_scope='all', roles=['admin'])
         self.enforcer.enforce(rule, {}, ctx)
 
     def test_enforcer_raises_invalid_scope_with_subclassed_checks(self):
-        self.conf.set_override('enforce_scope', True, group='oslo_policy')
         rule = _checks.TrueCheck()
         rule.scope_types = ['domain']
         ctx = context.RequestContext(system_scope='all', roles=['admin'])

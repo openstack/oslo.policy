@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    Configuring scope enforcement is no longer supported. If policy rules
+    have the ``scope_types`` defined then scope enforcement will always occur.
+    The config option ``enforce_scope``, which was added temporarily to
+    facilitate a smooth transition to the new RBAC model, has now been
+    removed.

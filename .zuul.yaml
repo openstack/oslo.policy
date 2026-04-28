@@ -9,6 +9,7 @@
       zuul_work_dir: src/opendev.org/openstack/nova
       tox_envlist: functional
     required-projects:
+      - openstack/placement
       - openstack/nova
       - openstack/oslo.policy
     irrelevant-files: &irrelevant-files
