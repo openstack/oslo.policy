@@ -224,7 +224,7 @@ from collections.abc import Callable, MutableMapping, Sequence
 import copy
 import logging
 import os
-from typing import Any, TypeAlias, TypedDict, cast
+from typing import Any, TypeAlias, TypedDict
 import warnings
 
 from oslo_config import cfg
@@ -966,12 +966,11 @@ class Enforcer:
         :returns: The policy path
         :raises: ConfigFilesNotFoundError if the file/path couldn't be located.
         """
-        policy_path = cast(str | None, self.conf.find_file(path))
-
+        policy_path = self.conf.find_file(path)
         if policy_path:
             return policy_path
 
-        raise cfg.ConfigFilesNotFoundError((path,))
+        raise cfg.ConfigFilesNotFoundError([path])
 
     def enforce(
         self,

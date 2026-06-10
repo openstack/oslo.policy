@@ -72,14 +72,14 @@ def read_cached_file(
                 {'filename': filename, 'msg': msg},
             )
             if err_code == errno.EACCES:
-                raise cfg.ConfigFilesPermissionDeniedError((filename,))
+                raise cfg.ConfigFilesPermissionDeniedError([filename])
         except OSError as err:
             msg = err.strerror
             LOG.error(
                 'Config file not found %(filename)s: %(msg)s',
                 {'filename': filename, 'msg': msg},
             )
-            raise cfg.ConfigFilesNotFoundError((filename,))
+            raise cfg.ConfigFilesNotFoundError([filename])
         cache_info['mtime'] = mtime
         reloaded = True
     return (reloaded, cache_info['data'])

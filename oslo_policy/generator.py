@@ -540,7 +540,7 @@ def _check_for_namespace_opt(conf: cfg.ConfigOpts) -> None:
     # anything. Once everyone has migrated, we can make the arg required again
     # and remove this check.
     if conf.namespace is None:
-        raise cfg.RequiredOptError('namespace', 'DEFAULT')
+        raise cfg.RequiredOptError('namespace', cfg.OptGroup('DEFAULT'))
 
 
 def generate_sample(
@@ -552,7 +552,8 @@ def generate_sample(
         conf = cfg.CONF
     conf.register_cli_opts(GENERATOR_OPTS + RULE_OPTS)
     conf.register_opts(GENERATOR_OPTS + RULE_OPTS)
-    conf(args)
+    # https://review.opendev.org/c/openstack/oslo.config/+/992762
+    conf(list(args) if args else None)
     _check_for_namespace_opt(conf)
     _generate_sample(
         conf.namespace,

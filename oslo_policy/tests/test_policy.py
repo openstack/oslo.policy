@@ -803,7 +803,7 @@ class EnforcerTest(base.PolicyBaseTestCase):
             enforcer._get_policy_path,
             enforcer.policy_file,
         )
-        self.assertEqual(('raise_error.yaml',), e.config_files)
+        self.assertEqual(['raise_error.yaml'], e.config_files)
 
     def test_enforcer_set_rules(self):
         rules: dict[str, _checks.BaseCheck] = {'test': _checks.FalseCheck()}
