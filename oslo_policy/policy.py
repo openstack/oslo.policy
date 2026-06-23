@@ -224,14 +224,13 @@ from collections.abc import Callable, MutableMapping, Sequence
 import copy
 import logging
 import os
-from typing import Any, TypeAlias, TypedDict
+from typing import Any, Self, TypeAlias, TypedDict
 import warnings
 
 from oslo_config import cfg
 from oslo_context import context
 from oslo_serialization import jsonutils
 from oslo_utils import strutils
-from typing_extensions import Self
 import yaml
 
 from oslo_policy import _cache_handler

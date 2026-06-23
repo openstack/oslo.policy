@@ -18,15 +18,12 @@ import abc
 import ast
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 import inspect
-from typing import Any, TypeAlias, TypeVar, TYPE_CHECKING, overload
+from typing import Any, Self, TypeAlias, TypeVar, TYPE_CHECKING, overload
 
 from oslo_context import context
 import stevedore
-from typing_extensions import Self
 
 if TYPE_CHECKING:
-    from typing_extensions import Self
-
     from oslo_policy.policy import Enforcer
 
 CredsT: TypeAlias = context.RequestContext | MutableMapping[str, Any]
