@@ -859,7 +859,7 @@ class Enforcer:
             for rule in rules:
                 # As there being an OrCheck or AndCheck, a copy of the father's
                 # seen should be called here. In order that the checks in
-                # different branchs are seperated.
+                # different branchs are separated.
                 if self._cycle_check(rule, seen.copy()):
                     return True
         return False
