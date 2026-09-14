@@ -49,7 +49,7 @@ http = "oslo_policy._external:HttpCheck"
 https = "oslo_policy._external:HttpsCheck"
 
 [tool.setuptools.packages.find]
-include = ["oslo_policy"]
+include = ["oslo_policy*"]
 
 [tool.mypy]
 python_version = "3.11"
