@@ -1,8 +1,0 @@
-[run]
-branch = True
-source = oslo_policy
-omit = oslo_policy/tests/*
-
-[report]
-ignore_errors = True
-precision = 2

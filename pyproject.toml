@@ -52,6 +52,19 @@ https = "oslo_policy._external:HttpsCheck"
 [tool.setuptools.packages.find]
 include = ["oslo_policy*"]
 
+[tool.coverage.run]
+source = [
+    "oslo_policy"
+]
+branch = true
+omit = [
+    "oslo_policy/tests/*"
+]
+
+[tool.coverage.report]
+ignore_errors = true
+show_missing = true
+
 [tool.mypy]
 python_version = "3.11"
 show_column_numbers = true
