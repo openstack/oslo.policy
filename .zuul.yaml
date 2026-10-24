@@ -22,6 +22,7 @@
       - ^sample_data/.*$
       - ^\.pre-commit-config\.yaml$
       - ^oslo_policy/tests/.*$
+      - ^tox\.ini$
       - ^test-requirements\.txt$
     timeout: 3600
 
