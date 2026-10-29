@@ -23,6 +23,7 @@
       - ^\.pre-commit-config\.yaml$
       - ^oslo_policy/tests/.*$
       - ^test-requirements\.txt$
+    timeout: 3600
 
 - job:
     name: cross-nova-tox-py314
